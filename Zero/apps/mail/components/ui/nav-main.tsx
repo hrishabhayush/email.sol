@@ -20,10 +20,12 @@ import SidebarLabels from './sidebar-labels';
 import { useCallback, useRef } from 'react';
 import { BASE_URL } from '@/lib/constants';
 import { useQueryState } from 'nuqs';
-import { Plus } from 'lucide-react';
+import { Plus, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import * as React from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   ref?: React.Ref<SVGSVGElement>;
@@ -185,6 +187,7 @@ export function NavMain({ items }: NavMainProps) {
       <SidebarMenu>
         {isBottomNav ? (
           <>
+            <ConnectWalletButton />
             <SidebarMenuButton
               onClick={() => show()}
               tooltip={state === 'collapsed' ? m['common.commandPalette.groups.help']() : undefined}
@@ -323,5 +326,42 @@ function NavItem(item: NavItemProps & { href: string }) {
         </SidebarMenuButton>
       </CollapsibleTrigger>
     </Collapsible>
+  );
+}
+
+function ConnectWalletButton() {
+  const { wallet, publicKey, disconnect, connecting } = useWallet();
+  const { setVisible } = useWalletModal();
+  const { state } = useSidebar();
+
+  const handleClick = () => {
+    if (wallet && publicKey) {
+      // Wallet is connected, show disconnect option
+      disconnect().catch((err: unknown) => {
+        console.error('Error disconnecting wallet:', err);
+        toast.error('Failed to disconnect wallet');
+      });
+    } else {
+      // No wallet connected, open wallet modal
+      setVisible(true);
+    }
+  };
+
+  const displayText = wallet && publicKey
+    ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
+    : 'Connect Wallet';
+
+  return (
+    <SidebarMenuButton
+      onClick={handleClick}
+      disabled={connecting}
+      tooltip={state === 'collapsed' ? displayText : undefined}
+      className="hover:bg-subtleWhite flex cursor-pointer items-center dark:hover:bg-[#202020]"
+    >
+      <Wallet className="relative mr-2.5 h-3 w-3 fill-[#8F8F8F] text-[#8F8F8F]" />
+      <p className="relative bottom-0.5 mt-0.5 truncate text-[13px]">
+        {connecting ? 'Connecting...' : displayText}
+      </p>
+    </SidebarMenuButton>
   );
 }

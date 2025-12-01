@@ -8,6 +8,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import type { PropsWithChildren } from 'react';
 import Toaster from '@/components/ui/toast';
 import { ThemeProvider } from 'next-themes';
+import { SolanaWalletProvider } from './wallet-provider';
 
 export function ClientProviders({ children }: PropsWithChildren) {
   const { data } = useSettings();
@@ -18,21 +19,23 @@ export function ClientProviders({ children }: PropsWithChildren) {
   return (
     <NuqsAdapter>
       <JotaiProvider>
-        <ThemeProvider
-          attribute="class"
-          enableSystem
-          disableTransitionOnChange
-          defaultTheme={theme}
-        >
-          <SidebarProvider>
-            <PostHogProvider>
-              <LoadingProvider>
-                {children}
-                <Toaster />
-              </LoadingProvider>
-            </PostHogProvider>
-          </SidebarProvider>
-        </ThemeProvider>
+        <SolanaWalletProvider>
+          <ThemeProvider
+            attribute="class"
+            enableSystem
+            disableTransitionOnChange
+            defaultTheme={theme}
+          >
+            <SidebarProvider>
+              <PostHogProvider>
+                <LoadingProvider>
+                  {children}
+                  <Toaster />
+                </LoadingProvider>
+              </PostHogProvider>
+            </SidebarProvider>
+          </ThemeProvider>
+        </SolanaWalletProvider>
       </JotaiProvider>
     </NuqsAdapter>
   );
