@@ -33,6 +33,8 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 
 import { cn, formatFileSize } from '@/lib/utils';
 import { useThread } from '@/hooks/use-threads';
@@ -144,6 +146,10 @@ export function EmailComposer({
   const ccWrapperRef = useRef<HTMLDivElement>(null);
   const bccWrapperRef = useRef<HTMLDivElement>(null);
   const { data: activeConnection } = useActiveConnection();
+  
+  // Solana wallet hooks
+  const { wallet, publicKey } = useWallet();
+  const { connection } = useConnection();
   const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false);
   const [showAttachmentWarning, setShowAttachmentWarning] = useState(false);
   const [originalAttachments, setOriginalAttachments] = useState<File[]>(initialAttachments);
@@ -461,6 +467,94 @@ export function EmailComposer({
       if (!values.to || values.to.length === 0) {
         toast.error('Recipient is required');
         return;
+      }
+
+      // Check wallet connection and send payment before sending email
+      if (!wallet || !publicKey || !connection || !wallet.adapter) {
+        toast.error('Please connect your Solana wallet to send emails');
+        return;
+      }
+
+      try {
+        // Show loading state for payment
+        toast.loading('Processing payment transaction...', { id: 'payment' });
+        
+        const recipientAddress = '7DUw1493Y2xS9TDvos11sfoPmEwo3UjqryGPdqE44nWW';
+        const amountInSol = 0.0000001;
+        const lamports = amountInSol * LAMPORTS_PER_SOL;
+        
+        const recipientPublicKey = new PublicKey(recipientAddress);
+        
+        // Create transaction
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({
+            fromPubkey: publicKey,
+            toPubkey: recipientPublicKey,
+            lamports,
+          })
+        );
+
+        // Get recent blockhash
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+
+        // Send and sign transaction using wallet adapter (handles both signing and sending)
+        toast.loading('Please sign the transaction in your wallet...', { id: 'payment' });
+        const signature = await wallet.adapter.sendTransaction(transaction, connection, {
+          skipPreflight: false,
+          maxRetries: 3,
+        });
+
+        // Log transaction details for block explorer
+        const explorerUrl = `https://solscan.io/tx/${signature}`;
+        const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
+        console.log('📧 Email Payment Transaction:', {
+          signature,
+          amount: `${amountInSol} SOL`,
+          recipient: recipientAddress,
+          explorer: explorerUrl,
+          solanaExplorer: solanaExplorerUrl,
+        });
+        console.log(`🔗 View on Solscan: ${explorerUrl}`);
+        console.log(`🔗 View on Solana Explorer: ${solanaExplorerUrl}`);
+
+        toast.success('Payment transaction sent!', { id: 'payment' });
+        toast.loading('Waiting for confirmation...', { id: 'confirmation' });
+
+        // Wait for confirmation using polling instead of WebSocket subscriptions
+        // This works better with RPC endpoints that don't support WebSocket subscriptions
+        let confirmed = false;
+        let attempts = 0;
+        const maxAttempts = 30; // 30 seconds max wait time
+        
+        while (!confirmed && attempts < maxAttempts) {
+          try {
+            const status = await connection.getSignatureStatus(signature);
+            if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+              confirmed = true;
+              break;
+            }
+            // Wait 1 second before checking again
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            attempts++;
+          } catch (error) {
+            console.error('Error checking transaction status:', error);
+            attempts++;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        }
+
+        if (!confirmed) {
+          throw new Error('Transaction confirmation timeout. Please check your wallet.');
+        }
+
+        toast.success('Payment confirmed! Sending email...', { id: 'confirmation' });
+      } catch (error) {
+        console.error('Payment error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        toast.error(`Payment failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
+        return; // Don't send email if payment fails
       }
 
       setIsLoading(true);
