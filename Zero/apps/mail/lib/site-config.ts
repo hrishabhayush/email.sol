@@ -1,4 +1,4 @@
-const TITLE = 'Zero';
+const TITLE = 'SolMail';
 const DESCRIPTION =
   'Experience email the way you want with 0 - the first open source email app that puts your privacy and safety first.';
 
@@ -8,7 +8,7 @@ export const siteConfig = {
   icons: {
     icon: '/favicon.ico',
   },
-  applicationName: 'Zero',
+  applicationName: 'SolMail',
   creator: '@nizzyabi @bruvimtired @ripgrim @needleXO @dakdevs @mrgsub',
   openGraph: {
     title: TITLE,

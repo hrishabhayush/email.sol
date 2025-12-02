@@ -1,6 +1,6 @@
 {
-  "name": "Zero",
-  "short_name": "0",
+  "name": "SolMail",
+  "short_name": "SM",
   "description": "Zero - the first open source email app that puts your privacy and safety first.",
   "scope": "/",
   "start_url": "/mail/inbox",

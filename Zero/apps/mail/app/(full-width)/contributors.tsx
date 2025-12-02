@@ -387,12 +387,12 @@ export default function OpenPage() {
                 <a href="/">
                   <div className="relative h-8 w-8">
                     <img
-                      src="/black-icon.svg"
+                      src="/solmail-logo.png"
                       alt="0.email Logo"
                       className="object-contain dark:hidden"
                     />
                     <img
-                      src="/white-icon.svg"
+                      src="/solmail-logo.png"
                       alt="0.email Logo"
                       className="hidden object-contain dark:block"
                     />

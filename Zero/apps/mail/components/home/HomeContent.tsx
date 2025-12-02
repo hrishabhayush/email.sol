@@ -85,7 +85,8 @@ export default function HomeContent() {
           className="text-center text-4xl font-medium md:text-6xl"
         >
           <Balancer className="mb-3 max-w-[1130px]">
-            Cold emails that actually get replies, spend only for successful conversions
+            Cold emails that actually get replies.
+            Spend only for successful conversions.
           </Balancer>
         </motion.h1>
         <motion.p
@@ -94,7 +95,7 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          sol0mail is an AI-native email built on top of Zero with micropayments for successful conversions and only paying when client replies relevantly
+          SolMail is an AI-powered email platform built on Zero that sends micropayments upfront and refunds them if replies aren't meaningful,  ensuring you pay solely for successful conversations.
         </motion.p>
         {/* Get Started button only visible for mobile screens */}
         <motion.div
@@ -1177,7 +1178,7 @@ export default function HomeContent() {
                 </div>
                 <div className="relative flex h-full flex-1 flex-col items-center justify-between gap-8 self-stretch overflow-hidden px-5 py-4">
                   <img
-                    src="/white-icon.svg"
+                    src="/solmail-logo.png"
                     alt="chat"
                     width={28}
                     height={28}
