@@ -4,6 +4,7 @@ export default [
   index('page.tsx'),
   route('/home', 'home/page.tsx'),
 
+  route('/favicon.ico', 'favicon.ico.ts'),
   route('/api/mailto-handler', 'mailto-handler.ts'),
 
   layout('(full-width)/layout.tsx', [

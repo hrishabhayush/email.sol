@@ -6,7 +6,7 @@ export const siteConfig = {
   title: TITLE,
   description: DESCRIPTION,
   icons: {
-    icon: '/favicon.ico',
+    icon: '/solmail-logo.png',
   },
   applicationName: 'SolMail',
   creator: '@nizzyabi @bruvimtired @ripgrim @needleXO @dakdevs @mrgsub',

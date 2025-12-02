@@ -63,6 +63,8 @@ export function Layout({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         
         <link rel="icon" type="image/png" href="/solmail-logo.png" />
+        <link rel="shortcut icon" type="image/png" href="/solmail-logo.png" />
+        <link rel="apple-touch-icon" href="/solmail-logo.png" />
 
         <link rel="manifest" href="/manifest.json" />
         <Meta />
