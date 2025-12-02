@@ -183,7 +183,7 @@ export default function HomeContent() {
           className="flex items-center justify-center"
         >
           <h1 className="text-lg font-light text-white/40 md:text-xl">
-            Designed for power users who want results and don't want to waste time
+            Designed for users who want to incentivize better cold email correspondence
           </h1>
         </motion.div>
         <motion.div
@@ -193,10 +193,10 @@ export default function HomeContent() {
           className="mt-2 flex flex-col items-center justify-center md:mt-8"
         >
           <h1 className="text-center text-4xl font-medium text-white md:text-6xl">
-            Write emails with AI
+            Responses evalauated by AI
           </h1>
           <h1 className="mb-3 text-center text-4xl font-medium text-white/40 md:text-6xl">
-            Payments settled with x402 
+            Solana-powered micropayments 
           </h1>
         </motion.div>
         <motion.div
