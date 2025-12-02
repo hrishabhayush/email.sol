@@ -75,7 +75,7 @@ export function Navigation() {
         <nav className="border-input/50 flex w-full max-w-4xl items-center justify-between gap-2 rounded-xl border-t bg-[#1E1E1E] p-3 px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="relative bottom-1 cursor-pointer">
-              <img src="solmail-logo.png" alt="Zero Email" width={22} height={22} />
+              <img src="/solmail-logo.png" alt="Zero Email" width={22} height={22} />
             </Link>
             <NavigationMenu>
               <NavigationMenuList className="gap-1">
