@@ -82,7 +82,14 @@
     "ulid": "3.0.1",
     "uuid": "11.1.0",
     "wrangler": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "solana-agent-kit": "latest",
+    "@solana-agent-kit/plugin-token": "latest",
+    "@solana/web3.js": "^1.95.8",
+    "@coral-xyz/anchor": "^0.30.1",
+    "langchain": "^0.3.0",
+    "@langchain/openai": "^0.3.0",
+    "bs58": "^6.0.0"
   },
   "devDependencies": {
     "@effect/language-service": "0.31.1",
