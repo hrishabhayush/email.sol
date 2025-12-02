@@ -326,7 +326,7 @@ export default function OpenPage() {
                 </a>
               </div>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                An open source email app built with modern technologies
+                An open source email app built on Zero
               </p>
             </div>
             <div className="flex gap-2">
@@ -686,8 +686,7 @@ export default function OpenPage() {
                     Let&apos;s build the future of email together
                   </h2>
                   <p className="mt-3 text-neutral-600 dark:text-neutral-300">
-                    Whether you&apos;re fixing bugs, adding features, or improving documentation,
-                    every contribution matters.
+                    Get the responses you want from cold emailing
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Button
