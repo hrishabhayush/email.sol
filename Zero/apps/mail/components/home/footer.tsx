@@ -15,13 +15,13 @@ export default function Footer() {
       <div className="flex w-full items-start justify-between lg:w-[900px]">
         <div className="mt-3 flex flex-col items-start justify-start gap-6 self-stretch">
           <div className="text-xs font-medium leading-tight text-white opacity-80 sm:text-sm">
-            © 2025 sol0mail
+            © 2025 SolMail
           </div>
         </div>
 
         <div className="inline-flex items-center justify-center gap-4">
           <a href="/">
-            <img src="/white-icon.svg" alt="logo" width={20} height={20} />
+            <img src="/solmail-logo.png" alt="logo" width={20} height={20} />
           </a>
           {socialLinks.map((social) => (
             <a

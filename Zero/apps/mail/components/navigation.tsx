@@ -23,7 +23,7 @@ const aboutLinks = [
   {
     title: 'About',
     href: '/about',
-    description: 'Learn more about Zero and our mission.',
+    description: 'Learn more about SolMail and our mission.',
   },
   {
     title: 'Terms of Service',
@@ -33,7 +33,7 @@ const aboutLinks = [
   {
     title: 'Contributors',
     href: '/contributors',
-    description: 'See the contributors to Zero.',
+    description: 'See the contributors to SolMail.',
   },
 ];
 
@@ -80,7 +80,7 @@ export function Navigation() {
             <NavigationMenu>
               <NavigationMenuList className="gap-1">
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="bg-transparent text-white">
+                  <NavigationMenuTrigger className="cursor-pointer bg-transparent text-white">
                     Company
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
@@ -116,7 +116,7 @@ export function Navigation() {
               </div>
             </a>
             <Button
-              className="h-8 bg-white text-black hover:bg-white hover:text-black"
+              className="h-8 cursor-pointer bg-white text-black hover:bg-white hover:text-black"
               onClick={() => {
                 if (session) {
                   navigate('/mail/inbox');
@@ -143,7 +143,7 @@ export function Navigation() {
       <div className="lg:hidden">
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="fixed left-4 top-6 z-50">
+            <Button variant="ghost" size="icon" className="fixed left-4 top-6 z-50 cursor-pointer">
               <Menu className="h-6 w-6" />
             </Button>
           </SheetTrigger>

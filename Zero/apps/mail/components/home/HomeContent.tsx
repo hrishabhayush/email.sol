@@ -32,6 +32,7 @@ import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Balancer } from 'react-wrap-balancer';
 import { Navigation } from '../navigation';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
@@ -76,6 +77,10 @@ export default function HomeContent() {
       />
 
       <Navigation />
+
+      <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
+        <ThemeToggle />
+      </div>
 
       <section className="z-10 mt-32 flex flex-col items-center px-4">
         <motion.h1

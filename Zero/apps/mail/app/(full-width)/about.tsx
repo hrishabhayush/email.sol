@@ -3,6 +3,7 @@ import { Github, Mail, ArrowLeft } from 'lucide-react';
 import { Navigation } from '@/components/navigation';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/home/footer';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import React from 'react';
 
 export default function AboutPage() {
@@ -10,7 +11,10 @@ export default function AboutPage() {
     <div className="relative flex min-h-screen w-full flex-col overflow-auto bg-white dark:bg-[#111111]">
       <Navigation />
       <div className="relative z-10 flex grow flex-col">
-        <div className="absolute right-4 top-6 md:left-8 md:right-auto md:top-8">
+        <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
+          <ThemeToggle />
+        </div>
+        <div className="absolute left-4 top-20 hidden md:left-8 md:top-8 md:block">
           <a href="/">
             <Button
               variant="ghost"
