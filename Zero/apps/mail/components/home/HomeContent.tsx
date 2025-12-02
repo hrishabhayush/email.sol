@@ -110,6 +110,7 @@ export default function HomeContent() {
           className="mb-6 lg:hidden"
         >
           <Button
+            className="cursor-pointer"
             onClick={() => {
               if (session) {
                 navigate('/mail/inbox');
