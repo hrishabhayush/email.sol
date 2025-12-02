@@ -1,12 +1,9 @@
 import {
-  Github,
   Star,
   GitFork,
   MessageCircle,
   GitGraph,
-  ChartAreaIcon,
   GitPullRequest,
-  LayoutGrid,
 } from 'lucide-react';
 import {
   Area,
@@ -18,10 +15,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { Discord, Twitter } from '@/components/icons/icons';
+import { Discord, Twitter, GitHub } from '@/components/icons/icons';
 import { Separator } from '@/components/ui/separator';
 import { Navigation } from '@/components/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -58,74 +54,12 @@ const excludedUsernames = new Set([
   'zerodotemail',
   'autofix-ci[bot]',
 ]);
-const coreTeamMembers = [
-  'nizzyabi',
-  'ahmetskilinc',
-  'BlankParticle',
-  'needlexo',
-  'dakdevs',
-  'mrgsub',
-];
-const REPOSITORY = 'Mail-0/Zero';
+const REPOSITORY = 'hrishabhayush/email.sol';
 
 const specialRoles: Record<
   string,
   { role: string; position: number; x?: string; website?: string }
-> = {
-  nizzyabi: {
-    role: 'Founder & CEO',
-    position: 1,
-    x: 'nizzyabi',
-  },
-  mrgsub: {
-    role: 'Founder & CTO',
-    position: 2,
-    x: 'cmdhaus',
-  },
-  ahmetskilinc: {
-    role: 'Lead Engineer',
-    position: 3,
-    x: 'bruvimtired',
-    website: 'https://ahmetk.dev/',
-  },
-  needlexo: {
-    role: 'Software Engineer',
-    position: 5,
-    x: 'needleXO',
-    website: 'https://needle.rip',
-  },
-  dakdevs: {
-    role: 'Software Engineer',
-    position: 4,
-    x: 'dakdevs',
-    website: 'https://www.dak.dev/',
-  },
-  ripgrim: {
-    role: 'Maintainer',
-    position: 6,
-    x: 'fuckgrimlabs',
-    website: 'https://ripgrim.com',
-  },
-};
-
-const ChartControls = ({
-  showAll,
-  setShowAll,
-  total,
-}: {
-  showAll: boolean;
-  setShowAll: (show: boolean) => void;
-  total: number;
-}) => (
-  <div className="mb-4 flex items-center justify-between">
-    <span className="text-muted-foreground text-sm">
-      Showing {showAll ? 'all' : 'top 10'} contributors
-    </span>
-    <Button variant="outline" size="sm" onClick={() => setShowAll(!showAll)} className="text-xs">
-      Show {showAll ? 'less' : 'all'} ({total})
-    </Button>
-  </div>
-);
+> = {};
 
 export default function OpenPage() {
   const [repoStats, setRepoStats] = useState({
@@ -137,7 +71,6 @@ export default function OpenPage() {
   });
   const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
   const [activityData, setActivityData] = useState<ActivityData[]>([]);
-  const [showAllContributors, setShowAllContributors] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allContributors, setAllContributors] = useState<Contributor[]>([]);
@@ -196,30 +129,23 @@ export default function OpenPage() {
 
   const filteredCoreTeam = useMemo(() => {
     return allContributors
-      ?.filter(
-        (contributor) =>
-          !excludedUsernames.has(contributor.login) &&
-          coreTeamMembers.some(
-            (member) => member.toLowerCase() === contributor.login.toLowerCase(),
-          ),
-      )
+      ?.filter((contributor) => !excludedUsernames.has(contributor.login))
       .sort((a, b) => {
+        // First sort by special role position if defined
         const positionA = specialRoles[a.login.toLowerCase()]?.position || 999;
         const positionB = specialRoles[b.login.toLowerCase()]?.position || 999;
-        return positionA - positionB;
+        if (positionA !== positionB) {
+          return positionA - positionB;
+        }
+        // Then sort by contributions
+        return b.contributions - a.contributions;
       });
   }, [allContributors]);
 
   const filteredContributors = useMemo(
     () =>
       allContributors
-        ?.filter(
-          (contributor) =>
-            !excludedUsernames.has(contributor.login) &&
-            !coreTeamMembers.some(
-              (member) => member.toLowerCase() === contributor.login.toLowerCase(),
-            ),
-        )
+        ?.filter((contributor) => !excludedUsernames.has(contributor.login))
         .sort((a, b) => b.contributions - a.contributions),
     [allContributors],
   );
@@ -411,7 +337,7 @@ export default function OpenPage() {
                 className="gap-2 border-neutral-200 bg-white/50 text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900/50 dark:text-neutral-200 dark:hover:bg-neutral-800 dark:hover:text-white"
               >
                 <a href={`https://github.com/${REPOSITORY}`} target="_blank">
-                  <Github className="h-4 w-4" />
+                  <GitHub className="h-4 w-4" />
                   View on GitHub
                 </a>
               </Button>
@@ -446,7 +372,7 @@ export default function OpenPage() {
             </div>
 
             <div className="hidden items-center gap-3 px-3 first:pl-0 last:pr-0 sm:flex sm:px-4">
-              <Github className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+              <GitHub className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
               <div className="flex items-baseline gap-1">
                 <span className="text-base font-bold text-neutral-900 sm:text-lg dark:text-white">
                   {repoStats.watchers}
@@ -665,7 +591,7 @@ export default function OpenPage() {
             <h1 className="text-3xl font-semibold tracking-tight text-neutral-900/80 dark:text-white">
               Core Team
             </h1>
-            <p className="text-muted-foreground mt-2">Meet the people behind 0.email</p>
+            <p className="text-muted-foreground mt-2">Meet the people behind SolMail</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -704,7 +630,7 @@ export default function OpenPage() {
                       target="_blank"
                       className="rounded-md p-1 text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white"
                     >
-                      <Github className="h-4 w-4" />
+                      <GitHub className="h-4 w-4" />
                     </a>
                     {specialRoles[member.login.toLowerCase()]?.x && (
                       <a
@@ -744,168 +670,6 @@ export default function OpenPage() {
           </div>
         </div>
 
-        {/* Contributors Section */}
-        <div className="mb-16 space-y-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-semibold tracking-tight text-neutral-900/80 dark:text-white">
-              Contributors
-            </h1>
-            <div className="text-muted-foreground mt-2 flex items-center justify-center gap-2">
-              <span>Thank you to all the contributors who have helped make 0.email possible</span>
-            </div>
-          </div>
-
-          <div>
-            <Tabs defaultValue="grid" className="w-full">
-              <div className="mb-6 flex justify-center">
-                <TabsList className="grid h-full w-full grid-cols-2 border border-neutral-200 bg-white/50 p-1 sm:w-[200px] dark:border-neutral-800 dark:bg-neutral-900/50">
-                  <TabsTrigger
-                    value="grid"
-                    className="flex items-center gap-2 text-neutral-600 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm dark:text-neutral-400 dark:data-[state=active]:bg-neutral-800 dark:data-[state=active]:text-white"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    Grid
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="chart"
-                    className="flex items-center gap-2 text-neutral-600 data-[state=active]:bg-white data-[state=active]:text-neutral-900 data-[state=active]:shadow-sm dark:text-neutral-400 dark:data-[state=active]:bg-neutral-800 dark:data-[state=active]:text-white"
-                  >
-                    <ChartAreaIcon className="h-4 w-4" />
-                    Chart
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="grid">
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-                  {filteredContributors?.map((contributor, index) => (
-                    <a
-                      key={contributor.login}
-                      href={contributor.html_url}
-                      target="_blank"
-                      className="group relative flex flex-col items-center rounded-xl border bg-white/50 p-4 transition-all hover:-translate-y-1 hover:bg-white hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-900 dark:hover:shadow-neutral-900/50"
-                      style={{
-                        animationDelay: `${index * 50}ms`,
-                        animation: 'fadeInUp 0.5s ease-out forwards',
-                        opacity: 0,
-                        transform: 'translateY(10px)',
-                      }}
-                    >
-                      <Avatar className="h-16 w-16 ring-2 ring-neutral-200 transition-transform group-hover:scale-105 group-hover:ring-neutral-300 dark:ring-neutral-800 dark:group-hover:ring-neutral-700">
-                        <AvatarImage
-                          src={contributor.avatar_url}
-                          alt={contributor.login}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="text-xs">
-                          {contributor.login.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-
-                      <div className="mt-3 text-center">
-                        <span className="block text-sm font-medium text-neutral-900 transition-colors group-hover:text-neutral-700 dark:text-neutral-200 dark:group-hover:text-white">
-                          {contributor.login}
-                        </span>
-                        <div className="mt-2 flex items-center justify-center gap-1">
-                          <GitGraph className="h-3 w-3 text-neutral-500 transition-colors group-hover:text-neutral-700 dark:text-neutral-400 dark:group-hover:text-neutral-300" />
-                          <span className="text-sm font-medium text-neutral-700 transition-colors group-hover:text-neutral-900 dark:text-neutral-300 dark:group-hover:text-white">
-                            {contributor.contributions}
-                          </span>
-                        </div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="chart">
-                <Card className="bg-white/50 p-6 dark:bg-neutral-900/50">
-                  <ChartControls
-                    showAll={showAllContributors}
-                    setShowAll={setShowAllContributors}
-                    total={filteredContributors?.length || 0}
-                  />
-
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart
-                      data={filteredContributors?.slice(0, showAllContributors ? undefined : 10)}
-                      margin={{ top: 10, right: 10, bottom: 20, left: 10 }}
-                    >
-                      <XAxis
-                        dataKey="login"
-                        interval={0}
-                        tick={(props) => {
-                          const { x, y, payload } = props;
-                          const contributor = allContributors?.find(
-                            (c) => c.login === payload.value,
-                          );
-
-                          return (
-                            <g transform={`translate(${x},${y})`}>
-                              <foreignObject x="-12" y="8" width="24" height="24">
-                                <Avatar className="h-6 w-6 ring-1 ring-neutral-200 dark:ring-neutral-800">
-                                  <AvatarImage src={contributor?.avatar_url} />
-                                  <AvatarFallback className="text-[8px]">
-                                    {payload.value.slice(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                              </foreignObject>
-                            </g>
-                          );
-                        }}
-                        height={60}
-                        className="text-neutral-600 dark:text-neutral-400"
-                      />
-                      <YAxis
-                        stroke="currentColor"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(value) => `${value}`}
-                        className="text-neutral-600 dark:text-neutral-400"
-                      />
-                      <Tooltip
-                        cursor={{ fill: 'rgb(0 0 0 / 0.05)' }}
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0]?.payload;
-                            return (
-                              <div className="rounded-lg border border-neutral-200 bg-white p-3 shadow-lg dark:border-neutral-800 dark:bg-neutral-900">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8 ring-1 ring-neutral-200 dark:ring-neutral-800">
-                                    <AvatarImage src={data.avatar_url} />
-                                    <AvatarFallback>
-                                      {data.login.slice(0, 2).toUpperCase()}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="text-sm font-medium text-neutral-900 dark:text-white">
-                                      {data.login}
-                                    </div>
-                                    <div className="flex items-center gap-1 text-xs text-neutral-600 dark:text-neutral-400">
-                                      <GitGraph className="h-3 w-3" />
-                                      <span>{data.contributions} commits</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          return null;
-                        }}
-                      />
-                      <Bar
-                        dataKey="contributions"
-                        className="fill-neutral-900 dark:fill-white"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
 
         <div className="mb-8">
           <div className="relative overflow-hidden rounded-xl border bg-linear-to-br from-neutral-50 to-white shadow-sm dark:border-neutral-800 dark:from-neutral-900/80 dark:to-neutral-900/30">
@@ -915,7 +679,7 @@ export default function OpenPage() {
               <div className="flex flex-col items-center gap-8 md:flex-row">
                 <div className="w-full md:w-2/3">
                   <div className="inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-neutral-900">
-                    <Github className="mr-1.5 h-3.5 w-3.5" />
+                    <GitHub className="mr-1.5 h-3.5 w-3.5" />
                     MIT Licensed
                   </div>
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
