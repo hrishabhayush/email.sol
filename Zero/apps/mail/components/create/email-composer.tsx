@@ -477,11 +477,13 @@ export function EmailComposer({
         return;
       }
 
-      // Extract email addresses from recipients
+      // Extract email addresses from recipients and normalize to lowercase
       const recipientEmails = values.to.map((email) => {
         // Handle both "Name <email>" and "email" formats
         const match = email.match(/<([^>]+)>/);
-        return match ? match[1] : email;
+        const extractedEmail = match ? match[1] : email;
+        // Normalize to lowercase to match backend behavior
+        return extractedEmail.toLowerCase().trim();
       });
 
       // Get wallet addresses for recipients
@@ -496,6 +498,7 @@ export function EmailComposer({
       }
 
       // Check if all recipients have wallets
+      // Note: recipientEmails are already lowercased, matching the backend's walletMap keys
       const recipientsWithoutWallets = recipientEmails.filter(
         (email) => !recipientWallets[email]?.walletAddress
       );
