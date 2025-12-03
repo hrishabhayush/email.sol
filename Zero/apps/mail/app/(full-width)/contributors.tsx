@@ -79,6 +79,7 @@ const specialRoles: Record<
   'arcanebear812': {
     role: 'Contributor',
     position: 4,
+    x: 'Dhruvprata4970',
   },
 };
 
