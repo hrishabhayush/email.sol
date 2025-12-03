@@ -16,15 +16,19 @@ Tests for scoreEmail:
 - x402 fetch passing
 */
 
-// Mock LangChain - avoid hoisting issues by not calling createMockChatOpenAI at top level
-vi.mock('@langchain/openai', () => ({
-    ChatOpenAI: vi.fn().mockImplementation(() => ({
-        invoke: vi.fn().mockResolvedValue({
-            content: JSON.stringify({ score: 85 }),
-            response_metadata: {},
-        }),
-    })),
-}));
+// Mock LangChain - use vi.hoisted to avoid dependency loading issues
+vi.mock('@langchain/openai', () => {
+    const mockInvoke = vi.fn().mockResolvedValue({
+        content: JSON.stringify({ score: 85 }),
+        response_metadata: {},
+    });
+
+    return {
+        ChatOpenAI: vi.fn().mockImplementation(() => ({
+            invoke: mockInvoke,
+        })),
+    };
+});
 
 // Mock environment
 vi.mock('../../env', () => ({

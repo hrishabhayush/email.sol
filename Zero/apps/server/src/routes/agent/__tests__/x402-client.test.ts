@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Connection } from '@solana/web3.js';
+import { Connection, Transaction } from '@solana/web3.js';
 import { KeypairWallet } from 'solana-agent-kit';
 import { createX402Fetch, initializeX402Client, type X402PaymentResponse } from '../x402-client';
 import { createMockConnection, createMockKeypairWallet } from './__mocks__/solana';
@@ -66,40 +66,48 @@ describe('x402-client', () => {
                 network: 'mainnet-beta',
             };
 
-            // First call returns 402, second call (after payment) returns 200
-            let callCount = 0;
-            global.fetch = vi.fn().mockImplementation(async (input, init) => {
-                callCount++;
-                if (callCount === 1) {
-                    // First request - return 402
-                    return createMock402Response(paymentInfo);
-                } else {
-                    // Second request (with payment signature) - return success
-                    // Check for payment signature in headers
-                    const headers = init?.headers;
-                    let hasPaymentSignature = false;
-                    if (headers instanceof Headers) {
-                        hasPaymentSignature = headers.get('x-payment-signature') !== null;
-                    } else if (headers && typeof headers === 'object') {
-                        hasPaymentSignature = !!(headers as any)['x-payment-signature'] || !!(headers as any)['X-Payment-Signature'];
+            // Mock transaction serialization to work properly
+            const serializeSpy = vi.spyOn(Transaction.prototype, 'serialize').mockReturnValue(Buffer.from('mock-serialized-tx'));
+
+            try {
+                // First call returns 402, second call (after payment) returns 200
+                let callCount = 0;
+                const mockFetch = vi.fn().mockImplementation(async (input, init) => {
+                    callCount++;
+                    if (callCount === 1) {
+                        // First request - return 402
+                        return createMock402Response(paymentInfo);
+                    } else {
+                        // Second request (with payment signature) - return success
+                        // Check for payment signature in headers
+                        const headers = init?.headers;
+                        let hasPaymentSignature = false;
+                        if (headers instanceof Headers) {
+                            hasPaymentSignature = headers.get('x-payment-signature') !== null;
+                        } else if (headers && typeof headers === 'object') {
+                            hasPaymentSignature = !!(headers as any)['x-payment-signature'] || !!(headers as any)['X-Payment-Signature'];
+                        }
+                        expect(hasPaymentSignature).toBeTruthy();
+                        return new Response(JSON.stringify({ data: 'success' }), { status: 200 });
                     }
-                    expect(hasPaymentSignature).toBeTruthy();
-                    return new Response(JSON.stringify({ data: 'success' }), { status: 200 });
-                }
-            });
+                });
+                global.fetch = mockFetch;
 
-            const x402Fetch = createX402Fetch({
-                wallet: mockWallet,
-                connection: mockConnection,
-                network: 'mainnet-beta',
-            });
+                const x402Fetch = createX402Fetch({
+                    wallet: mockWallet,
+                    connection: mockConnection,
+                    network: 'mainnet-beta',
+                });
 
-            const response = await x402Fetch('https://api.example.com/test');
+                const response = await x402Fetch('https://api.example.com/test');
 
-            expect(response.status).toBe(200);
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-            expect(mockConnection.getLatestBlockhash).toHaveBeenCalled();
-            expect(mockConnection.sendRawTransaction).toHaveBeenCalled();
+                expect(response.status).toBe(200);
+                expect(global.fetch).toHaveBeenCalledTimes(2);
+                expect(mockConnection.getLatestBlockhash).toHaveBeenCalled();
+                expect(mockConnection.sendRawTransaction).toHaveBeenCalled();
+            } finally {
+                serializeSpy.mockRestore();
+            }
         });
 
         it('should throw error if payment info is missing from 402 response', async () => {
@@ -152,49 +160,57 @@ describe('x402-client', () => {
                 network: 'mainnet-beta',
             };
 
-            let retryHeaders: Headers | Record<string, string> | undefined;
-            let callCount = 0;
-            global.fetch = vi.fn().mockImplementation(async (input, init) => {
-                callCount++;
-                if (init?.headers) {
-                    // Headers can be Headers object or plain object
-                    if (init.headers instanceof Headers) {
-                        retryHeaders = init.headers;
-                    } else {
-                        retryHeaders = init.headers as Record<string, string>;
+            // Mock transaction serialization to work properly
+            const serializeSpy = vi.spyOn(Transaction.prototype, 'serialize').mockReturnValue(Buffer.from('mock-serialized-tx'));
+
+            try {
+                let retryHeaders: Headers | Record<string, string> | undefined;
+                let callCount = 0;
+                const mockFetch = vi.fn().mockImplementation(async (input, init) => {
+                    callCount++;
+                    if (init?.headers) {
+                        // Headers can be Headers object or plain object
+                        if (init.headers instanceof Headers) {
+                            retryHeaders = init.headers;
+                        } else {
+                            retryHeaders = init.headers as Record<string, string>;
+                        }
                     }
+                    // First call returns 402, subsequent calls return 200
+                    if (callCount === 1) {
+                        return createMock402Response(paymentInfo);
+                    }
+                    return new Response(JSON.stringify({ data: 'success' }), { status: 200 });
+                });
+                global.fetch = mockFetch;
+
+                const x402Fetch = createX402Fetch({
+                    wallet: mockWallet,
+                    connection: mockConnection,
+                    network: 'testnet',
+                });
+
+                await x402Fetch('https://api.example.com/test', {
+                    headers: { 'Content-Type': 'application/json' },
+                });
+
+                // Verify fetch was called twice (initial + retry with payment)
+                expect(global.fetch).toHaveBeenCalledTimes(2);
+
+                // Check if payment signature was added (either as Headers object or plain object)
+                if (retryHeaders instanceof Headers) {
+                    expect(retryHeaders.get('x-payment-signature')).toBeTruthy();
+                    expect(retryHeaders.get('x-payment-network')).toBe('testnet');
+                } else if (retryHeaders && typeof retryHeaders === 'object') {
+                    // Plain object case - check for payment signature
+                    const headersObj = retryHeaders as Record<string, string>;
+                    const hasPaymentSig = headersObj['x-payment-signature'] ||
+                        headersObj['X-Payment-Signature'] ||
+                        Object.keys(headersObj).some(k => k.toLowerCase() === 'x-payment-signature');
+                    expect(hasPaymentSig).toBeTruthy();
                 }
-                // First call returns 402, subsequent calls return 200
-                if (callCount === 1) {
-                    return createMock402Response(paymentInfo);
-                }
-                return new Response(JSON.stringify({ data: 'success' }), { status: 200 });
-            });
-
-            const x402Fetch = createX402Fetch({
-                wallet: mockWallet,
-                connection: mockConnection,
-                network: 'testnet',
-            });
-
-            await x402Fetch('https://api.example.com/test', {
-                headers: { 'Content-Type': 'application/json' },
-            });
-
-            // Verify fetch was called twice (initial + retry with payment)
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-
-            // Check if payment signature was added (either as Headers object or plain object)
-            if (retryHeaders instanceof Headers) {
-                expect(retryHeaders.get('x-payment-signature')).toBeTruthy();
-                expect(retryHeaders.get('x-payment-network')).toBe('testnet');
-            } else if (retryHeaders && typeof retryHeaders === 'object') {
-                // Plain object case - check for payment signature
-                const headersObj = retryHeaders as Record<string, string>;
-                const hasPaymentSig = headersObj['x-payment-signature'] ||
-                    headersObj['X-Payment-Signature'] ||
-                    Object.keys(headersObj).some(k => k.toLowerCase() === 'x-payment-signature');
-                expect(hasPaymentSig).toBeTruthy();
+            } finally {
+                serializeSpy.mockRestore();
             }
         });
     });

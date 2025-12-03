@@ -62,7 +62,7 @@ export class EmailScoringTool extends StructuredTool {
 
     // Configure ChatOpenAI with x402 fetch if provided
     const llmConfig: any = {
-      modelName: env.OPENAI_MINI_MODEL || 'gpt-4o-mini',
+      modelName: env.OPENAI_MODEL || 'gpt-5-nano',
       temperature: 0,
       openAIApiKey: env.OPENAI_API_KEY,
     };
