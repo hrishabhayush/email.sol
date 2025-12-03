@@ -11,14 +11,27 @@ const authClient = createAuthClient({
 export const authProxy = {
   api: {
     getSession: async ({ headers }: { headers: Headers }) => {
-      const session = await authClient.getSession({
-        fetchOptions: { headers, credentials: 'include' },
-      });
-      if (session.error) {
-        console.error(`Failed to get session: ${session.error}`, session);
+      try {
+        // Add timeout to prevent hanging indefinitely
+        const timeoutPromise = new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), 5000);
+        });
+
+        const sessionPromise = authClient.getSession({
+          fetchOptions: { headers, credentials: 'include' },
+        }).then((session) => {
+          if (session.error) {
+            console.error(`Failed to get session: ${session.error}`, session);
+            return null;
+          }
+          return session.data;
+        });
+
+        return Promise.race([sessionPromise, timeoutPromise]);
+      } catch (error) {
+        console.error('Error getting session:', error);
         return null;
       }
-      return session.data;
     },
   },
 };
