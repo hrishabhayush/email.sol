@@ -3,11 +3,20 @@ import { StructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { env } from '../../env';
 import { stripHtml } from 'string-strip-html';
+import { randomBytes } from 'crypto';
+import { x25519, RescueCipher, deserializeLE } from '@arcium-hq/client';
 
 /**
  * Email scoring tool using OpenAI mini model via LangChain.
  * Evaluates email quality and returns a score from 0-100.
  * Supports x402 payment protocol for API calls.
+ * 
+ * Arcium Integration:
+ * - LLM scoring happens OUTSIDE MPC (preprocessing)
+ * - Score (0-100) is encrypted using x25519 + RescueCipher
+ * - Encrypted score is submitted to Arcium MPC network
+ * - MPC returns encrypted result without seeing plaintext
+ * - Client decrypts to get verified score
  */
 
 const SCORING_PROMPT = `Evaluate the quality and relevance of this email reply. Consider the following factors:
@@ -36,6 +45,21 @@ const ScoreSchema = z.object({
 
 export interface EmailScoringResult {
   score: number;
+}
+
+/**
+ * Arcium-encrypted scoring result.
+ * Contains encrypted score ciphertext and metadata for decryption.
+ */
+export interface ArciumScoringResult {
+  score: number;                    // Plaintext score (after decryption)
+  encrypted: {
+    ciphertext: number[];           // Encrypted score (32 bytes as number array)
+    publicKey: Uint8Array;          // x25519 public key (32 bytes)
+    nonce: Uint8Array;              // Encryption nonce (16 bytes)
+    privateKey: Uint8Array;         // Ephemeral private key (for decryption)
+  };
+  arciumTxSignature?: string;       // Solana transaction signature (if submitted)
 }
 
 // StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
@@ -159,3 +183,119 @@ export async function scoreEmail(
   return JSON.parse(result) as EmailScoringResult;
 }
 
+/**
+ * Prepare encrypted score for Arcium MPC submission.
+ * This function:
+ * 1. Gets the plaintext score from LLM
+ * 2. Encrypts it using x25519 key exchange + RescueCipher
+ * 3. Returns data ready for Arcium classify_email submission
+ * 
+ * @param emailContent - The email content to score
+ * @param mxePublicKey - MXE public key from Arcium network (32 bytes)
+ * @param x402Fetch - Optional x402-wrapped fetch function
+ */
+export async function prepareArciumScore(
+  emailContent: string,
+  mxePublicKey: Uint8Array,
+  x402Fetch?: typeof fetch
+): Promise<ArciumScoringResult> {
+  // Step 1: Get plaintext score from LLM (outside MPC)
+  const { score } = await scoreEmail(emailContent, x402Fetch);
+  
+  // Step 2: Generate ephemeral x25519 keypair for encryption
+  const privateKey = x25519.utils.randomSecretKey();
+  const publicKey = x25519.getPublicKey(privateKey);
+  
+  // Step 3: Derive shared secret using ECDH
+  const sharedSecret = x25519.getSharedSecret(privateKey, mxePublicKey);
+  
+  // Step 4: Create cipher and encrypt the score
+  const cipher = new RescueCipher(sharedSecret);
+  const nonce = new Uint8Array(randomBytes(16));
+  const ciphertexts = cipher.encrypt([BigInt(score)], nonce);
+  const ciphertext = ciphertexts[0]; // First (and only) ciphertext
+  
+  return {
+    score,
+    encrypted: {
+      ciphertext,
+      publicKey,
+      nonce,
+      privateKey, // Store for later decryption
+    },
+  };
+}
+
+/**
+ * Full Arcium integration types for classify_email circuit.
+ * Use these when submitting to the Arcium Solana program.
+ */
+export interface ClassifyEmailParams {
+  computationOffset: bigint;        // Unique computation ID
+  encryptedScore: number[];         // Array.from(ciphertext) - 32 bytes
+  pubKey: number[];                 // Array.from(publicKey) - 32 bytes  
+  nonce: bigint;                    // deserializeLE(nonce) as bigint
+}
+
+/**
+ * Convert ArciumScoringResult to ClassifyEmailParams for Solana submission.
+ * Uses Arcium's deserializeLE for proper nonce conversion.
+ */
+export function toClassifyEmailParams(
+  result: ArciumScoringResult,
+  computationOffset: bigint
+): ClassifyEmailParams {
+  // Use Arcium's deserializeLE for proper little-endian conversion
+  const nonceValue = deserializeLE(result.encrypted.nonce);
+  
+  return {
+    computationOffset,
+    encryptedScore: Array.from(result.encrypted.ciphertext),
+    pubKey: Array.from(result.encrypted.publicKey),
+    nonce: nonceValue,
+  };
+}
+
+/**
+ * Decrypt an encrypted score from Arcium callback.
+ * Use this after receiving the ScoreEvent from the MPC network.
+ * 
+ * @param encryptedScore - The encrypted score ciphertext (32 bytes as number array)
+ * @param nonce - The nonce used for encryption (16 bytes)
+ * @param privateKey - The ephemeral private key used during encryption
+ * @param mxePublicKey - MXE public key from Arcium network
+ */
+export function decryptArciumScore(
+  encryptedScore: number[],
+  nonce: Uint8Array,
+  privateKey: Uint8Array,
+  mxePublicKey: Uint8Array
+): number {
+  const sharedSecret = x25519.getSharedSecret(privateKey, mxePublicKey);
+  const cipher = new RescueCipher(sharedSecret);
+  const decrypted = cipher.decrypt([encryptedScore], nonce)[0];
+  return Number(decrypted);
+}
+
+/**
+ * Decrypt using the stored result from prepareArciumScore.
+ * Convenience function that uses the privateKey stored in the result.
+ * 
+ * @param result - The ArciumScoringResult from prepareArciumScore
+ * @param callbackScore - The encrypted score from ScoreEvent callback
+ * @param callbackNonce - The nonce from ScoreEvent callback
+ * @param mxePublicKey - MXE public key from Arcium network
+ */
+export function decryptArciumScoreFromResult(
+  result: ArciumScoringResult,
+  callbackScore: number[],
+  callbackNonce: Uint8Array,
+  mxePublicKey: Uint8Array
+): number {
+  return decryptArciumScore(
+    callbackScore,
+    callbackNonce,
+    result.encrypted.privateKey,
+    mxePublicKey
+  );
+}
