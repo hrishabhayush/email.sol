@@ -70,7 +70,6 @@ interface CommandItem {
   url?: string;
   onClick?: () => unknown;
   shortcut?: string;
-  isBackButton?: boolean;
   disabled?: boolean;
   keywords?: string[];
   description?: string;
@@ -717,16 +716,13 @@ export function CommandPalette({ children }: { children: React.ReactNode }) {
             icon: navItem.icon,
             url: navItem.url,
             shortcut: navItem.shortcut,
-            isBackButton: navItem.isBackButton,
             disabled: navItem.disabled,
           };
 
           if (sectionKey === 'mail') {
             mailCommands.push(item);
           } else if (sectionKey === 'settings') {
-            if (!item.isBackButton || pathname.startsWith('/settings')) {
-              settingsCommands.push(item);
-            }
+            settingsCommands.push(item);
           } else {
             if (!otherCommands[sectionKey]) {
               otherCommands[sectionKey] = [];

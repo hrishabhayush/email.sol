@@ -700,15 +700,12 @@ export default function OpenPage() {
             <div className="relative p-6">
               <div className="flex flex-col items-center gap-8 md:flex-row">
                 <div className="w-full md:w-2/3">
-                  <div className="inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-neutral-900">
-                    <GitHub className="mr-1.5 h-3.5 w-3.5" />
-                    MIT Licensed
-                  </div>
+
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                    Let&apos;s build the future of email together
+                    Cold emailing done better
                   </h2>
                   <p className="mt-3 text-neutral-600 dark:text-neutral-300">
-                    Get the responses you want from cold emailing
+                    Get the responses you deserve
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Button
