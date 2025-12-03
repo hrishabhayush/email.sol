@@ -76,6 +76,7 @@ interface EmailComposerProps {
     message: string;
     attachments: File[];
     fromEmail?: string;
+    headers?: Record<string, string>;
   }) => Promise<void>;
   onClose?: () => void;
   className?: string;
@@ -512,10 +513,17 @@ export function EmailComposer({
       const primaryRecipientEmail = recipientEmails[0];
       const primaryRecipientWallet = recipientWallets[primaryRecipientEmail]!.walletAddress;
 
+      // Generate deterministic email ID for escrow based on sender + recipient + subject
+      // This allows us to reconstruct it when replying
+      // Format: senderEmail_recipientEmail_subjectHash_timestamp
+      const senderEmail = (values.fromEmail || activeConnection?.email || '').toLowerCase().split('<').pop()?.split('>')[0] || '';
+      const subjectHash = Buffer.from(values.subject || '').toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+      const timestamp = Math.floor(Date.now() / 1000); // Use seconds for shorter ID
+      const emailId = `escrow_${senderEmail}_${primaryRecipientEmail}_${subjectHash}_${timestamp}`.substring(0, 256); // Max 256 chars
+      
+      const amountInSol = 0.0000001; // Escrow amount in SOL
+
       try {
-        // Generate unique email ID (will be replaced with actual email ID after sending)
-        const emailId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const amountInSol = 0.0000001; // Escrow amount in SOL
 
         // Show loading state for escrow creation
         toast.loading('Creating escrow...', { id: 'escrow' });
@@ -595,6 +603,7 @@ export function EmailComposer({
       // Save draft before sending, we want to send drafts instead of sending new emails
       if (hasUnsavedChanges) await saveDraft();
 
+      // Use the same emailId we created escrow with - store it in headers for retrieval when replying
       await onSendEmail({
         to: values.to,
         cc: showCc ? values.cc : undefined,
@@ -603,6 +612,9 @@ export function EmailComposer({
         message: editor.getHTML(),
         attachments: values.attachments || [],
         fromEmail: values.fromEmail,
+        headers: {
+          'X-Escrow-EmailId': emailId, // Store escrow emailId in custom header
+        },
       });
       setHasUnsavedChanges(false);
       editor.commands.clearContent(true);

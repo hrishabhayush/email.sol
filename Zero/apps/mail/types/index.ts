@@ -82,6 +82,7 @@ export interface ParsedMessage {
   replyTo?: string;
   messageId?: string;
   threadId?: string;
+  escrowEmailId?: string;
   isDraft?: boolean;
   attachments?: Attachment[];
 }

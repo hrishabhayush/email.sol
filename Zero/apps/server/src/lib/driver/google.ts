@@ -1027,6 +1027,9 @@ export class GoogleMailManager implements MailManager {
       undefined;
     const replyTo =
       payload?.headers?.find((h) => h.name?.toLowerCase() === 'reply-to')?.value || undefined;
+    const escrowEmailId =
+      payload?.headers?.find((h) => h.name?.toLowerCase() === 'x-escrow-emailid')?.value ||
+      undefined;
     const toHeaders =
       payload?.headers
         ?.filter((h) => h.name?.toLowerCase() === 'to')
@@ -1074,6 +1077,7 @@ export class GoogleMailManager implements MailManager {
       receivedOn,
       subject: subject ? subject.replace(/"/g, '').trim() : '(no subject)',
       messageId,
+      escrowEmailId,
       isDraft: labelIds ? labelIds.includes('DRAFT') : false,
     };
   }

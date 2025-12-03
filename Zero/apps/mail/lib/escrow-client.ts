@@ -1,4 +1,5 @@
-import { Program, AnchorProvider, BN } from '@coral-xyz/anchor';
+import { Program, AnchorProvider } from '@coral-xyz/anchor';
+import BN from 'bn.js';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { Wallet } from '@solana/wallet-adapter-base';
 import idl from './escrow_contract.json';

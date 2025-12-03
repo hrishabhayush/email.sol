@@ -3,7 +3,7 @@ import { useActiveConnection } from '@/hooks/use-connections';
 import { useEmailAliases } from '@/hooks/use-email-aliases';
 import { EmailComposer } from '../create/email-composer';
 import { useHotkeysContext } from 'react-hotkeys-hook';
-import { useTRPC } from '@/providers/query-provider';
+import { useTRPC, trpcClient } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useThread } from '@/hooks/use-threads';
@@ -16,6 +16,9 @@ import { useQueryState } from 'nuqs';
 import { useEffect } from 'react';
 import posthog from 'posthog-js';
 import { toast } from 'sonner';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
+import { createEscrowClient } from '@/lib/escrow-client';
 
 interface ReplyComposeProps {
   messageId?: string;
@@ -36,6 +39,10 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   const { data: activeConnection } = useActiveConnection();
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const { data: session } = useSession();
+  
+  // Solana wallet hooks for escrow release
+  const { wallet, publicKey } = useWallet();
+  const { connection } = useConnection();
 
   // Find the specific message to reply to
   const replyToMessage =
@@ -109,6 +116,137 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
     try {
       const userEmail = activeConnection.email.toLowerCase();
       const userName = activeConnection.name || session?.user?.name || '';
+      
+      // Only release escrow for replies (not forwards)
+      if (mode === 'reply' && wallet && publicKey && connection && replyToMessage.messageId) {
+        try {
+          // Get sender's wallet address from the original email
+          const senderEmail = replyToMessage.sender.email.toLowerCase();
+          toast.loading('Looking up sender wallet...', { id: 'wallet-lookup' });
+          
+          const senderWalletData = await trpcClient.wallet.getByEmail.query({ email: senderEmail });
+          
+          if (!senderWalletData?.walletAddress) {
+            console.warn('Sender does not have a wallet address, skipping escrow release');
+            toast.dismiss('wallet-lookup');
+          } else {
+            // Get current user's wallet address
+            const recipientWalletData = await trpcClient.wallet.getByEmail.query({ email: userEmail });
+            
+            if (!recipientWalletData?.walletAddress) {
+              toast.error('Please set up your wallet address to release escrow', {
+                id: 'wallet-lookup',
+                duration: 5000,
+              });
+              return; // Don't send email if recipient doesn't have wallet
+            }
+
+            // Get emailId from the original email's headers (stored when escrow was created)
+            // If not available, try to reconstruct it deterministically
+            let emailId = replyToMessage.escrowEmailId;
+            
+            if (!emailId) {
+              // Fallback: Reconstruct emailId from original email (same format as when creating escrow)
+              // Format: escrow_senderEmail_recipientEmail_subjectHash_timestamp
+              const originalSenderEmail = replyToMessage.sender.email.toLowerCase();
+              const originalRecipientEmail = userEmail; // Current user was the recipient of the original email
+              const subjectHash = Buffer.from(replyToMessage.subject || '').toString('base64').replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+              
+              // Try to find timestamp from receivedOn date
+              const receivedDate = replyToMessage.receivedOn ? new Date(replyToMessage.receivedOn) : null;
+              const timestamp = receivedDate ? Math.floor(receivedDate.getTime() / 1000) : Math.floor(Date.now() / 1000);
+              
+              // Reconstruct emailId (same format as when creating)
+              emailId = `escrow_${originalSenderEmail}_${originalRecipientEmail}_${subjectHash}_${timestamp}`.substring(0, 256);
+            }
+            
+            if (!emailId) {
+              console.warn('Could not get or reconstruct emailId, skipping escrow release');
+              toast.dismiss('wallet-lookup');
+            } else {
+              const senderWallet = new PublicKey(senderWalletData.walletAddress);
+              const recipientWallet = new PublicKey(recipientWalletData.walletAddress);
+
+              // Create escrow client and release escrow
+              toast.loading('Releasing escrow...', { id: 'escrow-release' });
+              const escrowClient = createEscrowClient(connection, wallet);
+
+              toast.loading('Please sign the escrow release transaction...', { id: 'escrow-release' });
+              const signature = await escrowClient.releaseEscrow({
+                emailId,
+                sender: senderWallet,
+                recipient: recipientWallet,
+              });
+
+              // Log transaction details
+              const explorerUrl = `https://solscan.io/tx/${signature}`;
+              const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
+              console.log('📧 Escrow Released:', {
+                signature,
+                emailId,
+                sender: senderWallet.toString(),
+                recipient: recipientWallet.toString(),
+                explorer: explorerUrl,
+                solanaExplorer: solanaExplorerUrl,
+              });
+              console.log(`🔗 View on Solscan: ${explorerUrl}`);
+              console.log(`🔗 View on Solana Explorer: ${solanaExplorerUrl}`);
+
+              toast.success('Escrow release transaction sent!', { id: 'escrow-release' });
+              toast.loading('Waiting for confirmation...', { id: 'confirmation' });
+
+              // Wait for confirmation
+              let confirmed = false;
+              let attempts = 0;
+              const maxAttempts = 30;
+
+              while (!confirmed && attempts < maxAttempts) {
+                try {
+                  const status = await connection.getSignatureStatus(signature);
+                  if (
+                    status?.value?.confirmationStatus === 'confirmed' ||
+                    status?.value?.confirmationStatus === 'finalized'
+                  ) {
+                    confirmed = true;
+                    break;
+                  }
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  attempts++;
+                } catch (error) {
+                  console.error('Error checking transaction status:', error);
+                  attempts++;
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                }
+              }
+
+              if (!confirmed) {
+                throw new Error('Transaction confirmation timeout. Please check your wallet.');
+              }
+
+              toast.success('Escrow released! Sending reply...', { id: 'confirmation' });
+            }
+          }
+        } catch (error) {
+          console.error('Escrow release error:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          // Don't block email sending if escrow release fails - the escrow might not exist
+          // (e.g., if the email was sent before escrow feature was added)
+          if (
+            errorMessage.includes('AccountNotInitialized') ||
+            errorMessage.includes('not found') ||
+            errorMessage.includes('InvalidAccountData')
+          ) {
+            console.log('Escrow not found for this email, continuing with reply...');
+            toast.dismiss('escrow-release');
+          } else {
+            toast.error(`Escrow release failed: ${errorMessage}. Reply not sent.`, {
+              id: 'escrow-release',
+              duration: 5000,
+            });
+            return; // Don't send email if escrow release fails for other reasons
+          }
+        }
+      }
 
       let fromEmail = userEmail;
 

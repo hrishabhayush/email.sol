@@ -139,6 +139,7 @@ export const ParsedMessageSchema = z.object({
   replyTo: z.string().optional(),
   messageId: z.string().optional(),
   threadId: z.string().optional(),
+  escrowEmailId: z.string().optional(),
   attachments: z
     .array(
       z.object({
