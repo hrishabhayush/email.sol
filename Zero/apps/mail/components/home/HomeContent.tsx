@@ -86,8 +86,7 @@ export default function HomeContent() {
           className="text-center text-4xl font-medium md:text-6xl"
         >
           <Balancer className="mb-3 max-w-[1130px]">
-            The incentivized inbox for richer replies.
-            Spend only for successful conversions.
+            The incentivized inbox for richer replies
           </Balancer>
         </motion.h1>
         <motion.p
