@@ -55,7 +55,7 @@ const getProviderIcon = (providerId: string, className?: string): ReactNode => {
             className="mr-2 hidden dark:block"
           />
           <img
-            src="/solmail-logo.png"
+            src="/solmail-logo-dark.png"
             alt="Zero"
             width={15}
             height={15}

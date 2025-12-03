@@ -78,10 +78,6 @@ export default function HomeContent() {
 
       <Navigation />
 
-      <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
-        <ThemeToggle />
-      </div>
-
       <section className="z-10 mt-32 flex flex-col items-center px-4">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}

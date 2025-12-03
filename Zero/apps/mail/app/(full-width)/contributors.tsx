@@ -314,7 +314,7 @@ export default function OpenPage() {
                 <a href="/">
                   <div className="relative h-8 w-8">
                     <img
-                      src="/solmail-logo.png"
+                      src="/solmail-logo-dark.png"
                       alt="0.email Logo"
                       className="object-contain dark:hidden"
                     />
@@ -770,17 +770,6 @@ export default function OpenPage() {
           </div>
         </div>
 
-        <div className="mb-6 mt-2 flex items-center justify-center gap-4">
-          <a
-            href="https://x.com/CUBlockchain"
-            target="_blank"
-            rel="noreferrer"
-            className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-            aria-label="Follow us on X (Twitter)"
-          >
-            <Twitter className="dark:fill-muted-foreground h-4 w-4" />
-          </a>
-        </div>
       </div>
       <Footer />
     </div>
