@@ -15,13 +15,23 @@
 
 SolMail is an innovative email platform that revolutionizes cold emailing by implementing a pay-for-success model. Built on the Zero email framework, SolMail ensures you only pay for meaningful email conversations.
 
+### Problem
+
+Cold emailing is inefficient and costly. You pay for emails that don't get meaningful replies,
+wasting resources on unsuccessful outreach campaigns.
+
+### Solution
+
+SolMail sends micropayments upfront and refunds them if replies aren't meaningful,
+ensuring you pay solely for successful conversations that drive real business value.
+
 ### Key Features
 
-- 💰 **Pay for Success** - Send micropayments upfront, get refunds if replies aren't meaningful
-- 🤖 **AI-Powered** - Leverage AI to enhance your email experience
-- 📧 **Built on Zero** - Powered by the open-source Zero email framework
-- 🔒 **Privacy First** - Your emails, your data
-- ⚡ **Fast & Reliable** - Lightning-fast interface and reliable delivery
+- **Pay for Success** - Send micropayments upfront, get refunds if replies aren't meaningful
+- **AI-Powered** - Leverage AI to enhance your email experience
+- **Built on Zero** - Powered by the open-source Zero email framework
+- **Privacy First** - Your emails, your data
+- **Fast & Reliable** - Lightning-fast interface and reliable delivery
 
 ## Getting Started
 
@@ -91,6 +101,6 @@ For issues, questions, or contributions, please refer to the Zero project's issu
 ---
 
 <p align="center">
-  Built with ❤️ using <a href="https://github.com/Mail-0/Zero">Zero</a>
+  Built with <a href="https://github.com/Mail-0/Zero">Zero</a>
 </p>
 
