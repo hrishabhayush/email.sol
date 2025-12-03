@@ -1,7 +1,6 @@
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Github, Mail, ArrowLeft } from 'lucide-react';
+import { Github, Mail } from 'lucide-react';
 import { Navigation } from '@/components/navigation';
-import { Button } from '@/components/ui/button';
 import Footer from '@/components/home/footer';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Twitter } from '@/components/icons/icons';
@@ -14,18 +13,6 @@ export default function AboutPage() {
       <div className="relative z-10 flex grow flex-col">
         <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
           <ThemeToggle />
-        </div>
-        <div className="absolute left-4 top-6 md:left-8 md:top-8">
-          <a href="/">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-gray-600 hover:text-gray-900 dark:text-white dark:hover:text-white/80"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </a>
         </div>
 
         <div className="container mx-auto max-w-4xl px-4 py-16">
