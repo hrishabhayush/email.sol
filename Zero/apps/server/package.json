@@ -89,7 +89,8 @@
     "@coral-xyz/anchor": "^0.30.1",
     "langchain": "^0.3.0",
     "@langchain/openai": "^0.3.0",
-    "bs58": "^6.0.0"
+    "bs58": "^6.0.0",
+    "x402-fetch": "^0.1.0"
   },
   "devDependencies": {
     "@effect/language-service": "0.31.1",

@@ -9,9 +9,11 @@ import { decide, type EscrowDecision } from './escrow-decision';
 import {
   createEscrowAction,
   executeEscrowAction,
+  calculateApiFee,
   type EscrowActionParams,
 } from './escrow-actions';
 import { EmailScoringTool } from './email-scoring-tool';
+import { initializeX402Client } from './x402-client';
 
 /**
  * SendAI Escrow Agent
@@ -124,7 +126,7 @@ export async function processEmailReply(
     const agent = getEscrowAgent();
     const connection = getConnection();
     const keypairWallet = agent.wallet as KeypairWallet;
-    
+
     // Convert KeypairWallet to Anchor Wallet -> for smart contract interactions
     const anchorWallet: AnchorWallet = {
       publicKey: keypairWallet.publicKey,
@@ -138,9 +140,31 @@ export async function processEmailReply(
 
     stream('agent_initialized', { wallet: anchorWallet.publicKey.toString() });
 
-    // Score the email using LLM
-    stream('scoring_email_start', { msgId });
-    const scoringResult = await scoreEmail(emailContent);
+    // Initialize x402 client for API payment handling
+    let x402Fetch: typeof fetch | undefined;
+    try {
+      x402Fetch = initializeX402Client(keypairWallet, connection, env.X402_NETWORK);
+      stream('x402_client_initialized', { network: env.X402_NETWORK || 'mainnet-beta' });
+    } catch (error) {
+      console.warn('[EscrowAgent] Failed to initialize x402 client, falling back to direct API:', error);
+      stream('x402_client_fallback', { error: error instanceof Error ? error.message : String(error) });
+    }
+
+    // Score the email using LLM with x402 payment handling
+    stream('scoring_email_start', { msgId, usingX402: !!x402Fetch });
+    let scoringResult;
+    try {
+      scoringResult = await scoreEmail(emailContent, x402Fetch);
+    } catch (error) {
+      // Fallback to direct API if x402 fails
+      if (x402Fetch) {
+        console.warn('[EscrowAgent] x402 payment failed, falling back to direct API:', error);
+        stream('x402_payment_failed_fallback', { error: error instanceof Error ? error.message : String(error) });
+        scoringResult = await scoreEmail(emailContent); // Retry without x402
+      } else {
+        throw error;
+      }
+    }
     const score = scoringResult.score;
     stream('scoring_email_complete', { score, msgId });
 
@@ -151,10 +175,24 @@ export async function processEmailReply(
 
     // Ensure escrow exists
     stream('creating_escrow_start', { msgId, decision });
+
+    // Calculate total amount and API fee
+    const totalAmount = amount || 1_000_000; // Default 0.001 SOL (1M lamports)
+    const feePercentage = parseFloat(env.X402_FEE_PERCENTAGE || '2');
+    const apiFeeAmount = calculateApiFee(totalAmount, feePercentage);
+
+    stream('api_fee_calculated', {
+      totalAmount,
+      apiFeeAmount,
+      feePercentage,
+      escrowAmount: totalAmount - apiFeeAmount
+    });
+
     const escrowParams: EscrowActionParams = {
       msgId,
-      amount: amount || 1_000_000, // TODO: change? Default 0.001 SOL
+      amount: totalAmount,
       recipient,
+      apiFeeAmount, // Pass API fee to be deducted from escrow
     };
 
     // Create escrow if it doesn't exist (idempotent)
@@ -176,7 +214,7 @@ export async function processEmailReply(
     // Execute escrow action based on decision
     stream('executing_escrow_start', { decision, msgId });
     const executeResult = await executeEscrowAction(connection, anchorWallet, decision, escrowParams);
-    
+
     if (!executeResult.success) {
       stream('executing_escrow_error', { error: executeResult.error });
       return {
@@ -220,7 +258,17 @@ export async function processEmailReply(
  */
 export function createEscrowAgentTools() {
   const agent = getEscrowAgent();
-  
+  const connection = getConnection();
+  const keypairWallet = agent.wallet as KeypairWallet;
+
+  // Initialize x402 client for tool usage (optional, will fallback if fails)
+  let x402Fetch: typeof fetch | undefined;
+  try {
+    x402Fetch = initializeX402Client(keypairWallet, connection, env.X402_NETWORK);
+  } catch (error) {
+    console.warn('[createEscrowAgentTools] x402 client initialization failed, using direct API:', error);
+  }
+
   // Registers tools with agent -> allows agent to dynamically call during workflow
   const tools = createLangchainTools(agent, [
     ...agent.actions, // existing actions from solana-agent-kit
@@ -230,8 +278,17 @@ export function createEscrowAgentTools() {
       description: 'Score an email reply for quality (0-100)',
       // execute function is called when the tool is invoked by the agent
       execute: async (params: { emailContent: string }) => {
-        const result = await scoreEmail(params.emailContent);
-        return result;
+        try {
+          const result = await scoreEmail(params.emailContent, x402Fetch);
+          return result;
+        } catch (error) {
+          // Fallback to direct API if x402 fails
+          if (x402Fetch) {
+            console.warn('[EMAIL_SCORING_ACTION] x402 failed, falling back to direct API:', error);
+            return await scoreEmail(params.emailContent);
+          }
+          throw error;
+        }
       },
     },
   ]);

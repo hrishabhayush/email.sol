@@ -14,6 +14,7 @@ export interface EscrowActionParams {
   msgId: string;
   amount?: number; // Amount in lamports (optional, defaults to 0.001 SOL)
   recipient?: PublicKey; // Recipient public key (optional)
+  apiFeeAmount?: number; // API fee amount in lamports (deducted from amount)
 }
 
 export interface EscrowActionResult {
@@ -103,6 +104,13 @@ function findEscrowPDA(msgId: string, programId: PublicKey): [PublicKey, number]
 /**
  * Create or ensure escrow exists for a message.
  */
+/**
+ * Calculate API fee (2% of escrow amount by default).
+ */
+export function calculateApiFee(escrowAmount: number, feePercentage: number = 2): number {
+  return Math.floor((escrowAmount * feePercentage) / 100);
+}
+
 export async function createEscrowAction(
   connection: Connection,
   wallet: Wallet,
@@ -111,8 +119,21 @@ export async function createEscrowAction(
   try {
     const program = await getEscrowProgram(connection, wallet);
     const [escrowPDA] = findEscrowPDA(params.msgId, ESCROW_PROGRAM_ID);
-    
-    const amount = params.amount || 1_000_000; // Default 0.001 SOL (1M lamports)
+
+    const totalAmount = params.amount || 1_000_000; // Default 0.001 SOL (1M lamports)
+
+    // Calculate and deduct API fee (2% by default)
+    // If apiFeeAmount is provided, use it; otherwise calculate 2% of total
+    const apiFee = params.apiFeeAmount ?? calculateApiFee(totalAmount, 2);
+    const escrowAmount = totalAmount - apiFee; // Amount that goes to escrow
+
+    if (escrowAmount <= 0) {
+      return {
+        success: false,
+        error: 'Escrow amount after API fee deduction must be positive',
+      };
+    }
+
     const recipient = params.recipient || wallet.publicKey; // Default to wallet if not provided
 
     // Check if escrow already exists
@@ -125,15 +146,18 @@ export async function createEscrowAction(
       // Escrow doesn't exist, continue to create
     }
 
-    // Create escrow transaction
+    // Create escrow transaction with amount after API fee deduction
     const tx = await program.methods
-      .createEscrow(params.msgId, new BN(amount), recipient)
+      .createEscrow(params.msgId, new BN(escrowAmount), recipient)
       .accounts({
         escrow: escrowPDA,
         sender: wallet.publicKey,
         systemProgram: SystemProgram.programId,
       })
       .rpc();
+
+    // Log API fee for tracking
+    console.log(`[createEscrowAction] API fee deducted: ${apiFee} lamports (${(apiFee / 1_000_000_000).toFixed(9)} SOL) from total ${totalAmount} lamports`);
 
     return { success: true, signature: tx };
   } catch (error) {

@@ -7,6 +7,7 @@ import { stripHtml } from 'string-strip-html';
 /**
  * Email scoring tool using OpenAI mini model via LangChain.
  * Evaluates email quality and returns a score from 0-100.
+ * Supports x402 payment protocol for API calls.
  */
 
 const SCORING_PROMPT = `Evaluate the quality and relevance of this email reply. Consider the following factors:
@@ -40,9 +41,10 @@ export interface EmailScoringResult {
 // StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
 export class EmailScoringTool extends StructuredTool {
   private llm: ChatOpenAI;
+  private x402Fetch?: typeof fetch;
 
   // defines a tool in LangChain terms
-  constructor() {
+  constructor(options?: { x402Fetch?: typeof fetch }) {
     // calls parent class constructor with the following arguments
     // name: how the agent references it
     // description: used by LLMs when reasoning about tool usage
@@ -56,11 +58,24 @@ export class EmailScoringTool extends StructuredTool {
       }),
     });
 
-    this.llm = new ChatOpenAI({
+    this.x402Fetch = options?.x402Fetch;
+
+    // Configure ChatOpenAI with x402 fetch if provided
+    const llmConfig: any = {
       modelName: env.OPENAI_MINI_MODEL || 'gpt-4o-mini',
       temperature: 0,
       openAIApiKey: env.OPENAI_API_KEY,
-    });
+    };
+
+    // If x402 fetch is provided and we have an x402 API URL, use it as proxy
+    if (this.x402Fetch && env.X402_API_URL) {
+      // Use x402 proxy endpoint instead of direct OpenAI API
+      llmConfig.configuration = {
+        baseURL: env.X402_API_URL,
+      };
+    }
+
+    this.llm = new ChatOpenAI(llmConfig);
   }
 
   //_call method runs when the tool is invoked by LangChain.
@@ -79,11 +94,11 @@ export class EmailScoringTool extends StructuredTool {
 
       // Parse response as a string
       const content = typeof response.content === 'string' ? response.content : String(response.content);
-      
+
       // ---- start cleaning ----
       // Try to extract JSON from response
       let jsonStr = content.trim();
-      
+
       // Remove markdown code blocks if present
       if (jsonStr.startsWith('```')) {
         const lines = jsonStr.split('\n');
@@ -111,11 +126,18 @@ export class EmailScoringTool extends StructuredTool {
 
       // Validate score, ensuring it matches the schema
       const validated = ScoreSchema.parse(parsed);
-      
+
       return JSON.stringify(validated);
     } catch (error) {
       console.error('[EmailScoringTool] Error scoring email:', error);
-      // Return a default low score on error rather than failing completely
+
+      // Check if it's an x402 payment error
+      if (error instanceof Error && error.message.includes('x402')) {
+        // Re-throw x402 errors so they can be handled upstream with fallback
+        throw new Error(`x402 payment error: ${error.message}`);
+      }
+
+      // Return a default low score on other errors rather than failing completely
       return JSON.stringify({ score: 0 });
     }
   }
@@ -124,9 +146,15 @@ export class EmailScoringTool extends StructuredTool {
 /**
  * Score an email using the LLM tool.
  * Returns the score (0-100) or throws an error.
+ * 
+ * @param emailContent - The email content to score
+ * @param x402Fetch - Optional x402-wrapped fetch function for payment handling
  */
-export async function scoreEmail(emailContent: string): Promise<EmailScoringResult> {
-  const tool = new EmailScoringTool();
+export async function scoreEmail(
+  emailContent: string,
+  x402Fetch?: typeof fetch
+): Promise<EmailScoringResult> {
+  const tool = new EmailScoringTool({ x402Fetch });
   const result = await tool._call({ emailContent });
   return JSON.parse(result) as EmailScoringResult;
 }
