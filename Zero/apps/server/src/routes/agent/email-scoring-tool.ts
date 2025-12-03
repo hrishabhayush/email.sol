@@ -64,23 +64,19 @@ export interface ArciumScoringResult {
 
 // StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
 export class EmailScoringTool extends StructuredTool {
+  // Required StructuredTool properties as class fields
+  name = 'email_scoring_tool';
+  description = 'Evaluates email quality and returns a score from 0-100 based on clarity, completeness, professionalism, relevance, and helpfulness.';
+  schema = z.object({
+    emailContent: z.string().describe('The plaintext email content to score'),
+  });
+
   private llm: ChatOpenAI;
   private x402Fetch?: typeof fetch;
 
   // defines a tool in LangChain terms
   constructor(options?: { x402Fetch?: typeof fetch }) {
-    // calls parent class constructor with the following arguments
-    // name: how the agent references it
-    // description: used by LLMs when reasoning about tool usage
-    // schema: expected input format
-    super({
-      name: 'email_scoring_tool',
-      description:
-        'Evaluates email quality and returns a score from 0-100 based on clarity, completeness, professionalism, relevance, and helpfulness.',
-      schema: z.object({
-        emailContent: z.string().describe('The plaintext email content to score'),
-      }),
-    });
+    super();
 
     this.x402Fetch = options?.x402Fetch;
 
