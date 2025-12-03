@@ -28,6 +28,7 @@ Email content:
 
 Respond with ONLY valid JSON: {"score": <number>}`;
 
+// zod schema for the score -> allows for type safety and validation at runtime
 const ScoreSchema = z.object({
   score: z.number().min(0).max(100),
 });
@@ -36,10 +37,16 @@ export interface EmailScoringResult {
   score: number;
 }
 
+// StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
 export class EmailScoringTool extends StructuredTool {
   private llm: ChatOpenAI;
 
+  // defines a tool in LangChain terms
   constructor() {
+    // calls parent class constructor with the following arguments
+    // name: how the agent references it
+    // description: used by LLMs when reasoning about tool usage
+    // schema: expected input format
     super({
       name: 'email_scoring_tool',
       description:
@@ -56,6 +63,7 @@ export class EmailScoringTool extends StructuredTool {
     });
   }
 
+  //_call method runs when the tool is invoked by LangChain.
   async _call(input: { emailContent: string }): Promise<string> {
     try {
       // Strip HTML and get plaintext
@@ -69,9 +77,10 @@ export class EmailScoringTool extends StructuredTool {
       const prompt = SCORING_PROMPT.replace('{emailContent}', plaintext);
       const response = await this.llm.invoke(prompt);
 
-      // Parse response
+      // Parse response as a string
       const content = typeof response.content === 'string' ? response.content : String(response.content);
       
+      // ---- start cleaning ----
       // Try to extract JSON from response
       let jsonStr = content.trim();
       
@@ -98,8 +107,9 @@ export class EmailScoringTool extends StructuredTool {
           throw new Error(`Failed to parse LLM response as JSON: ${content}`);
         }
       }
+      // ---- end cleaning ----
 
-      // Validate score
+      // Validate score, ensuring it matches the schema
       const validated = ScoreSchema.parse(parsed);
       
       return JSON.stringify(validated);
