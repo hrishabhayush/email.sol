@@ -5,11 +5,11 @@ package_manager = "pnpm"
 resolution = true
 skip-lint = false
 
-[programs.localnet]
-arcium_mxe = "8qbRSancKocbWrqkrr5EJGFMMjGunK2rJYgfJn5heZyH"
-
 [programs.devnet]
 arcium_mxe = "8qbRSancKocbWrqkrr5EJGFMMjGunK2rJYgfJn5heZyH"
+
+[programs.localnet]
+arcium_mxe = "3zCEhhfBEYKiGDYw2tBrz7tVYa1QCDMWTdQFjyLMrWHp"
 
 [registry]
 url = "https://api.apr.dev"

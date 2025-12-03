@@ -12,7 +12,7 @@ unsafe extern "Rust" fn __getrandom_v03_custom(_dest: *mut u8, _len: usize) -> u
 
 const COMP_DEF_OFFSET_ADD_TOGETHER: u32 = comp_def_offset("add_together");
 
-declare_id!("8qbRSancKocbWrqkrr5EJGFMMjGunK2rJYgfJn5heZyH");
+declare_id!("3zCEhhfBEYKiGDYw2tBrz7tVYa1QCDMWTdQFjyLMrWHp");
 
 #[arcium_program]
 pub mod arcium_mxe {
