@@ -86,7 +86,7 @@ export default function HomeContent() {
           className="text-center text-4xl font-medium md:text-6xl"
         >
           <Balancer className="mb-3 max-w-[1130px]">
-            Cold emails that actually get replies.
+            The incentivized inbox for richer replies.
             Spend only for successful conversions.
           </Balancer>
         </motion.h1>
@@ -728,11 +728,10 @@ export default function HomeContent() {
             </div>
             <div>
               <h1 className="mb-2 mt-4 text-lg font-medium leading-loose text-white">
-                AI-Powered Summaries
+                Responses evaluated by AI
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Your personal email copilot. Let our AI draft responses, summarize long threads, and
-                extract action items automatically.
+                AI ensures that you only pay for meaningful responses and correspondence.
               </p>
             </div>
           </motion.div>

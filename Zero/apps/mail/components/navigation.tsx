@@ -27,11 +27,6 @@ const aboutLinks = [
     description: 'Learn more about SolMail and our mission.',
   },
   {
-    title: 'Terms of Service',
-    href: '/terms',
-    description: 'Review our terms of service and usage guidelines.',
-  },
-  {
     title: 'Contributors',
     href: '/contributors',
     description: 'See the contributors to SolMail.',

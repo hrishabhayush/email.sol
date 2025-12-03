@@ -267,14 +267,6 @@ export function NavUser() {
                     </DropdownMenuItem>
                   </>
                 </div>
-                <>
-                  <DropdownMenuSeparator className="mt-1" />
-                  <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/terms" className="hover:underline">
-                      Terms
-                    </a>
-                  </div>
-                </>
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -471,12 +463,6 @@ export function NavUser() {
                     </DropdownMenuItem>
                   </div>
 
-                  <DropdownMenuSeparator className="mt-1" />
-                  <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/terms" className="hover:underline">
-                      Terms
-                    </a>
-                  </div>
                   <DropdownMenuSeparator className="mt-1" />
                   <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Debug</p>
                   <DropdownMenuItem onClick={handleCopyConnectionId}>

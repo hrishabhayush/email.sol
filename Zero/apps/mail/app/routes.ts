@@ -9,7 +9,6 @@ export default [
 
   layout('(full-width)/layout.tsx', [
     route('/about', '(full-width)/about.tsx'),
-    route('/terms', '(full-width)/terms.tsx'),
     route('/pricing', '(full-width)/pricing.tsx'),
     route('/contributors', '(full-width)/contributors.tsx'),
     route('/hr', '(full-width)/hr.tsx'),

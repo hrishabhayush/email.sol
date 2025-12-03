@@ -1,4 +1,4 @@
-# SolMail
+# SolMail: Incentivized inbox for richer replies
 
 <p align="center">
   <picture>

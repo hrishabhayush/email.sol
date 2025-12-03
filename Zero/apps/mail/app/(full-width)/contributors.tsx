@@ -63,12 +63,12 @@ const specialRoles: Record<
 > = {
   'rachelturneyy': {
     role: 'Contributor',
-    position: 1,
+    position: 2,
     x: 'rachelt313',
   },
   'hrishabhayush': {
     role: 'Contributor',
-    position: 2,
+    position: 1,
     x: 'hrishabhayush',
   },
   'c-lee13': {
