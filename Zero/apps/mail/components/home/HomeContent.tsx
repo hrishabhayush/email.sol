@@ -66,10 +66,17 @@ export default function HomeContent() {
     setTheme('dark');
   }, [setTheme]);
 
+  // Redirect logged-in users to inbox (non-blocking - happens after render)
+  useEffect(() => {
+    if (session?.user?.id) {
+      navigate('/mail/inbox');
+    }
+  }, [session, navigate]);
+
   return (
     <main className="relative flex h-full flex-1 flex-col overflow-x-hidden bg-[#0F0F0F] px-2">
       <PixelatedBackground
-        className="z-1 absolute left-1/2 top-[-40px] h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover"
+        className="z-1 pointer-events-none absolute left-1/2 top-[-40px] h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover"
         style={{
           mixBlendMode: 'screen',
           maskImage: 'linear-gradient(to bottom, black, transparent)',
@@ -104,26 +111,21 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="mb-6 lg:hidden"
         >
-          <Button
-            className="cursor-pointer"
-            onClick={() => {
-              if (session) {
-                navigate('/mail/inbox');
-              } else {
-                toast.promise(
-                  signIn.social({
-                    provider: 'google',
-                    callbackURL: `${window.location.origin}/mail`,
-                  }),
-                  {
-                    error: 'Login redirect failed',
-                  },
-                );
-              }
-            }}
-          >
-            Get Started
-          </Button>
+          {session?.user?.id ? (
+            <Link
+              to="/mail/inbox"
+              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90"
+            >
+              Get Started
+            </Link>
+          ) : (
+            <a
+              href={`${import.meta.env.VITE_PUBLIC_BACKEND_URL}/auth/sign-in/social/google?callbackURL=${encodeURIComponent(`${window.location.origin}/mail`)}`}
+              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
+            >
+              Get Started
+            </a>
+          )}
         </motion.div>
       </section>
 
