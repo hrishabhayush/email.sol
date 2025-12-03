@@ -319,3 +319,21 @@ export const emailTemplate = createTable(
     unique('mail0_email_template_user_id_name_unique').on(t.userId, t.name),
   ],
 );
+
+// Email to Solana wallet mapping
+export const emailWallet = createTable(
+  'email_wallet',
+  {
+    id: text('id').primaryKey(),
+    email: text('email').notNull().unique(),
+    walletAddress: text('wallet_address').notNull(),
+    verified: boolean('verified').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('email_wallet_email_idx').on(t.email),
+    index('email_wallet_wallet_address_idx').on(t.walletAddress),
+    index('email_wallet_verified_idx').on(t.verified),
+  ],
+);
