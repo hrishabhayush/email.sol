@@ -108,7 +108,6 @@ export default function Comparision() {
               <div className="flex h-14 flex-col items-start justify-center gap-1 self-stretch px-8">
                 <div className="inline-flex h-6 items-center justify-start self-stretch">
                   <div className="justify-center text-sm leading-tight text-white/70">
-                    Private Discord Community Access{' '}
                   </div>
                 </div>
               </div>

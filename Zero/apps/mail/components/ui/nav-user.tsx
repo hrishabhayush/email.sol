@@ -259,21 +259,6 @@ export function NavUser() {
                         </div>
                       </a>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <a
-                        href="https://discord.gg/mail0"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full"
-                      >
-                        <div className="flex items-center gap-2">
-                          <HelpCircle size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
-                          </p>
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
@@ -282,14 +267,6 @@ export function NavUser() {
                     </DropdownMenuItem>
                   </>
                 </div>
-                <>
-                  <DropdownMenuSeparator className="mt-1" />
-                  <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/terms" className="hover:underline">
-                      Terms
-                    </a>
-                  </div>
-                </>
               </DropdownMenuContent>
             </DropdownMenu>
           )
@@ -478,21 +455,6 @@ export function NavUser() {
                         <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
                       </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <a
-                        href="https://discord.gg/mail0"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full"
-                      >
-                        <div className="flex items-center gap-2">
-                          <HelpCircle size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">
-                            {m['common.navUser.customerSupport']()}
-                          </p>
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
@@ -501,12 +463,6 @@ export function NavUser() {
                     </DropdownMenuItem>
                   </div>
 
-                  <DropdownMenuSeparator className="mt-1" />
-                  <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/terms" className="hover:underline">
-                      Terms
-                    </a>
-                  </div>
                   <DropdownMenuSeparator className="mt-1" />
                   <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Debug</p>
                   <DropdownMenuItem onClick={handleCopyConnectionId}>

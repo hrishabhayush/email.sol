@@ -3,7 +3,7 @@ import { Twitter } from '../icons/icons';
 const socialLinks = [
   {
     name: 'Twitter',
-    href: 'https://x.com/mail0dotcom',
+    href: 'https://x.com/solmail_xyz',
     icon: Twitter,
   },
 ];

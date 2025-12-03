@@ -24,7 +24,7 @@ const AIToggleButton = () => {
             >
               <div className="flex items-center justify-center">
                 <img
-                  src="/solmail-logo.png"
+                  src="/solmail-logo-dark.png"
                   alt="AI Assistant"
                   width={22}
                   height={22}
