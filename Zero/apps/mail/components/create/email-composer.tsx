@@ -30,11 +30,12 @@ import { gitHubEmojis } from '@tiptap/extension-emoji';
 import { AnimatePresence, motion } from 'motion/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { useTRPC } from '@/providers/query-provider';
+import { useTRPC, trpcClient } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
+import { createEscrowClient } from '@/lib/escrow-client';
 
 import { cn, formatFileSize } from '@/lib/utils';
 import { useThread } from '@/hooks/use-threads';
@@ -469,69 +470,98 @@ export function EmailComposer({
         return;
       }
 
-      // Check wallet connection and send payment before sending email
+      // Check wallet connection before sending email
       if (!wallet || !publicKey || !connection || !wallet.adapter) {
         toast.error('Please connect your Solana wallet to send emails');
         return;
       }
 
+      // Extract email addresses from recipients
+      const recipientEmails = values.to.map((email) => {
+        // Handle both "Name <email>" and "email" formats
+        const match = email.match(/<([^>]+)>/);
+        return match ? match[1] : email;
+      });
+
+      // Get wallet addresses for recipients
+      toast.loading('Looking up recipient wallets...', { id: 'wallet-lookup' });
+      let recipientWallets: Record<string, { walletAddress: string; verified: boolean } | null>;
       try {
-        // Show loading state for payment
-        toast.loading('Processing payment transaction...', { id: 'payment' });
-        
-        const recipientAddress = '7DUw1493Y2xS9TDvos11sfoPmEwo3UjqryGPdqE44nWW';
-        const amountInSol = 0.0000001;
-        const lamports = amountInSol * LAMPORTS_PER_SOL;
-        
-        const recipientPublicKey = new PublicKey(recipientAddress);
-        
-        // Create transaction
-        const transaction = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: recipientPublicKey,
-            lamports,
-          })
+        recipientWallets = await trpcClient.wallet.getByEmails.query({ emails: recipientEmails });
+      } catch (error) {
+        console.error('Error looking up wallets:', error);
+        toast.error('Failed to look up recipient wallets. Email not sent.', { id: 'wallet-lookup' });
+        return;
+      }
+
+      // Check if all recipients have wallets
+      const recipientsWithoutWallets = recipientEmails.filter(
+        (email) => !recipientWallets[email]?.walletAddress
+      );
+
+      if (recipientsWithoutWallets.length > 0) {
+        toast.error(
+          `Recipients without wallets: ${recipientsWithoutWallets.join(', ')}. Please ask them to set up their wallet first.`,
+          { id: 'wallet-lookup', duration: 5000 }
         );
+        return;
+      }
 
-        // Get recent blockhash
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
-        transaction.recentBlockhash = blockhash;
-        transaction.feePayer = publicKey;
+      // Create escrow for each recipient (for now, we'll create escrow for the first recipient)
+      // TODO: Support multiple escrows for multiple recipients
+      const primaryRecipientEmail = recipientEmails[0];
+      const primaryRecipientWallet = recipientWallets[primaryRecipientEmail]!.walletAddress;
 
-        // Send and sign transaction using wallet adapter (handles both signing and sending)
-        toast.loading('Please sign the transaction in your wallet...', { id: 'payment' });
-        const signature = await wallet.adapter.sendTransaction(transaction, connection, {
-          skipPreflight: false,
-          maxRetries: 3,
+      try {
+        // Generate unique email ID (will be replaced with actual email ID after sending)
+        const emailId = `email_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const amountInSol = 0.0000001; // Escrow amount in SOL
+
+        // Show loading state for escrow creation
+        toast.loading('Creating escrow...', { id: 'escrow' });
+
+        // Create escrow client
+        const escrowClient = createEscrowClient(connection, wallet);
+
+        // Create escrow
+        toast.loading('Please sign the escrow transaction in your wallet...', { id: 'escrow' });
+        const signature = await escrowClient.createEscrow({
+          emailId,
+          amount: amountInSol,
+          sender: publicKey,
+          recipient: new PublicKey(primaryRecipientWallet),
         });
 
         // Log transaction details for block explorer
         const explorerUrl = `https://solscan.io/tx/${signature}`;
         const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
-        console.log('📧 Email Payment Transaction:', {
+        console.log('📧 Escrow Created:', {
           signature,
+          emailId,
           amount: `${amountInSol} SOL`,
-          recipient: recipientAddress,
+          sender: publicKey.toString(),
+          recipient: primaryRecipientWallet,
           explorer: explorerUrl,
           solanaExplorer: solanaExplorerUrl,
         });
         console.log(`🔗 View on Solscan: ${explorerUrl}`);
         console.log(`🔗 View on Solana Explorer: ${solanaExplorerUrl}`);
 
-        toast.success('Payment transaction sent!', { id: 'payment' });
+        toast.success('Escrow transaction sent!', { id: 'escrow' });
         toast.loading('Waiting for confirmation...', { id: 'confirmation' });
 
-        // Wait for confirmation using polling instead of WebSocket subscriptions
-        // This works better with RPC endpoints that don't support WebSocket subscriptions
+        // Wait for confirmation using polling
         let confirmed = false;
         let attempts = 0;
         const maxAttempts = 30; // 30 seconds max wait time
-        
+
         while (!confirmed && attempts < maxAttempts) {
           try {
             const status = await connection.getSignatureStatus(signature);
-            if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+            if (
+              status?.value?.confirmationStatus === 'confirmed' ||
+              status?.value?.confirmationStatus === 'finalized'
+            ) {
               confirmed = true;
               break;
             }
@@ -549,12 +579,15 @@ export function EmailComposer({
           throw new Error('Transaction confirmation timeout. Please check your wallet.');
         }
 
-        toast.success('Payment confirmed! Sending email...', { id: 'confirmation' });
+        toast.success('Escrow confirmed! Sending email...', { id: 'confirmation' });
       } catch (error) {
-        console.error('Payment error:', error);
+        console.error('Escrow creation error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Payment failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
-        return; // Don't send email if payment fails
+        toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, {
+          id: 'escrow',
+          duration: 5000,
+        });
+        return; // Don't send email if escrow creation fails
       }
 
       setIsLoading(true);
