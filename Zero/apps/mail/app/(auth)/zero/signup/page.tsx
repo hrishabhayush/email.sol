@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import Footer from '@/components/home/footer';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Name must be at least 1 character' }),
@@ -118,22 +119,7 @@ export default function SignupZero() {
         </Form>
       </div>
 
-      <footer className="absolute bottom-0 w-full px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-6">
-          <a
-            href="/terms"
-            className="text-[10px] text-gray-500 transition-colors hover:text-gray-300"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="/privacy"
-            className="text-[10px] text-gray-500 transition-colors hover:text-gray-300"
-          >
-            Privacy Policy
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import Footer from '@/components/home/footer';
 
 interface Employee {
   id: string;
@@ -402,6 +403,7 @@ export default function HRPage() {
           </CardContent>
         </Card>
       )}
+      <Footer />
     </div>
   );
 }

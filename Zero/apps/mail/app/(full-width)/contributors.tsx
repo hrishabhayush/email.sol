@@ -17,7 +17,8 @@ import {
 } from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { Discord, Twitter, GitHub } from '@/components/icons/icons';
+import { Twitter, GitHub } from '@/components/icons/icons';
+import Footer from '@/components/home/footer';
 import { Separator } from '@/components/ui/separator';
 import { Navigation } from '@/components/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -771,16 +772,7 @@ export default function OpenPage() {
 
         <div className="mb-6 mt-2 flex items-center justify-center gap-4">
           <a
-            href="https://discord.gg/mail0"
-            target="_blank"
-            rel="noreferrer"
-            className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-            aria-label="Join our Discord"
-          >
-            <Discord className="dark:fill-muted-foreground h-4 w-4" />
-          </a>
-          <a
-            href="https://x.com/mail0dotcom"
+            href="https://x.com/CUBlockchain"
             target="_blank"
             rel="noreferrer"
             className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
@@ -790,6 +782,7 @@ export default function OpenPage() {
           </a>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

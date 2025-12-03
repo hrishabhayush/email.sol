@@ -1,4 +1,4 @@
-import { GitHub, Twitter, Discord, LinkedIn } from '@/components/icons/icons';
+import { GitHub, Twitter, LinkedIn } from '@/components/icons/icons';
 import { NavigationMenu as NavigationMenuPrimitive } from 'radix-ui';
 import { cva } from 'class-variance-authority';
 import { ChevronDown } from 'lucide-react';
@@ -111,14 +111,13 @@ const ListItem = React.forwardRef<
   React.ElementRef<'a'>,
   React.ComponentPropsWithoutRef<'a'> & {
     title: string;
-    platform?: 'github' | 'twitter' | 'linkedin' | 'discord';
+    platform?: 'github' | 'twitter' | 'linkedin';
   }
 >(({ className, title, children, platform, ...props }, ref) => {
   const IconComponent = platform
-    ? {
+      ? {
         github: GitHub,
         twitter: Twitter,
-        discord: Discord,
         linkedin: LinkedIn,
       }[platform]
     : null;
