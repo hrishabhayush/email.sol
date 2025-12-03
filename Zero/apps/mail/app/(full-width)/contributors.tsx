@@ -60,7 +60,27 @@ const REPOSITORY = 'hrishabhayush/email.sol';
 const specialRoles: Record<
   string,
   { role: string; position: number; x?: string; website?: string }
-> = {};
+> = {
+  'rachelturneyy': {
+    role: 'Contributor',
+    position: 1,
+    x: 'rachelt313',
+  },
+  'hrishabhayush': {
+    role: 'Contributor',
+    position: 2,
+    x: 'hrishabhayush',
+  },
+  'c-lee13': {
+    role: 'Contributor',
+    position: 3,
+    x: 'caedy_13',
+  },
+  'arcanebear812': {
+    role: 'Contributor',
+    position: 4,
+  },
+};
 
 export default function OpenPage() {
   const [repoStats, setRepoStats] = useState({
@@ -592,7 +612,7 @@ export default function OpenPage() {
             <h1 className="text-3xl font-semibold tracking-tight text-neutral-900/80 dark:text-white">
               Core Team
             </h1>
-            <p className="text-muted-foreground mt-2">Meet the people behind SolMail</p>
+            <p className="text-muted-foreground mt-2">SolMail contributors</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
