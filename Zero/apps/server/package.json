@@ -29,6 +29,7 @@
     "@ai-sdk/ui-utils": "1.2.11",
     "@arcadeai/arcadejs": "1.8.1",
     "@barkleapp/css-sanitizer": "1.0.0",
+    "@circle-fin/developer-controlled-wallets": "9.5.0",
     "@coinbase/cookie-manager": "1.1.8",
     "@dub/better-auth": "0.0.3",
     "@googleapis/gmail": "12.0.0",
