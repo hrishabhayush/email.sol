@@ -285,10 +285,6 @@ export function NavUser() {
                 <>
                   <DropdownMenuSeparator className="mt-1" />
                   <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/privacy" className="hover:underline">
-                      Privacy
-                    </a>
-                    <span>·</span>
                     <a href="/terms" className="hover:underline">
                       Terms
                     </a>
@@ -507,10 +503,6 @@ export function NavUser() {
 
                   <DropdownMenuSeparator className="mt-1" />
                   <div className="text-muted-foreground/60 flex items-center justify-center gap-1 px-2 pb-2 pt-1 text-[10px]">
-                    <a href="/privacy" className="hover:underline">
-                      Privacy
-                    </a>
-                    <span>·</span>
                     <a href="/terms" className="hover:underline">
                       Terms
                     </a>
