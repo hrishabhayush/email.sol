@@ -8,6 +8,9 @@ skip-lint = false
 [programs.localnet]
 arcium_mxe = "8qbRSancKocbWrqkrr5EJGFMMjGunK2rJYgfJn5heZyH"
 
+[programs.devnet]
+arcium_mxe = "8qbRSancKocbWrqkrr5EJGFMMjGunK2rJYgfJn5heZyH"
+
 [registry]
 url = "https://api.apr.dev"
 

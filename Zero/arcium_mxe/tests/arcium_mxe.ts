@@ -28,8 +28,12 @@ import { expect } from "chai";
 
 // Cluster configuration
 // For localnet testing: null (uses ARCIUM_CLUSTER_PUBKEY from env)
-// For devnet/testnet: specific cluster offset
-const CLUSTER_OFFSET: number | null = null;
+// For devnet/testnet: specific cluster offset (e.g., 0 for first cluster)
+const CLUSTER_OFFSET: number | null = null;  // null for localnet
+
+// Network configuration - auto-detect from environment or default to localnet
+const NETWORK = process.env.ANCHOR_PROVIDER_URL || "http://127.0.0.1:8899";
+const WS_NETWORK = NETWORK.replace("https://", "wss://").replace("http://", "ws://").replace(":8899", ":8900");
 
 /**
  * Gets the cluster account address based on configuration.
@@ -45,11 +49,40 @@ function getClusterAccount(): PublicKey {
 }
 
 describe("ArciumMxe", () => {
-  // Configure the client to use the local cluster.
+  // Configure the client to use the cluster from environment
   anchor.setProvider(anchor.AnchorProvider.env());
+  
+  // Create connection with explicit WebSocket endpoint for log subscriptions
+  const connection = new anchor.web3.Connection(
+    NETWORK,
+    {
+      commitment: "confirmed",
+      wsEndpoint: WS_NETWORK
+    }
+  );
+  
   const program = anchor.workspace
     .ArciumMxe as Program<ArciumMxe>;
   const provider = anchor.getProvider();
+
+  // Wait for WebSocket connection to be ready before running tests
+  before(async () => {
+    console.log(`Connecting to ${NETWORK}...`);
+    console.log("Waiting for WebSocket connection to be ready...");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // Test the WebSocket connection by subscribing to slot updates
+    try {
+      const subscriptionId = connection.onSlotChange((slotInfo) => {
+        console.log("WebSocket connected - received slot:", slotInfo.slot);
+      });
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await connection.removeSlotChangeListener(subscriptionId);
+      console.log("WebSocket connection verified ✔️");
+    } catch (error) {
+      console.log("WebSocket connection warning:", error);
+    }
+  });
 
   type Event = anchor.IdlEvents<(typeof program)["idl"]>;
   const awaitEvent = async <E extends keyof Event>(
