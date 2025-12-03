@@ -138,7 +138,6 @@ export const Mail0ProEmail = ({ name }: EmailProps) => {
             <Text style={listItem}>✍️ One-click AI writing and smart replies</Text>
             <Text style={listItem}>🪄 Instant thread summaries so you don't waste time scrolling</Text>
             <Text style={listItem}>🙋 Priority support</Text>
-            <Text style={listItem}>💬 Private Discord community</Text>
             <Text style={listItem}>💸 $20/month — or save 50% when billed annually</Text>
             <Text style={text}>
               It's the full Mail0 experience, no limits.
@@ -413,7 +412,6 @@ export const Mail0ProWelcomeEmail = ({ name }: EmailProps) => {
             <Text style={listItem}>✍️ One-click AI writing and smart replies</Text>
             <Text style={listItem}>🏷️ Auto labeling that sorts your chaos</Text>
             <Text style={listItem}>🙋 Priority support</Text>
-            <Text style={listItem}>💬 Access to our private community on Discord</Text>
             <Text style={text}>
               You're part of a group of people who are done wasting time on email. Welcome.
             </Text>

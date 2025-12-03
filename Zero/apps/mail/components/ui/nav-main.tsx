@@ -116,18 +116,6 @@ export function NavMain({ items }: NavMainProps) {
         return `${item.url}?from=${encodeURIComponent(currentPath)}`;
       }
 
-      // Handle back button with redirect protection
-      if (item.isBackButton) {
-        if (currentFrom) {
-          const decodedFrom = decodeURIComponent(currentFrom);
-          if (isValidInternalUrl(decodedFrom)) {
-            return decodedFrom;
-          }
-        }
-        // Fall back to safe default if URL is missing or invalid
-        return '/mail';
-      }
-
       // Handle settings pages navigation
       if (item.isSettingsPage && currentFrom) {
         // Validate and sanitize the 'from' parameter to prevent open redirects

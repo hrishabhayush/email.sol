@@ -78,10 +78,6 @@ export default function HomeContent() {
 
       <Navigation />
 
-      <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
-        <ThemeToggle />
-      </div>
-
       <section className="z-10 mt-32 flex flex-col items-center px-4">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -90,8 +86,7 @@ export default function HomeContent() {
           className="text-center text-4xl font-medium md:text-6xl"
         >
           <Balancer className="mb-3 max-w-[1130px]">
-            Cold emails that actually get replies.
-            Spend only for successful conversions.
+            The incentivized inbox for richer replies
           </Balancer>
         </motion.h1>
         <motion.p
@@ -732,11 +727,10 @@ export default function HomeContent() {
             </div>
             <div>
               <h1 className="mb-2 mt-4 text-lg font-medium leading-loose text-white">
-                AI-Powered Summaries
+                Responses evaluated by AI
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Your personal email copilot. Let our AI draft responses, summarize long threads, and
-                extract action items automatically.
+                AI ensures that you only pay for meaningful responses and correspondence.
               </p>
             </div>
           </motion.div>

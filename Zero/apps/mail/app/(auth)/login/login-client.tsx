@@ -9,6 +9,7 @@ import { signIn } from '@/lib/auth-client';
 import { useNavigate } from 'react-router';
 import { useQueryState } from 'nuqs';
 import { toast } from 'sonner';
+import Footer from '@/components/home/footer';
 
 interface EnvVarStatus {
   name: string;
@@ -54,7 +55,7 @@ const getProviderIcon = (providerId: string, className?: string): ReactNode => {
             className="mr-2 hidden dark:block"
           />
           <img
-            src="/solmail-logo.png"
+            src="/solmail-logo-dark.png"
             alt="Zero"
             width={15}
             height={15}
@@ -136,7 +137,7 @@ function LoginClientContent({ providers, isProd }: LoginClientProps) {
     <div className="flex min-h-screen w-full flex-col items-center justify-between bg-[#111111]">
       <div className="animate-in slide-in-from-bottom-4 mx-auto flex max-w-[600px] grow items-center justify-center space-y-8 px-4 duration-500 sm:px-12 md:px-0">
         <div className="w-full space-y-4">
-          <p className="text-center text-4xl font-bold text-white md:text-5xl">Login to Zero</p>
+          <p className="text-center text-4xl font-bold text-white md:text-5xl">Login to SolMail</p>
 
           {error && (
             <Alert variant="default" className="border-orange-500/40 bg-orange-500/10">
@@ -305,22 +306,7 @@ function LoginClientContent({ providers, isProd }: LoginClientProps) {
       </div>
       <a href={'/'}>Return home</a>
 
-      <footer className="w-full px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-6">
-          <a
-            href="/terms"
-            className="text-[10px] text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            Terms of Service
-          </a>
-          <a
-            href="/privacy"
-            className="text-[10px] text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-          >
-            Privacy Policy
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

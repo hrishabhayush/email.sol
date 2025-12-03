@@ -168,7 +168,6 @@ export function PricingDialog() {
                   <PurpleThickCheck className="relative left-px top-px" />
                 </div>
                 <div className="justify-center text-sm font-normal leading-normal text-white lg:text-base">
-                  Access to private Discord community
                 </div>
               </div>
             </div>

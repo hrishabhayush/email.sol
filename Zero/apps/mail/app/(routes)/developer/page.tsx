@@ -1,4 +1,4 @@
-import { Github, Book, Users, Terminal, Code2, Webhook, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Github, Book, Users, Terminal, Code2, Webhook, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router';
@@ -74,16 +74,6 @@ export default function DeveloperPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[1600px] p-4 md:p-6 lg:p-8">
           <div className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-10 mb-8 backdrop-blur">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="text-muted-foreground hover:text-foreground mb-6 gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-
             <div className="space-y-4">
               <h1 className="text-2xl font-bold sm:text-3xl">Developer Resources</h1>
               <p className="text-muted-foreground text-base sm:text-lg">

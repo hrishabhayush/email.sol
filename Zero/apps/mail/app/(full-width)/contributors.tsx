@@ -17,7 +17,8 @@ import {
 } from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { Discord, Twitter, GitHub } from '@/components/icons/icons';
+import { Twitter, GitHub } from '@/components/icons/icons';
+import Footer from '@/components/home/footer';
 import { Separator } from '@/components/ui/separator';
 import { Navigation } from '@/components/navigation';
 import { useEffect, useState, useMemo } from 'react';
@@ -59,7 +60,28 @@ const REPOSITORY = 'hrishabhayush/email.sol';
 const specialRoles: Record<
   string,
   { role: string; position: number; x?: string; website?: string }
-> = {};
+> = {
+  'rachelturneyy': {
+    role: 'Contributor',
+    position: 2,
+    x: 'rachelt313',
+  },
+  'hrishabhayush': {
+    role: 'Contributor',
+    position: 1,
+    x: 'hrishabhayush',
+  },
+  'c-lee13': {
+    role: 'Contributor',
+    position: 3,
+    x: 'caedy_13',
+  },
+  'arcanebear812': {
+    role: 'Contributor',
+    position: 4,
+    x: 'Dhruvprata4970',
+  },
+};
 
 export default function OpenPage() {
   const [repoStats, setRepoStats] = useState({
@@ -313,7 +335,7 @@ export default function OpenPage() {
                 <a href="/">
                   <div className="relative h-8 w-8">
                     <img
-                      src="/solmail-logo.png"
+                      src="/solmail-logo-dark.png"
                       alt="0.email Logo"
                       className="object-contain dark:hidden"
                     />
@@ -591,7 +613,7 @@ export default function OpenPage() {
             <h1 className="text-3xl font-semibold tracking-tight text-neutral-900/80 dark:text-white">
               Core Team
             </h1>
-            <p className="text-muted-foreground mt-2">Meet the people behind SolMail</p>
+            <p className="text-muted-foreground mt-2">SolMail contributors</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -678,15 +700,12 @@ export default function OpenPage() {
             <div className="relative p-6">
               <div className="flex flex-col items-center gap-8 md:flex-row">
                 <div className="w-full md:w-2/3">
-                  <div className="inline-flex items-center rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-neutral-900">
-                    <GitHub className="mr-1.5 h-3.5 w-3.5" />
-                    MIT Licensed
-                  </div>
+
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                    Let&apos;s build the future of email together
+                    Cold emailing done better
                   </h2>
                   <p className="mt-3 text-neutral-600 dark:text-neutral-300">
-                    Get the responses you want from cold emailing
+                    Get the responses you deserve
                   </p>
                   <div className="mt-5 flex flex-wrap gap-3">
                     <Button
@@ -769,27 +788,8 @@ export default function OpenPage() {
           </div>
         </div>
 
-        <div className="mb-6 mt-2 flex items-center justify-center gap-4">
-          <a
-            href="https://discord.gg/mail0"
-            target="_blank"
-            rel="noreferrer"
-            className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-            aria-label="Join our Discord"
-          >
-            <Discord className="dark:fill-muted-foreground h-4 w-4" />
-          </a>
-          <a
-            href="https://x.com/mail0dotcom"
-            target="_blank"
-            rel="noreferrer"
-            className="text-neutral-500 transition-colors hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-            aria-label="Follow us on X (Twitter)"
-          >
-            <Twitter className="dark:fill-muted-foreground h-4 w-4" />
-          </a>
-        </div>
       </div>
+      <Footer />
     </div>
   );
 }

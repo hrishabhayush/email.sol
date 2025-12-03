@@ -8,7 +8,6 @@ import {
   Stars,
   Tabs,
   Users,
-  ArrowLeft,
   Danger,
   Sheet,
   Plane2,
@@ -24,7 +23,6 @@ export interface NavItem {
   url: string;
   icon: React.ComponentType<any>;
   badge?: number;
-  isBackButton?: boolean;
   isSettingsButton?: boolean;
   disabled?: boolean;
   target?: string;
@@ -140,13 +138,6 @@ export const navigationConfig: Record<string, NavConfig> = {
       {
         title: 'Settings',
         items: [
-          {
-            title: m['common.actions.back'](),
-            url: '/mail',
-            icon: ArrowLeft,
-            isBackButton: true,
-          },
-
           {
             title: m['navigation.settings.general'](),
             url: '/settings/general',
