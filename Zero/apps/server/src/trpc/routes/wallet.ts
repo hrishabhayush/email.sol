@@ -38,10 +38,15 @@ export const walletRouter = router({
       const { db, conn } = createDb(env.DATABASE_URL);
       try {
         const lowerEmails = input.emails.map((e) => e.toLowerCase());
+        console.log('[Backend] Looking up wallets for emails:', lowerEmails);
+        
         const results = await db
           .select()
           .from(emailWallet)
           .where(inArray(emailWallet.email, lowerEmails));
+
+        console.log('[Backend] Database query results:', results);
+        console.log('[Backend] Found', results.length, 'wallets in database');
 
         const walletMap: Record<string, { walletAddress: string; verified: boolean } | null> = {};
         
@@ -52,12 +57,14 @@ export const walletRouter = router({
 
         // Fill in found wallets
         for (const result of results) {
+          console.log('[Backend] Found wallet for', result.email, ':', result.walletAddress);
           walletMap[result.email] = {
             walletAddress: result.walletAddress,
             verified: result.verified,
           };
         }
 
+        console.log('[Backend] Returning wallet map:', walletMap);
         return walletMap;
       } finally {
         await conn.end();

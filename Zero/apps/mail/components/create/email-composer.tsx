@@ -472,9 +472,30 @@ export function EmailComposer({
       }
 
       // Check wallet connection before sending email
-      if (!wallet || !publicKey || !connection || !wallet.adapter) {
+      console.log('[Frontend] Wallet connection check:', {
+        wallet: wallet ? 'exists' : 'null',
+        publicKey: publicKey ? publicKey.toString() : 'null',
+        connection: connection ? 'exists' : 'null',
+        walletAdapter: wallet?.adapter ? 'exists' : 'null',
+        walletName: wallet?.adapter?.name || 'unknown',
+        isConnected: wallet && publicKey ? 'yes' : 'no',
+      });
+
+      if (!wallet || !publicKey) {
+        console.error('[Frontend] Wallet not connected - wallet:', wallet, 'publicKey:', publicKey);
         toast.error('Please connect your Solana wallet to send emails');
         return;
+      }
+
+      if (!connection) {
+        console.error('[Frontend] Connection not available');
+        toast.error('Solana connection not available. Please refresh the page.');
+        return;
+      }
+
+      // Note: wallet.adapter might not be needed for all operations, but check it anyway
+      if (!wallet.adapter) {
+        console.warn('[Frontend] Wallet adapter not available, but proceeding with wallet and publicKey');
       }
 
       // Extract email addresses from recipients and normalize to lowercase
@@ -490,9 +511,12 @@ export function EmailComposer({
       toast.loading('Looking up recipient wallets...', { id: 'wallet-lookup' });
       let recipientWallets: Record<string, { walletAddress: string; verified: boolean } | null>;
       try {
+        console.log('[Frontend] Looking up wallets for emails:', recipientEmails);
         recipientWallets = await trpcClient.wallet.getByEmails.query({ emails: recipientEmails });
+        console.log('[Frontend] Wallet lookup result:', recipientWallets);
+        console.log('[Frontend] Database returned:', JSON.stringify(recipientWallets, null, 2));
       } catch (error) {
-        console.error('Error looking up wallets:', error);
+        console.error('[Frontend] Error looking up wallets:', error);
         toast.error('Failed to look up recipient wallets. Email not sent.', { id: 'wallet-lookup' });
         return;
       }
@@ -503,7 +527,13 @@ export function EmailComposer({
         (email) => !recipientWallets[email]?.walletAddress
       );
 
+      console.log('[Frontend] Recipients with wallets:', recipientEmails.filter(email => recipientWallets[email]?.walletAddress));
+      console.log('[Frontend] Recipients without wallets:', recipientsWithoutWallets);
+      console.log('[Frontend] Full wallet map keys:', Object.keys(recipientWallets));
+      console.log('[Frontend] Requested emails:', recipientEmails);
+
       if (recipientsWithoutWallets.length > 0) {
+        console.warn('[Frontend] Blocking email send - recipients without wallets:', recipientsWithoutWallets);
         toast.error(
           `Recipients without wallets: ${recipientsWithoutWallets.join(', ')}. Please ask them to set up their wallet first.`,
           { id: 'wallet-lookup', duration: 5000 }

@@ -17,7 +17,7 @@ import { useLabels } from '@/hooks/use-labels';
 import { Badge } from '@/components/ui/badge';
 import { useStats } from '@/hooks/use-stats';
 import SidebarLabels from './sidebar-labels';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { BASE_URL } from '@/lib/constants';
 import { useQueryState } from 'nuqs';
 import { Plus, Wallet } from 'lucide-react';
@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import * as React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useSession } from '@/lib/auth-client';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   ref?: React.Ref<SVGSVGElement>;
@@ -333,6 +334,30 @@ function ConnectWalletButton() {
   const { wallet, publicKey, disconnect, connecting } = useWallet();
   const { setVisible } = useWalletModal();
   const { state } = useSidebar();
+  const { data: session } = useSession();
+  const trpc = useTRPC();
+  const { mutateAsync: setMyWallet } = useMutation(trpc.wallet.setMyWallet.mutationOptions());
+
+  // Automatically save wallet to database when connected
+  useEffect(() => {
+    if (wallet && publicKey && session?.user?.email) {
+      console.log('[Frontend] Auto-saving wallet to database:', {
+        email: session.user.email,
+        walletAddress: publicKey.toString(),
+      });
+      
+      setMyWallet({
+        walletAddress: publicKey.toString(),
+      })
+        .then(() => {
+          console.log('[Frontend] Wallet saved to database successfully');
+        })
+        .catch((error) => {
+          console.error('[Frontend] Failed to save wallet to database:', error);
+          // Don't show error toast - this is automatic, user doesn't need to know
+        });
+    }
+  }, [wallet, publicKey, session?.user?.email, setMyWallet]);
 
   const handleClick = () => {
     if (wallet && publicKey) {
