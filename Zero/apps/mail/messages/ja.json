@@ -446,7 +446,7 @@
         "customPromptPlaceholder": "AIのカスタムプロンプトを入力...",
         "customPromptDescription": "AIがメールの返信を書く方法をカスタマイズします。これはベースプロンプトに追加されます。",
         "noResultsFound": "結果が見つかりませんでした",
-        "zeroSignature": "Zero署名",
+        "zeroSignature": "Solmail署名",
         "zeroSignatureDescription": "メールにZero署名を追加します。",
         "defaultEmailAlias": "デフォルトのメールエイリアス",
         "selectDefaultEmail": "デフォルトのメールを選択",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "完全な体験を提供するために必要な権限が不足しています。もう一度サインインして、リクエストされたアクセスを許可してください。",
     "early_access_required": "ログインするにはアーリーアクセスが必要です",
-    "unauthorized": "Zeroは第三者プロバイダーからデータを読み込めませんでした。もう一度お試しください。"
+    "unauthorized": "Solmailは第三者プロバイダーからデータを読み込めませんでした。もう一度お試しください。"
   }
 }

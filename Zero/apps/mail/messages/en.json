@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Enter your custom prompt for the AI...",
         "customPromptDescription": "Customize how the AI writes your email replies. This will be added to the base prompt.",
         "noResultsFound": "No results found",
-        "zeroSignature": "Zero Signature",
-        "zeroSignatureDescription": "Add a Zero signature to your emails.",
+        "zeroSignature": "Solmail Signature",
+        "zeroSignatureDescription": "Add a Solmail signature to your emails.",
         "defaultEmailAlias": "Default Email Alias",
         "selectDefaultEmail": "Select default email",
         "defaultEmailDescription": "This email will be used as the default 'From' address when composing new emails",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "Email Connections",
-        "description": "Connect your email accounts to Zero.",
+        "description": "Connect your email accounts to Solmail.",
         "disconnectTitle": "Disconnect Email Account",
         "disconnectDescription": "Are you sure you want to disconnect this email?",
         "cancel": "Cancel",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "We're missing the permissions needed to craft your full experience. Please sign in again and allow the requested access.",
     "early_access_required": "Early access is required to log in",
-    "unauthorized": "Zero could not load your data from the 3rd party provider. Please try again."
+    "unauthorized": "Solmail could not load your data from the 3rd party provider. Please try again."
   }
 }

@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Voer je aangepaste prompt in voor de AI...",
         "customPromptDescription": "Pas aan hoe de AI je e-mailantwoorden schrijft. Dit wordt toegevoegd aan de basisprompt.",
         "noResultsFound": "Geen resultaten gevonden",
-        "zeroSignature": "Zero-handtekening",
-        "zeroSignatureDescription": "Voeg een Zero-handtekening toe aan je e-mails.",
+        "zeroSignature": "Solmail-handtekening",
+        "zeroSignatureDescription": "Voeg een Solmail-handtekening toe aan je e-mails.",
         "defaultEmailAlias": "Standaard e-mailalias",
         "selectDefaultEmail": "Selecteer standaard e-mail",
         "defaultEmailDescription": "Dit e-mailadres wordt gebruikt als standaard 'Van'-adres bij het opstellen van nieuwe e-mails",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "E-mailverbindingen",
-        "description": "Verbind je e-mailaccounts met Zero.",
+        "description": "Verbind je e-mailaccounts met Solmail.",
         "disconnectTitle": "E-mailaccount loskoppelen",
         "disconnectDescription": "Weet je zeker dat je deze e-mail wilt loskoppelen?",
         "cancel": "Annuleren",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "We missen de benodigde machtigingen om je volledige ervaring te creëren. Log opnieuw in en sta de gevraagde toegang toe.",
     "early_access_required": "Vroege toegang is vereist om in te loggen",
-    "unauthorized": "Zero kon je gegevens niet laden van de externe provider. Probeer het opnieuw."
+    "unauthorized": "Solmail kon je gegevens niet laden van de externe provider. Probeer het opnieuw."
   }
 }

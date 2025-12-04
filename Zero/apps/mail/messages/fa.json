@@ -66,7 +66,7 @@
     },
     "commandPalette": {
       "title": "پالت فرمان",
-      "description": "ناوبری سریع و اقدامات برای Zero Email",
+      "description": "ناوبری سریع و اقدامات برای Solmail Email",
       "placeholder": "یک دستور را تایپ کنید یا جستجو کنید...",
       "noResults": "نتیجه‌ای یافت نشد",
       "groups": {
@@ -447,7 +447,7 @@
         "customPromptDescription": "نحوه نگارش پاسخ‌های ایمیل توسط هوش مصنوعی را سفارشی کنید. این به پرامپت پایه اضافه خواهد شد.",
         "noResultsFound": "نتیجه‌ای یافت نشد",
         "zeroSignature": "امضای Zero",
-        "zeroSignatureDescription": "افزودن امضای Zero به ایمیل‌های شما.",
+        "zeroSignatureDescription": "افزودن امضای Solmail به ایمیل‌های شما.",
         "defaultEmailAlias": "نام مستعار ایمیل پیش‌فرض",
         "selectDefaultEmail": "انتخاب ایمیل پیش‌فرض",
         "defaultEmailDescription": "این ایمیل به عنوان آدرس پیش‌فرض 'از طرف' هنگام نوشتن ایمیل‌های جدید استفاده خواهد شد",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "اتصالات ایمیل",
-        "description": "حساب‌های ایمیل خود را به Zero متصل کنید.",
+        "description": "حساب‌های ایمیل خود را به Solmail متصل کنید.",
         "disconnectTitle": "قطع اتصال حساب ایمیل",
         "disconnectDescription": "آیا مطمئن هستید که می‌خواهید اتصال این ایمیل را قطع کنید؟",
         "cancel": "لغو",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "دسترسی‌های لازم برای ارائه تجربه کامل به شما وجود ندارد. لطفاً دوباره وارد شوید و دسترسی‌های درخواست شده را تأیید کنید.",
     "early_access_required": "برای ورود به سیستم، دسترسی زودهنگام لازم است",
-    "unauthorized": "Zero نتوانست داده‌های شما را از ارائه‌دهنده شخص ثالث بارگیری کند. لطفاً دوباره تلاش کنید."
+    "unauthorized": "Solmail نتوانست داده‌های شما را از ارائه‌دهنده شخص ثالث بارگیری کند. لطفاً دوباره تلاش کنید."
   }
 }

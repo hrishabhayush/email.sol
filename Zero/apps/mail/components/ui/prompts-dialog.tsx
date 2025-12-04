@@ -135,7 +135,7 @@ export function PromptsDialog() {
         <DialogContent className="max-w-(--breakpoint-lg)" showOverlay={true}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              ZeroAI System Prompts{' '}
+              Solmail AI System Prompts{' '}
               <Link
                 to={'https://github.com/Mail-0/Zero.git'}
                 target="_blank"

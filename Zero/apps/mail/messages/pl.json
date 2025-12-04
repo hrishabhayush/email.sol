@@ -447,7 +447,7 @@
         "customPromptDescription": "Dostosuj sposób, w jaki AI pisze odpowiedzi na Twoje e-maile. Zostanie to dodane do podstawowego polecenia.",
         "noResultsFound": "Nie znaleziono wyników",
         "zeroSignature": "Podpis Zero",
-        "zeroSignatureDescription": "Dodaj podpis Zero do swoich e-maili.",
+        "zeroSignatureDescription": "Dodaj podpis Solmail do swoich e-maili.",
         "defaultEmailAlias": "Domyślny alias e-mail",
         "selectDefaultEmail": "Wybierz domyślny e-mail",
         "defaultEmailDescription": "Ten e-mail będzie używany jako domyślny adres 'Od' podczas tworzenia nowych wiadomości e-mail",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "Połączenia e-mail",
-        "description": "Połącz swoje konta e-mail z Zero.",
+        "description": "Połącz swoje konta e-mail z Solmail.",
         "disconnectTitle": "Odłącz konto e-mail",
         "disconnectDescription": "Czy na pewno chcesz odłączyć ten e-mail?",
         "cancel": "Anuluj",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Brakuje nam uprawnień potrzebnych do zapewnienia pełnego doświadczenia. Zaloguj się ponownie i zaakceptuj wymagane uprawnienia.",
     "early_access_required": "Wymagany jest wczesny dostęp, aby się zalogować",
-    "unauthorized": "Zero nie mógł załadować Twoich danych od zewnętrznego dostawcy. Spróbuj ponownie."
+    "unauthorized": "Solmail nie mógł załadować Twoich danych od zewnętrznego dostawcy. Spróbuj ponownie."
   }
 }
