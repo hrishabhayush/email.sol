@@ -9,6 +9,6 @@ export default {
   },
   prerender: ['/manifest.webmanifest'],
   future: {
-    v8_viteEnvironmentApi: true
+    unstable_viteEnvironmentApi: true,
   },
 } satisfies Config;

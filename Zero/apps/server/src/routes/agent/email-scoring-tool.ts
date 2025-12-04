@@ -70,7 +70,7 @@ export class EmailScoringTool extends (StructuredTool as any) {
 
       // Get the base URL for internal requests
       // In Cloudflare Workers, we need to construct the full URL
-      const baseUrl = env.BASE_URL || 'http://localhost:8787';
+      const baseUrl = env.BASE_URL || 'http://localhost:3000';
       const url = `${baseUrl}${SCORE_EMAIL_ENDPOINT}`;
 
       // Get x402-wrapped fetch (handles payments automatically)

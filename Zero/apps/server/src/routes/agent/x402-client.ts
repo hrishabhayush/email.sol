@@ -46,9 +46,10 @@ export function initializeX402Client(
     sign: async (message: Uint8Array): Promise<Uint8Array> => {
       // x402-fetch handles the actual payment creation and signing
       // This signer is used internally by wrapFetchWithPayment
-      // The actual implementation depends on x402-fetch's internal handling
-      return new Uint8Array();
-    },
+      // TODO: unsure if this works
+      const keypair = (wallet as any).keypair; // Access underlying keypair
+      return keypair.sign(message).signature;
+    }
   };
 
   // Determine network string for x402

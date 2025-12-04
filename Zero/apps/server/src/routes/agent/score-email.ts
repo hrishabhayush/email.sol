@@ -39,7 +39,6 @@ const ScoreSchema = z.object({
 });
 
 // Get receiving wallet address from SOLANA_PRIVATE_KEY
-// For Solana, x402 expects the public key as a string (not 0x format like EVM)
 function getReceivingWalletAddress(): string {
     if (!env.SOLANA_PRIVATE_KEY) {
         throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
@@ -51,12 +50,13 @@ function getReceivingWalletAddress(): string {
 }
 
 // Create the router with payment middleware
-// Note: Using type assertion to work around Hono version mismatch with x402-hono
 export const scoreEmailRouter = new Hono()
     .use(
         paymentMiddleware(
             getReceivingWalletAddress() as any, // Type assertion for Solana address format
             {
+                // For the HTTP POST request to path /, require a $0.01 payment on Solana devnet before allowing the handler to run.
+                // x402 intercepts any HTTP request that follows: .post('/', async c => { ... }) by returning a 402 response if the payment is not made.
                 'POST /': {
                     price: '$0.01',
                     network: 'solana-devnet',
@@ -64,12 +64,10 @@ export const scoreEmailRouter = new Hono()
             },
             {
                 url: 'https://api.cdp.coinbase.com/platform/v2/x402',
-                // Alternatively, use the facilitator object from @coinbase/x402
-                // facilitator: facilitator,
             }
-        ) as any // Type assertion to work around Hono version mismatch
+        ) as any 
     )
-    .post('/', async (c) => {
+    .post('/', async (c) => { // handler runs only after the payment middleware authorizes the request
         try {
             // Extract email content from request body
             const { emailContent } = await c.req.json();

@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --show-interactive-dev-session=false --inspector-port=0 --env local",
+    "dev": "wrangler dev --show-interactive-dev-session=false --inspector-port=0 --experimental-vectorize-bind-to-prod --env local",
     "deploy": "wrangler deploy",
     "types": "wrangler types --env local",
     "lint": "eslint .",
