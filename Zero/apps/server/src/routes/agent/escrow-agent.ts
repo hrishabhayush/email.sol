@@ -62,7 +62,8 @@ export function initializeEscrowAgent(): SolanaAgentKit {
       throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
     }
 
-    const keypair = Keypair.fromSecretKey(bs58.decode(privateKey));
+    const secret = JSON.parse(env.SOLANA_PRIVATE_KEY);
+    const keypair = Keypair.fromSecretKey(new Uint8Array(secret));
     const wallet = new KeypairWallet(keypair);
 
     // Create connection
