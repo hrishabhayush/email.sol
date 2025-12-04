@@ -32,23 +32,6 @@ export default [
         route('/:folder', '(routes)/mail/[folder]/page.tsx'),
       ]),
     ),
-    layout(
-      '(routes)/settings/layout.tsx',
-      prefix('/settings', [
-        index('(routes)/settings/page.tsx'),
-        route('/appearance', '(routes)/settings/appearance/page.tsx'),
-        route('/connections', '(routes)/settings/connections/page.tsx'),
-        route('/danger-zone', '(routes)/settings/danger-zone/page.tsx'),
-        route('/general', '(routes)/settings/general/page.tsx'),
-        route('/labels', '(routes)/settings/labels/page.tsx'),
-        // route('/categories', '(routes)/settings/categories/page.tsx'),
-        route('/notifications', '(routes)/settings/notifications/page.tsx'),
-        route('/privacy', '(routes)/settings/privacy/page.tsx'),
-        route('/security', '(routes)/settings/security/page.tsx'),
-        route('/shortcuts', '(routes)/settings/shortcuts/page.tsx'),
-        route('/*', '(routes)/settings/[...settings]/page.tsx'),
-      ]),
-    ),
     route('/*', 'meta-files/not-found.ts'),
   ]),
 ] satisfies RouteConfig;

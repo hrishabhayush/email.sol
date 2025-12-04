@@ -8,7 +8,6 @@ import {
 import {
   HelpCircle,
   LogOut,
-  Settings,
   Plus,
   CopyCheckIcon,
   BadgeCheck,
@@ -52,12 +51,6 @@ export function NavUser() {
   const [category] = useQueryState('category', { defaultValue: 'All Mail' });
   const { setLoading } = useLoading();
 
-  const getSettingsHref = useCallback(() => {
-    const currentPath = category
-      ? `${pathname}?category=${encodeURIComponent(category)}`
-      : pathname;
-    return `/settings/general?from=${encodeURIComponent(currentPath)}`;
-  }, [pathname, category]);
 
   const handleClearCache = useCallback(async () => {
     queryClient.clear();
@@ -233,15 +226,6 @@ export function NavUser() {
                     <AddConnectionDialog />
 
                     <DropdownMenuSeparator className="my-1" />
-
-                    <DropdownMenuItem asChild>
-                      <a href={getSettingsHref()} className="cursor-pointer">
-                        <div className="flex items-center gap-2">
-                          <Settings size={16} className="opacity-60" />
-                          <p className="text-[13px] opacity-60">{m['common.actions.settings']()}</p>
-                        </div>
-                      </a>
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
@@ -471,15 +455,6 @@ export function NavUser() {
             <div className="h-5 max-w-[200px] overflow-hidden truncate text-xs font-normal leading-none text-[#898989]">
               {activeAccount?.email || session.user.email}
             </div>
-            {!isPro && (
-              <button
-                onClick={() => setPricingDialog('true')}
-                className="flex h-5 items-center gap-1 rounded-full border px-1 pr-1.5 hover:bg-transparent"
-              >
-                <BadgeCheck className="h-4 w-4 text-white dark:text-[#141414]" fill="#1D9BF0" />
-                <span className="text-muted-foreground text-[10px] uppercase">Get verified</span>
-              </button>
-            )}
           </div>
 
           <div className="ml-2">{/* Gauge component removed */}</div>

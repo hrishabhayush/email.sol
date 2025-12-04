@@ -281,6 +281,41 @@
   body {
     @apply bg-background text-foreground font-sans overscroll-none style-scrollbar;
   }
+  
+  /* Cursor styles */
+  button:not(:disabled),
+  a,
+  [role="button"],
+  [onclick],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  label[for],
+  select {
+    cursor: pointer;
+  }
+  
+  input[type="text"],
+  input[type="search"],
+  input[type="email"],
+  input[type="password"],
+  input[type="url"],
+  textarea,
+  [contenteditable] {
+    cursor: text;
+  }
+  
+  input[type="text"]:disabled,
+  input[type="search"]:disabled,
+  input[type="email"]:disabled,
+  input[type="password"]:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+  
+  button:disabled {
+    cursor: not-allowed;
+  }
 }
 
 .skeleton {

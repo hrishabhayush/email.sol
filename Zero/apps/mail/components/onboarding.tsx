@@ -76,7 +76,7 @@ export function OnboardingDialog({
               <button
                 onClick={handlePrevious}
                 disabled={currentStep === 0}
-                className="absolute left-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                className="absolute left-2 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
                 aria-label="Previous"
               >
                 <ChevronLeft className="h-5 w-5 fill-white" />
@@ -110,7 +110,7 @@ export function OnboardingDialog({
               <button
                 onClick={handleNext}
                 disabled={currentStep === steps.length - 1}
-                className="absolute right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                className="absolute right-2 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
                 aria-label="Next"
               >
                 <ChevronRight className="h-5 w-5 fill-white" />
@@ -131,7 +131,7 @@ export function OnboardingDialog({
             <Button 
               size="default" 
               onClick={handleStart}
-              className="min-w-[120px]"
+              className="min-w-[120px] cursor-pointer"
             >
               Start
             </Button>
