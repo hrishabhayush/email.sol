@@ -87,7 +87,7 @@ export const scoreEmailRouter = new Hono()
             // Initialize LangChain ChatOpenAI (same as email-scoring-tool.ts)
             const llm = new ChatOpenAI({
                 modelName: env.OPENAI_MODEL || 'gpt-4o-mini',
-                temperature: 0,
+                temperature: 1,
                 openAIApiKey: env.OPENAI_API_KEY,
             });
 
