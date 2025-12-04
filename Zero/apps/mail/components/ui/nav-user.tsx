@@ -8,7 +8,6 @@ import {
 import {
   HelpCircle,
   LogOut,
-  MoonIcon,
   Settings,
   Plus,
   CopyCheckIcon,
@@ -27,11 +26,9 @@ import { CircleCheck, ThreeDots } from '../icons/icons';
 import { useTRPC } from '@/providers/query-provider';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useBilling } from '@/hooks/use-billing';
-import { SunIcon } from '../icons/animated/sun';
 import { clear as idbClear } from 'idb-keyval';
 import { useLocation } from 'react-router';
 import { m } from '@/paraglide/messages';
-import { useTheme } from 'next-themes';
 import { useQueryState } from 'nuqs';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
@@ -41,7 +38,6 @@ export function NavUser() {
   const { data: session } = useSession();
   const { data } = useConnections();
   const [isRendered, setIsRendered] = useState(false);
-  const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
   const trpc = useTRPC();
   const [, setThreadId] = useQueryState('threadId');
@@ -116,9 +112,6 @@ export function NavUser() {
     return data.connections.filter((connection) => connection.id !== activeAccount?.id);
   }, [data, activeAccount]);
 
-  const handleThemeToggle = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   if (!isRendered) return null;
   if (!session) return null;
@@ -241,16 +234,6 @@ export function NavUser() {
 
                     <DropdownMenuSeparator className="my-1" />
 
-                    <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer">
-                      <div className="flex w-full items-center gap-2">
-                        {theme === 'dark' ? (
-                          <MoonIcon className="size-4 opacity-60" />
-                        ) : (
-                          <SunIcon className="size-4 opacity-60" />
-                        )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
-                      </div>
-                    </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <a href={getSettingsHref()} className="cursor-pointer">
                         <div className="flex items-center gap-2">
@@ -445,16 +428,6 @@ export function NavUser() {
                         </div>
                       </DropdownMenuItem>
                     ) : null}
-                    <DropdownMenuItem onClick={handleThemeToggle} className="cursor-pointer">
-                      <div className="flex w-full items-center gap-2">
-                        {theme === 'dark' ? (
-                          <MoonIcon className="size-4 opacity-60" />
-                        ) : (
-                          <SunIcon className="size-4 opacity-60" />
-                        )}
-                        <p className="text-[13px] opacity-60">{m['common.navUser.appTheme']()}</p>
-                      </div>
-                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
                       <div className="flex items-center gap-2">
                         <LogOut size={16} className="opacity-60" />
