@@ -10,9 +10,9 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <div className="bg-panelDark -mx-2 mt-16 flex w-screen flex-col items-center justify-center rounded-none lg:mx-2 lg:w-auto lg:rounded-xl z-10">
-      <div className="relative z-1 mb-8 mt-5 flex w-full flex-row items-center justify-between self-stretch px-4 lg:mx-auto lg:max-w-[2900px]">
-      <div className="flex w-full items-start justify-between lg:w-[900px]">
+    <div className="bg-panelDark mt-16 flex w-screen flex-col items-center justify-center rounded-none lg:mx-2 lg:w-auto lg:rounded-xl z-10">
+      <div className="relative z-1 mb-8 mt-5 flex w-full flex-row items-center justify-center self-stretch px-0 lg:px-4 lg:mx-auto lg:max-w-[2900px]">
+      <div className="flex w-full items-start justify-between px-4 lg:px-0 lg:w-[900px]">
         <div className="mt-3 flex flex-col items-start justify-start gap-6 self-stretch">
           <div className="text-xs font-medium leading-tight text-white opacity-80 sm:text-sm">
             © 2025 SolMail

@@ -49,14 +49,14 @@ const getProviderIcon = (providerId: string, className?: string): ReactNode => {
         <>
           <img
             src="/solmail-logo.png"
-            alt="Zero"
+            alt="Solmail"
             width={15}
             height={15}
             className="mr-2 hidden dark:block"
           />
           <img
             src="/solmail-logo-dark.png"
-            alt="Zero"
+            alt="Solmail"
             width={15}
             height={15}
             className="mr-2 block dark:hidden"

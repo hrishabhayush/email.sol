@@ -14,17 +14,16 @@ export function ClientProviders({ children }: PropsWithChildren) {
   const { data } = useSettings();
   useKeyboardLayout();
 
-  const theme = data?.settings.colorTheme || 'system';
-
   return (
     <NuqsAdapter>
       <JotaiProvider>
         <SolanaWalletProvider>
           <ThemeProvider
             attribute="class"
-            enableSystem
+            enableSystem={false}
             disableTransitionOnChange
-            defaultTheme={theme}
+            defaultTheme="dark"
+            forcedTheme="dark"
           >
             <SidebarProvider>
               <PostHogProvider>

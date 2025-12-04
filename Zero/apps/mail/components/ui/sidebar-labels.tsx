@@ -41,7 +41,6 @@ const SidebarLabels = ({ data }: Props) => {
             }
 
             const groups = {
-              brackets: [] as typeof data,
               other: [] as typeof data,
               folders: {} as Record<string, typeof data>,
             };
@@ -59,9 +58,7 @@ const SidebarLabels = ({ data }: Props) => {
                 return;
               }
 
-              if (/\[.*\]/.test(label.name)) {
-                groups.brackets.push(label);
-              } else if (/[^/]+\/[^/]+/.test(label.name)) {
+              if (/[^/]+\/[^/]+/.test(label.name)) {
                 const [groupName] = label.name.split('/') as [string];
                 if (!groups.folders[groupName]) {
                   groups.folders[groupName] = [];
@@ -121,35 +118,6 @@ const SidebarLabels = ({ data }: Props) => {
               });
             }
 
-            if (groups.brackets.length > 0) {
-              const bracketsFolder = {
-                id: 'group-other',
-                name: 'Other',
-                type: 'folder',
-                labels: groups.brackets.map((label) => ({
-                  id: label.id,
-                  name: label.name.replace(/\[|\]/g, ''),
-                  type: label.type,
-                  color: label.color,
-                  originalLabel: label,
-                })),
-              };
-              components.push(
-                <RecursiveFolder
-                  key={bracketsFolder.id}
-                  label={bracketsFolder}
-                  activeAccount={activeAccount}
-                  count={
-                    stats
-                      ? stats.find(
-                          (stat) =>
-                            stat.label?.toLowerCase() === bracketsFolder.name?.toLowerCase(),
-                        )?.count
-                      : 0
-                  }
-                />,
-              );
-            }
 
             return components;
           })()}

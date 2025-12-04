@@ -66,7 +66,7 @@
     },
     "commandPalette": {
       "title": "指令面板",
-      "description": "Zero Email 的快速導航與操作",
+      "description": "Solmail Email 的快速導航與操作",
       "placeholder": "輸入指令或搜尋...",
       "noResults": "找不到結果",
       "groups": {
@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "輸入您的自訂 AI 提示...",
         "customPromptDescription": "自訂 AI 撰寫電子郵件回覆的方式。這將添加到基本提示中。",
         "noResultsFound": "找不到結果",
-        "zeroSignature": "Zero 簽名檔",
-        "zeroSignatureDescription": "在您的電子郵件中新增 Zero 簽名檔。",
+        "zeroSignature": "Solmail 簽名檔",
+        "zeroSignatureDescription": "在您的電子郵件中新增 Solmail 簽名檔。",
         "defaultEmailAlias": "預設電子郵件別名",
         "selectDefaultEmail": "選擇預設電子郵件",
         "defaultEmailDescription": "此電子郵件將作為撰寫新郵件時的預設「寄件者」地址",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "我們缺少打造完整體驗所需的權限。請重新登入並允許請求的存取權限。",
     "early_access_required": "需要搶先體驗權限才能登入",
-    "unauthorized": "Zero 無法從第三方提供者載入您的數據。請再試一次。"
+    "unauthorized": "Solmail 無法從第三方提供者載入您的數據。請再試一次。"
   }
 }

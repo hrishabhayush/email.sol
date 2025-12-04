@@ -447,7 +447,7 @@
         "customPromptDescription": "Personaliza cómo la IA escribe tus respuestas de correo electrónico. Esto se añadirá al prompt base.",
         "noResultsFound": "No se han encontrado resultados",
         "zeroSignature": "Firma Zero",
-        "zeroSignatureDescription": "Añade una firma Zero a tus correos.",
+        "zeroSignatureDescription": "Añade una firma Solmail a tus correos.",
         "defaultEmailAlias": "Alias de correo electrónico predeterminado",
         "selectDefaultEmail": "Seleccionar correo predeterminado",
         "defaultEmailDescription": "Este correo electrónico se utilizará como dirección predeterminada 'De' al redactar nuevos correos",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "Conexiones de correo",
-        "description": "Conecte sus cuentas de correo electrónico a Zero.",
+        "description": "Conecte sus cuentas de correo electrónico a Solmail.",
         "disconnectTitle": "Desconectar cuenta de correo",
         "disconnectDescription": "¿Estás seguro de que quieres desconectar este correo electrónico?",
         "cancel": "Cancelar",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Nos faltan los permisos necesarios para crear tu experiencia completa. Por favor, inicia sesión de nuevo y permite el acceso solicitado.",
     "early_access_required": "Se requiere acceso anticipado para iniciar sesión",
-    "unauthorized": "Zero no pudo cargar tus datos del proveedor externo. Por favor, inténtalo de nuevo."
+    "unauthorized": "Solmail no pudo cargar tus datos del proveedor externo. Por favor, inténtalo de nuevo."
   }
 }

@@ -32,8 +32,6 @@ import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Balancer } from 'react-wrap-balancer';
 import { Navigation } from '../navigation';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -58,18 +56,20 @@ const tabs = [
 ];
 
 export default function HomeContent() {
-  const { setTheme } = useTheme();
   const navigate = useNavigate();
   const { data: session } = useSession();
 
+  // Redirect logged-in users to inbox (non-blocking - happens after render)
   useEffect(() => {
-    setTheme('dark');
-  }, [setTheme]);
+    if (session?.user?.id) {
+      navigate('/mail/inbox');
+    }
+  }, [session, navigate]);
 
   return (
     <main className="relative flex h-full flex-1 flex-col overflow-x-hidden bg-[#0F0F0F] px-2">
       <PixelatedBackground
-        className="z-1 absolute left-1/2 top-[-40px] h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover"
+        className="z-1 pointer-events-none absolute left-1/2 top-[-40px] h-auto w-screen min-w-[1920px] -translate-x-1/2 object-cover"
         style={{
           mixBlendMode: 'screen',
           maskImage: 'linear-gradient(to bottom, black, transparent)',
@@ -86,7 +86,7 @@ export default function HomeContent() {
           className="text-center text-4xl font-medium md:text-6xl"
         >
           <Balancer className="mb-3 max-w-[1130px]">
-            The incentivized inbox for richer replies
+            The Incentivized Inbox for Richer Replies
           </Balancer>
         </motion.h1>
         <motion.p
@@ -95,7 +95,7 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          SolMail is an AI-powered email platform built on Zero that sends micropayments upfront and refunds them if replies aren't meaningful,  ensuring you pay solely for successful conversations.
+          SolMail is an AI-powered email platform that sends micropayments upfront and refunds them if replies aren't meaningful, ensuring you pay solely for successful conversations.
         </motion.p>
         {/* Get Started button only visible for mobile screens */}
         <motion.div
@@ -104,26 +104,21 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="mb-6 lg:hidden"
         >
-          <Button
-            className="cursor-pointer"
-            onClick={() => {
-              if (session) {
-                navigate('/mail/inbox');
-              } else {
-                toast.promise(
-                  signIn.social({
-                    provider: 'google',
-                    callbackURL: `${window.location.origin}/mail`,
-                  }),
-                  {
-                    error: 'Login redirect failed',
-                  },
-                );
-              }
-            }}
-          >
-            Get Started
-          </Button>
+          {session?.user?.id ? (
+            <Link
+              to="/mail/inbox"
+              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90"
+            >
+              Get Started
+            </Link>
+          ) : (
+            <a
+              href={`${import.meta.env.VITE_PUBLIC_BACKEND_URL}/auth/sign-in/social/google?callbackURL=${encodeURIComponent(`${window.location.origin}/mail`)}`}
+              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
+            >
+              Get Started
+            </a>
+          )}
         </motion.div>
       </section>
 
@@ -150,7 +145,7 @@ export default function HomeContent() {
                 <TabsContent key={tab.value} value={tab.value}>
                   <img
                     src="/email-preview.png"
-                    alt="Zero Email Preview"
+                    alt="Solmail Preview"
                     width={1920}
                     height={1080}
                     className="relative hidden md:block"
@@ -166,7 +161,7 @@ export default function HomeContent() {
       <div className="flex items-center justify-center px-4 md:hidden">
         <img
           src="/email-preview.png"
-          alt="Zero Email Preview"
+          alt="Solmail Preview"
           width={1920}
           height={1080}
           className="mt-10 h-fit w-full rounded-xl border"
@@ -494,11 +489,11 @@ export default function HomeContent() {
             </div>
             <div className="mt-4 gap-4">
               <h1 className="mb-2 text-xl font-medium leading-loose text-white">
-                Lightning-Fast Interface
+                Incentivized Outreach
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Email at the speed of thought. Navigate your entire inbox using just your keyboard.
-                Process hundreds of emails in minutes.
+                Stand out in the inbox. Attach X402 micropayments to your cold emails, ensuring
+                recipients have a monetary incentive to prioritize your message.
               </p>
             </div>
           </motion.div>
@@ -727,10 +722,11 @@ export default function HomeContent() {
             </div>
             <div>
               <h1 className="mb-2 mt-4 text-lg font-medium leading-loose text-white">
-                Responses evaluated by AI
+                AI-Verified Quality
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                AI ensures that you only pay for meaningful responses and correspondence.
+                Never pay for low-effort replies. Our SendAI agents analyze incoming responses,
+                ensuring you only release funds for thoughtful, meaningful correspondence.
               </p>
             </div>
           </motion.div>
@@ -1008,10 +1004,10 @@ export default function HomeContent() {
               </div>
             </div>
             <div className="mt-4">
-              <h1 className="mb-2 text-lg font-medium leading-loose text-white">Smart Search</h1>
+              <h1 className="mb-2 text-lg font-medium leading-loose text-white">Seamless Smart Wallet</h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Your inbox, your rules. Create personalized email processing flows that match
-                exactly how you organize,write, reply, and work.
+                Experience friction-free outreach. Pre-load your vault to eliminate repetitive
+                wallet confirmations, making secure payments as intuitive as clicking "Send".
               </p>
             </div>
           </motion.div>

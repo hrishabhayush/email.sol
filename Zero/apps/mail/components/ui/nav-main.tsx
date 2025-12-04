@@ -4,8 +4,6 @@ import { useCommandPalette } from '../context/command-palette-context.jsx';
 import { LabelDialog } from '@/components/labels/label-dialog';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import Intercom, { show } from '@intercom/messenger-js-sdk';
-import { MessageSquare, OldPhone } from '../icons/icons';
 import { useSidebar } from '../context/sidebar-context';
 import { useTRPC } from '@/providers/query-provider';
 import { type NavItem } from '@/config/navigation';
@@ -37,7 +35,6 @@ interface NavItemProps extends NavItem {
   isExpanded?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   suffix?: React.ComponentType<IconProps>;
-  isSettingsPage?: boolean;
 }
 
 interface NavMainProps {
@@ -60,16 +57,6 @@ export function NavMain({ items }: NavMainProps) {
   const [category] = useQueryState('category');
 
   const trpc = useTRPC();
-  const { data: intercomToken } = useQuery(trpc.user.getIntercomToken.queryOptions());
-
-  React.useEffect(() => {
-    if (intercomToken) {
-      Intercom({
-        app_id: 'aavenrba',
-        intercom_user_jwt: intercomToken,
-      });
-    }
-  }, [intercomToken]);
 
   const { mutateAsync: createLabel } = useMutation(trpc.labels.create.mutationOptions());
 
@@ -78,7 +65,8 @@ export function NavMain({ items }: NavMainProps) {
   const { state } = useSidebar();
 
   // Check if these are bottom navigation items by looking at the first section's title
-  const isBottomNav = items[0]?.title === '';
+  // If items array is empty, it's likely the bottom nav (which should be empty)
+  const isBottomNav = items.length === 0 || (items.length > 0 && items[0]?.title === '');
 
   /**
    * Validates URLs to prevent open redirect vulnerabilities.
@@ -107,25 +95,6 @@ export function NavMain({ items }: NavMainProps) {
       // Get the current 'from' parameter
       const currentFrom = searchParams.get('from');
 
-      // Handle settings navigation
-      if (item.isSettingsButton) {
-        // Include current path with category query parameter if present
-        const currentPath = category
-          ? `${pathname}?category=${encodeURIComponent(category)}`
-          : pathname;
-        return `${item.url}?from=${encodeURIComponent(currentPath)}`;
-      }
-
-      // Handle settings pages navigation
-      if (item.isSettingsPage && currentFrom) {
-        // Validate and sanitize the 'from' parameter to prevent open redirects
-        const decodedFrom = decodeURIComponent(currentFrom);
-        if (isValidInternalUrl(decodedFrom)) {
-          return `${item.url}?from=${encodeURIComponent(currentFrom)}`;
-        }
-        // Fall back to safe default if URL validation fails
-        return `${item.url}?from=/mail`;
-      }
 
       // Handle category links
       if (item.id === 'inbox' && category) {
@@ -176,23 +145,6 @@ export function NavMain({ items }: NavMainProps) {
         {isBottomNav ? (
           <>
             <ConnectWalletButton />
-            <SidebarMenuButton
-              onClick={() => show()}
-              tooltip={state === 'collapsed' ? m['common.commandPalette.groups.help']() : undefined}
-              className="hover:bg-subtleWhite flex cursor-pointer items-center dark:hover:bg-[#202020]"
-            >
-              <OldPhone className="relative mr-2.5 h-2 w-2 fill-[#8F8F8F]" />
-              <p className="relative bottom-0.5 mt-0.5 truncate text-[13px]">Live Support</p>
-            </SidebarMenuButton>
-            <NavItem
-              key={'feedback'}
-              isActive={isUrlActive('https://feedback.0.email')}
-              href={'https://feedback.0.email'}
-              url={'https://feedback.0.email'}
-              icon={MessageSquare}
-              target={'_blank'}
-              title={m['navigation.sidebar.feedback']()}
-            />
           </>
         ) : null}
         {items.map((section) => (
@@ -226,10 +178,10 @@ export function NavMain({ items }: NavMainProps) {
             </SidebarMenuItem>
           </Collapsible>
         ))}
-        {!pathname.includes('/settings') && !isBottomNav && state !== 'collapsed' && (
+        {!isBottomNav && state !== 'collapsed' && activeAccount && (
           <Collapsible defaultOpen={true} className="group/collapsible flex-col">
             <SidebarMenuItem className="mb-4" style={{ height: 'auto' }}>
-              <div className="mx-2 mb-4 flex items-center justify-between">
+              <div className="mx-2 mb-2 flex items-center justify-between">
                 <span className="text-muted-foreground text-[13px] dark:text-[#898989]">
                   {activeAccount?.providerId === 'google' ? 'Labels' : 'Folders'}
                 </span>
@@ -246,10 +198,9 @@ export function NavMain({ items }: NavMainProps) {
                     }
                     onSubmit={onSubmit}
                   />
-                ) : activeAccount?.providerId === 'microsoft' ? null : null}
+                ) : null}
               </div>
-
-              {activeAccount ? <SidebarLabels data={userLabels ?? []} /> : null}
+              <SidebarLabels data={userLabels ?? []} />
             </SidebarMenuItem>
           </Collapsible>
         )}

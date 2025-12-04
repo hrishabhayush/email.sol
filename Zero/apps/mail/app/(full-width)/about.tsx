@@ -2,7 +2,6 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/card';
 import { Github, Mail } from 'lucide-react';
 import { Navigation } from '@/components/navigation';
 import Footer from '@/components/home/footer';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Twitter } from '@/components/icons/icons';
 import React from 'react';
 
@@ -11,9 +10,6 @@ export default function AboutPage() {
     <div className="relative flex min-h-screen w-full flex-col overflow-auto bg-white dark:bg-[#111111]">
       <Navigation />
       <div className="relative z-10 flex grow flex-col">
-        <div className="absolute right-4 top-6 z-20 md:right-8 md:top-8">
-          <ThemeToggle />
-        </div>
 
         <div className="container mx-auto max-w-4xl px-4 py-16">
           <Card className="overflow-hidden rounded-xl border-none bg-gray-50/80 dark:bg-transparent">
@@ -48,75 +44,28 @@ export default function AboutPage() {
 
 const sections = [
   {
-    title: 'Our Mission',
-    content: (
-      <p>
-        Zero is an AI-powered email client that manages your inbox, so you don't have to. We help
-        busy professionals unclutter their inboxes, prioritize important messages, summarize
-        conversations, complete tasks, and even chat with their inbox — letting them spend less time
-        managing email and more time getting things done.
-      </p>
-    ),
-  },
-  {
-    title: 'Why We Started',
-    content: (
-      <p>
-        We started Zero because we were frustrated that email — the most-used communication tool in
-        the world — hasn't meaningfully evolved in decades. Despite countless new apps, none
-        actually solve the real problem: helping you finish what you intend to do. We realized the
-        real solution isn't just a new interface — it's AI acting like a true assistant inside your
-        inbox.
-      </p>
-    ),
-  },
-  {
-    title: 'Open Source',
+    title: 'What is SolMail?',
     content: (
       <div className="space-y-4">
         <p>
-          Zero is built on the principles of transparency and community collaboration. Our entire
-          codebase is open source, allowing anyone to:
-        </p>
-        <ul className="ml-4 list-disc space-y-2">
-          <li>Review our code for security and privacy</li>
-          <li>Contribute improvements and new features</li>
-          <li>Self-host their own instance of Zero</li>
-          <li>Learn from and build upon our work</li>
-        </ul>
-        <p>
-          We believe that email is too important to be controlled by a single entity. By being open
-          source, we ensure that Zero remains transparent, trustworthy, and accessible to everyone.
-        </p>
-      </div>
-    ),
-  },
-  {
-    title: 'Our Journey',
-    content: (
-      <div className="space-y-4">
-        <p>
-          We launched our early access program and have already seen strong demand, with over 15,000
-          signups in just under 3 months. What we found is that users want an assistant that
-          streamlines their inbox, providing features to summarize emails, compose responses, and
-          take necessary actions.
+          SolMail is a cold email outreach platform that uses micropayments to incentivize meaningful
+          responses and facilitate better correspondence. It addresses the common problem where
+          unsolicited messages, such as mass job applications or sponsorship outreach, are ignored
+          because responding offers no immediate benefit to the recipient.
         </p>
         <p>
-          The opportunity is massive: over 4 billion people use email daily, and most still manage
-          it manually. Zero is poised to fundamentally change the way the world deals with
-          communication and tasks — and we're just getting started.
+          The platform functions by allowing senders to attach a monetary incentive to their emails,
+          which creates a competitive advantage over other senders. These funds are held in an escrow
+          smart contract rather than being transferred immediately. When a recipient replies, an AI
+          agent utilizes privacy-preserving multi-party computation to evaluate the quality of the
+          response. If the response is deemed meaningful, the funds are released to the recipient as
+          payment; if the response is not meaningful, the sender is refunded.
         </p>
-      </div>
-    ),
-  },
-  {
-    title: 'Our Founders',
-    content: (
-      <div className="space-y-4">
         <p>
-          We — Hrishabh, Caedy, Dhruvpratap, and Rachel — are undergraduate students at Cornell Unviersity 
-          interested in blockchain technology and crypto. We have all experienced difficulty in obtaining 
-          meaningful correspondence with recruiters, and we decided to build a solution to this problem.
+          SolMail is built on the principles of transparency and community collaboration, with an
+          entirely open source codebase. This architecture ensures the platform remains trustworthy
+          and accessible, allowing anyone to review the code for security, contribute new features,
+          or self-host their own instance of the service.
         </p>
       </div>
     ),

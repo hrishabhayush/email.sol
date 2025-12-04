@@ -35,9 +35,9 @@ export default function LoginZero() {
     <div className="flex h-full min-h-screen w-full items-center justify-center bg-black">
       <div className="animate-in slide-in-from-bottom-4 w-full max-w-md px-6 py-8 duration-500">
         <div className="mb-4 text-center">
-          <h1 className="mb-2 text-4xl font-bold text-white">Login with Zero</h1>
+          <h1 className="mb-2 text-4xl font-bold text-white">Login with Solmail</h1>
           <p className="text-muted-foreground">
-            Enter your Zero email below to login to your account
+            Enter your Solmail email below to login to your account
           </p>
         </div>
 

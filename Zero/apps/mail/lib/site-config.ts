@@ -1,6 +1,6 @@
 const TITLE = 'SolMail';
 const DESCRIPTION =
-  'Experience email the way you want with 0 - the first open source email app that puts your privacy and safety first.';
+  'Experience email the way you want with Solmail - the first open source email app that puts your privacy and safety first.';
 
 export const siteConfig = {
   title: TITLE,
