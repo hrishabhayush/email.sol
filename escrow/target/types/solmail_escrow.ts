@@ -96,6 +96,165 @@ export type SolmailEscrow = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "refundEscrow",
+      "docs": [
+        "Refund the escrowed funds back to the sender.",
+        "",
+        "Can only be called by the sender after the 15-day expiry period.",
+        "- `thread_id` must match the one used in `initialize_escrow`."
+      ],
+      "discriminator": [
+        107,
+        186,
+        89,
+        99,
+        26,
+        194,
+        23,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "sender",
+          "docs": [
+            "The sender who funded the escrow (only they can refund)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA holding the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              },
+              {
+                "kind": "arg",
+                "path": "threadId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "System program for closing the account."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "threadId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "registerAndClaim",
+      "docs": [
+        "Register the receiver's wallet and claim the escrowed funds.",
+        "",
+        "This is called when the receiver replies to the email thread.",
+        "- `sender_pubkey` is needed to derive the escrow PDA.",
+        "- `thread_id` must match the one used in `initialize_escrow`."
+      ],
+      "discriminator": [
+        127,
+        144,
+        210,
+        98,
+        66,
+        165,
+        255,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "receiver",
+          "docs": [
+            "The receiver claiming the funds."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA holding the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "senderPubkey"
+              },
+              {
+                "kind": "arg",
+                "path": "threadId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "System program for closing the account."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "senderPubkey",
+          "type": "pubkey"
+        },
+        {
+          "name": "threadId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -111,6 +270,33 @@ export type SolmailEscrow = {
         218,
         155
       ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "invalidStatus",
+      "msg": "Escrow is not in a valid status for this operation"
+    },
+    {
+      "code": 6001,
+      "name": "threadIdMismatch",
+      "msg": "Thread ID does not match the escrow"
+    },
+    {
+      "code": 6002,
+      "name": "senderMismatch",
+      "msg": "Sender does not match the escrow"
+    },
+    {
+      "code": 6003,
+      "name": "notExpired",
+      "msg": "Escrow has not expired yet (15 days required)"
+    },
+    {
+      "code": 6004,
+      "name": "insufficientFunds",
+      "msg": "Insufficient funds in escrow"
     }
   ],
   "types": [
