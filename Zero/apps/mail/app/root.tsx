@@ -54,12 +54,11 @@ export const meta: MetaFunction = () => {
 
 export function Layout({ children }: PropsWithChildren) {
   return (
-    <html lang={getLocale()} suppressHydrationWarning>
+    <html lang={getLocale()} suppressHydrationWarning className="dark">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#141414" media="(prefers-color-scheme: dark)" />
-        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#141414" />
         
         <link rel="icon" type="image/png" href="/solmail-logo.png" />
         <link rel="shortcut icon" type="image/png" href="/solmail-logo.png" />

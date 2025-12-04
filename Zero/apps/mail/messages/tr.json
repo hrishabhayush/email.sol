@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Yapay zeka için özel yönergenizi girin...",
         "customPromptDescription": "Yapay zekanın e-posta yanıtlarınızı nasıl yazacağını özelleştirin. Bu, temel yönergeye eklenecektir.",
         "noResultsFound": "Sonuç bulunamadı",
-        "zeroSignature": "Zero İmzası",
-        "zeroSignatureDescription": "E-postalarınıza Zero imzası ekleyin.",
+        "zeroSignature": "Solmail İmzası",
+        "zeroSignatureDescription": "E-postalarınıza Solmail imzası ekleyin.",
         "defaultEmailAlias": "Varsayılan E-posta Adresi",
         "selectDefaultEmail": "Varsayılan e-postayı seç",
         "defaultEmailDescription": "Bu e-posta, yeni e-postalar oluştururken varsayılan 'Kimden' adresi olarak kullanılacaktır",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Tam deneyiminizi oluşturmak için gereken izinler eksik. Lütfen tekrar giriş yapın ve istenen erişime izin verin.",
     "early_access_required": "Giriş yapmak için erken erişim gereklidir",
-    "unauthorized": "Zero, verilerinizi 3. taraf sağlayıcıdan yükleyemedi. Lütfen tekrar deneyin."
+    "unauthorized": "Solmail, verilerinizi 3. taraf sağlayıcıdan yükleyemedi. Lütfen tekrar deneyin."
   }
 }

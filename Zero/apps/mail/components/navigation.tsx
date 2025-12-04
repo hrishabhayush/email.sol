@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -98,12 +98,12 @@ export function Navigation() {
   return (
     <>
       {/* Desktop Navigation - Hidden on mobile */}
-      <header className="fixed left-[50%] z-50 hidden w-full max-w-4xl translate-x-[-50%] items-center justify-center px-4 pt-6 lg:flex">
+      <header className="fixed left-[50%] z-[100] hidden w-full max-w-4xl translate-x-[-50%] items-center justify-center px-4 pt-6 lg:flex">
         <nav className="border-input/50 flex w-full max-w-4xl items-center justify-between gap-2 rounded-xl border-t bg-[#1E1E1E] p-3 px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="relative bottom-1 cursor-pointer">
-              <img src="/solmail-logo-dark.png" alt="Zero Email" width={22} height={22} className="dark:hidden" />
-              <img src="/solmail-logo.png" alt="Zero Email" width={22} height={22} className="hidden dark:block" />
+              <img src="/solmail-logo-dark.png" alt="Solmail" width={22} height={22} className="dark:hidden" />
+              <img src="/solmail-logo.png" alt="Solmail" width={22} height={22} className="hidden dark:block" />
             </Link>
             <NavigationMenu>
               <NavigationMenuList className="gap-1">
@@ -202,26 +202,21 @@ export function Navigation() {
                 <AnimatedNumber value={stars} className="font-medium text-white" />
               </div>
             </a>
-            <Button
-              className="h-8 cursor-pointer bg-white text-black hover:bg-white hover:text-black"
-              onClick={() => {
-                if (session) {
-                  navigate('/mail/inbox');
-                } else {
-                  toast.promise(
-                    signIn.social({
-                      provider: 'google',
-                      callbackURL: `${window.location.origin}/mail`,
-                    }),
-                    {
-                      error: 'Login redirect failed',
-                    },
-                  );
-                }
-              }}
-            >
-              Get Started
-            </Button>
+            {session?.user?.id ? (
+              <Link
+                to="/mail/inbox"
+                className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90"
+              >
+                Get Started
+              </Link>
+            ) : (
+              <a
+                href={`${import.meta.env.VITE_PUBLIC_BACKEND_URL}/auth/sign-in/social/google?callbackURL=${encodeURIComponent(`${window.location.origin}/mail`)}`}
+                className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
+              >
+                Get Started
+              </a>
+            )}
           </div>
         </nav>
       </header>
@@ -237,10 +232,14 @@ export function Navigation() {
           <SheetContent side="left" className="w-[300px] sm:w-[400px] dark:bg-[#111111]">
             <SheetHeader className="flex flex-row items-center justify-between">
               <SheetTitle>
-                <Link to="/" onClick={() => setOpen(false)}>
+                <Link 
+                  to="/"
+                  className="cursor-pointer"
+                  onClick={() => setOpen(false)}
+                >
                   <img
                     src="/solmail-logo.png"
-                    alt="Zero Email"
+                    alt="Solmail"
                     className="hidden object-contain dark:block"
                     width={22}
                     height={22}
@@ -257,9 +256,15 @@ export function Navigation() {
             </SheetHeader>
             <div className="mt-8 flex flex-col space-y-3">
               <div className="flex flex-col space-y-3">
-                <Link to="/" className="mt-2" onClick={() => setOpen(false)}>
+                <a
+                  href="/"
+                  onClick={() => {
+                    setOpen(false);
+                  }}
+                  className="mt-2 block font-medium"
+                >
                   Home
-                </Link>
+                </a>
                 {aboutLinks.map((link) => (
                   <a key={link.title} href={link.href} className="block font-medium">
                     {link.title}

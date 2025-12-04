@@ -447,7 +447,7 @@
         "customPromptDescription": "Personalitza com la IA escriu les teves respostes de correu. Això s'afegirà a la instrucció base.",
         "noResultsFound": "No s'han trobat resultats",
         "zeroSignature": "Signatura Zero",
-        "zeroSignatureDescription": "Afegeix una signatura Zero als teus correus.",
+        "zeroSignatureDescription": "Afegeix una signatura Solmail als teus correus.",
         "defaultEmailAlias": "Àlies de correu predeterminat",
         "selectDefaultEmail": "Selecciona el correu predeterminat",
         "defaultEmailDescription": "Aquest correu s'utilitzarà com a adreça predeterminada 'De' quan es redactin nous correus",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "Connexions Correu",
-        "description": "Connecta els teus comptes de correu a Zero.",
+        "description": "Connecta els teus comptes de correu a Solmail.",
         "disconnectTitle": "Desconnecta el compte de correu.",
         "disconnectDescription": "Estàs segur que vols desconnectar aquest correu?\n\n\n\n\n\n\n\n",
         "cancel": "Cancel·lar",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Ens falten els permisos necessaris per crear la teva experiència completa. Si us plau, inicia sessió de nou i permet l'accés sol·licitat.",
     "early_access_required": "Es requereix accés anticipat per iniciar sessió",
-    "unauthorized": "Zero no ha pogut carregar les teves dades del proveïdor extern. Si us plau, torna-ho a provar."
+    "unauthorized": "Solmail no ha pogut carregar les teves dades del proveïdor extern. Si us plau, torna-ho a provar."
   }
 }
