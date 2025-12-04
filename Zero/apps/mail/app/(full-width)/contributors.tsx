@@ -16,7 +16,6 @@ import {
   YAxis,
 } from 'recharts';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Twitter, GitHub } from '@/components/icons/icons';
 import Footer from '@/components/home/footer';
 import { Separator } from '@/components/ui/separator';
@@ -322,11 +321,6 @@ export default function OpenPage() {
     <div className="min-h-screen w-full bg-white text-black dark:bg-neutral-950 dark:text-white">
       <Navigation />
       <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Header with theme toggle */}
-        <div className="mb-6 flex justify-end">
-          <ThemeToggle />
-        </div>
-
         {/* Project Stats */}
         <div className="mb-8 overflow-hidden rounded-xl border bg-linear-to-b from-white/50 to-white/10 p-6 backdrop-blur-sm dark:border-neutral-700 dark:from-neutral-900/50 dark:to-neutral-900/30">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">

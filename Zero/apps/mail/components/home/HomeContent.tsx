@@ -32,8 +32,6 @@ import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Balancer } from 'react-wrap-balancer';
 import { Navigation } from '../navigation';
-import { ThemeToggle } from '@/components/theme/theme-toggle';
-import { useTheme } from 'next-themes';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -58,13 +56,8 @@ const tabs = [
 ];
 
 export default function HomeContent() {
-  const { setTheme } = useTheme();
   const navigate = useNavigate();
   const { data: session } = useSession();
-
-  useEffect(() => {
-    setTheme('dark');
-  }, [setTheme]);
 
   // Redirect logged-in users to inbox (non-blocking - happens after render)
   useEffect(() => {
