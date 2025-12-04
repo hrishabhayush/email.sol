@@ -34,7 +34,14 @@ import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
 
 import { cn, formatFileSize } from '@/lib/utils';
 import { useThread } from '@/hooks/use-threads';
@@ -50,6 +57,13 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 const shortcodeRegex = /:([a-zA-Z0-9_+-]+):/g;
 import { TemplateButton } from './template-button';
+
+// SolMail Escrow program configuration
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+
+// Anchor discriminator for the `initialize_escrow` instruction
+// Taken from `escrow/target/idl/solmail_escrow.json`.
+const INIT_ESCROW_DISCRIMINATOR = Uint8Array.from([243, 160, 77, 153, 11, 92, 48, 209]);
 
 type ThreadContent = {
   from: string;
@@ -469,30 +483,51 @@ export function EmailComposer({
         return;
       }
 
-      // Check wallet connection and send payment before sending email
+      // Check wallet connection and create escrow before sending email
       if (!wallet || !publicKey || !connection || !wallet.adapter) {
         toast.error('Please connect your Solana wallet to send emails');
         return;
       }
 
       try {
-        // Show loading state for payment
-        toast.loading('Processing payment transaction...', { id: 'payment' });
-        
-        const recipientAddress = '7DUw1493Y2xS9TDvos11sfoPmEwo3UjqryGPdqE44nWW';
+        // Show loading state for escrow creation
+        toast.loading('Creating escrow for this email...', { id: 'payment' });
+
+        // For now we use a tiny fixed amount; you can wire this to UI later.
         const amountInSol = 0.0000001;
-        const lamports = amountInSol * LAMPORTS_PER_SOL;
-        
-        const recipientPublicKey = new PublicKey(recipientAddress);
-        
-        // Create transaction
-        const transaction = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey: publicKey,
-            toPubkey: recipientPublicKey,
-            lamports,
-          })
-        );
+        const lamports = BigInt(Math.floor(amountInSol * LAMPORTS_PER_SOL));
+
+        // Derive a deterministic 32-byte thread_id from email metadata
+        const encoder = new TextEncoder();
+        const threadSeed = `${values.subject || ''}|${values.to.join(',')}`;
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(threadSeed));
+        const hashArray = new Uint8Array(hashBuffer).slice(0, 32);
+
+        // Derive escrow PDA (must match on-chain seeds)
+        const [escrowPda] = PublicKey.findProgramAddressSync([
+          encoder.encode('escrow'),
+          publicKey.toBuffer(),
+          hashArray,
+        ], SOLMAIL_ESCROW_PROGRAM_ID);
+
+        // Build Anchor-compatible instruction data:
+        // [8-byte discriminator][32-byte thread_id][8-byte amount (u64 LE)]
+        const data = new Uint8Array(8 + 32 + 8);
+        data.set(INIT_ESCROW_DISCRIMINATOR, 0);
+        data.set(hashArray, 8);
+        new DataView(data.buffer).setBigUint64(8 + 32, lamports, true);
+
+        const ix = new TransactionInstruction({
+          programId: SOLMAIL_ESCROW_PROGRAM_ID,
+          keys: [
+            { pubkey: publicKey, isSigner: true, isWritable: true }, // sender
+            { pubkey: escrowPda, isSigner: false, isWritable: true }, // escrow account
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // system program
+          ],
+          data,
+        });
+
+        const transaction = new Transaction().add(ix);
 
         // Get recent blockhash
         const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
@@ -500,7 +535,7 @@ export function EmailComposer({
         transaction.feePayer = publicKey;
 
         // Send and sign transaction using wallet adapter (handles both signing and sending)
-        toast.loading('Please sign the transaction in your wallet...', { id: 'payment' });
+        toast.loading('Please sign the escrow transaction in your wallet...', { id: 'payment' });
         const signature = await wallet.adapter.sendTransaction(transaction, connection, {
           skipPreflight: false,
           maxRetries: 3,
@@ -509,17 +544,17 @@ export function EmailComposer({
         // Log transaction details for block explorer
         const explorerUrl = `https://solscan.io/tx/${signature}`;
         const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
-        console.log('📧 Email Payment Transaction:', {
+        console.log('📧 Escrow Initialize Transaction:', {
           signature,
           amount: `${amountInSol} SOL`,
-          recipient: recipientAddress,
+          escrowPda: escrowPda.toBase58(),
           explorer: explorerUrl,
           solanaExplorer: solanaExplorerUrl,
         });
         console.log(`🔗 View on Solscan: ${explorerUrl}`);
         console.log(`🔗 View on Solana Explorer: ${solanaExplorerUrl}`);
 
-        toast.success('Payment transaction sent!', { id: 'payment' });
+        toast.success('Escrow transaction sent!', { id: 'payment' });
         toast.loading('Waiting for confirmation...', { id: 'confirmation' });
 
         // Wait for confirmation using polling instead of WebSocket subscriptions
@@ -549,12 +584,12 @@ export function EmailComposer({
           throw new Error('Transaction confirmation timeout. Please check your wallet.');
         }
 
-        toast.success('Payment confirmed! Sending email...', { id: 'confirmation' });
+        toast.success('Escrow confirmed! Sending email...', { id: 'confirmation' });
       } catch (error) {
-        console.error('Payment error:', error);
+        console.error('Escrow error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        toast.error(`Payment failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
-        return; // Don't send email if payment fails
+        toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
+        return; // Don't send email if escrow creation fails
       }
 
       setIsLoading(true);

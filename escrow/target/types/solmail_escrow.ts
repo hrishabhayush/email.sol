@@ -13,30 +13,202 @@ export type SolmailEscrow = {
     "description": "Escrow program for SolMail incentivized replies"
   },
   "docs": [
-    "The escrow program powering SolMail's incentivized replies.",
-    "",
-    "Step 1: we only scaffold the data structures and a no-op initialize",
-    "instruction so you can ensure the program compiles and deploys.",
-    "In the next step we will wire in real SOL transfers and the 15-day expiry."
+    "The escrow program powering SolMail's incentivized replies."
   ],
   "instructions": [
     {
-      "name": "initializePlaceholder",
+      "name": "initializeEscrow",
       "docs": [
-        "Placeholder initialize instruction so you can test build/deploy wiring."
+        "Initialize an escrow account for a given email thread.",
+        "",
+        "- `thread_id` is a 32-byte identifier derived from the email thread (e.g. a hash).",
+        "- `amount` is the number of lamports the sender wants to escrow."
       ],
       "discriminator": [
-        218,
-        34,
-        131,
+        243,
+        160,
+        77,
+        153,
+        11,
+        92,
         48,
-        148,
-        6,
-        59,
-        148
+        209
       ],
-      "accounts": [],
-      "args": []
+      "accounts": [
+        {
+          "name": "sender",
+          "docs": [
+            "The sender funding the escrow."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA that will hold the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              },
+              {
+                "kind": "arg",
+                "path": "threadId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "System program for creating the account and transferring lamports."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "threadId",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "escrow",
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
+      ]
+    }
+  ],
+  "types": [
+    {
+      "name": "escrow",
+      "docs": [
+        "Escrow account storing all data needed to manage the incentive."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "docs": [
+              "Wallet that funded the escrow."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "receiver",
+            "docs": [
+              "Wallet that will eventually receive the funds (set on claim)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "threadId",
+            "docs": [
+              "Deterministic identifier for the email thread."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of lamports escrowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "createdAt",
+            "docs": [
+              "Unix timestamp when the escrow was created."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "expiresAt",
+            "docs": [
+              "Unix timestamp after which the sender can refund."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Current status of the escrow."
+            ],
+            "type": {
+              "defined": {
+                "name": "escrowStatus"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "escrowStatus",
+      "docs": [
+        "Simple status enum so we can extend behavior later."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "pending"
+          },
+          {
+            "name": "completed"
+          },
+          {
+            "name": "refunded"
+          }
+        ]
+      }
     }
   ]
 };
