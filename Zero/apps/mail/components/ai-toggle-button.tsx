@@ -1,47 +1,28 @@
-import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 import { useAISidebar } from './ui/ai-sidebar';
-import { Button } from './ui/button';
 
-// AI Toggle Button Component
+// AI Toggle Button Component (display only, not clickable)
 const AIToggleButton = () => {
-  const { toggleOpen: toggleAISidebar, open: isSidebarOpen } = useAISidebar();
+  const { open: isSidebarOpen } = useAISidebar();
 
   return (
     !isSidebarOpen && (
       <div className="fixed bottom-4 right-4 z-50">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="dark:bg-sidebar border h-12 w-12 rounded-lg"
-              onClick={(e) => {
-                if (!isSidebarOpen) {
-                  e.stopPropagation();
-                  toggleAISidebar();
-                }
-              }}
-            >
-              <div className="flex items-center justify-center">
-                <img
-                  src="/solmail-logo-dark.png"
-                  alt="AI Assistant"
-                  width={22}
-                  height={22}
-                  className="block dark:hidden"
-                />
-                <img
-                  src="/solmail-logo.png"
-                  alt="AI Assistant"
-                  width={22}
-                  height={22}
-                  className="hidden dark:block"
-                />
-              </div>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Toggle AI Assistant</TooltipContent>
-        </Tooltip>
+        <div className="dark:bg-sidebar border h-12 w-12 rounded-lg flex items-center justify-center pointer-events-none">
+          <img
+            src="/solmail-logo-dark.png"
+            alt="Solmail"
+            width={22}
+            height={22}
+            className="block dark:hidden"
+          />
+          <img
+            src="/solmail-logo.png"
+            alt="Solmail"
+            width={22}
+            height={22}
+            className="hidden dark:block"
+          />
+        </div>
       </div>
     )
   );
