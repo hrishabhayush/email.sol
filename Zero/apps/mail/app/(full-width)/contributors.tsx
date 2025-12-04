@@ -342,7 +342,7 @@ export default function OpenPage() {
                 </a>
               </div>
               <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                An open source email app built on Zero
+                An open source email app built on Solana
               </p>
             </div>
             <div className="flex gap-2">

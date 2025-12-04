@@ -95,7 +95,7 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          SolMail is an AI-powered email platform built on Zero that sends micropayments upfront and refunds them if replies aren't meaningful,  ensuring you pay solely for successful conversations.
+          SolMail is an AI-powered email platform that sends micropayments upfront and refunds them if replies aren't meaningful, ensuring you pay solely for successful conversations.
         </motion.p>
         {/* Get Started button only visible for mobile screens */}
         <motion.div
@@ -145,7 +145,7 @@ export default function HomeContent() {
                 <TabsContent key={tab.value} value={tab.value}>
                   <img
                     src="/email-preview.png"
-                    alt="Zero Email Preview"
+                    alt="Solmail Preview"
                     width={1920}
                     height={1080}
                     className="relative hidden md:block"
@@ -161,7 +161,7 @@ export default function HomeContent() {
       <div className="flex items-center justify-center px-4 md:hidden">
         <img
           src="/email-preview.png"
-          alt="Zero Email Preview"
+          alt="Solmail Preview"
           width={1920}
           height={1080}
           className="mt-10 h-fit w-full rounded-xl border"

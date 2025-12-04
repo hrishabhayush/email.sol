@@ -46,7 +46,7 @@ export const handleUnsubscribe = async ({ emailData }: { emailData: ParsedMessag
               subject: listUnsubscribeAction.subject.trim().length
                 ? listUnsubscribeAction.subject
                 : 'Unsubscribe Request',
-              message: 'Zero sent this email to unsubscribe from this mailing list.',
+              message: 'Solmail sent this email to unsubscribe from this mailing list.',
             });
             return true;
         }

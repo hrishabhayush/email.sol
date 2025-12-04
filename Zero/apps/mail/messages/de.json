@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Geben Sie Ihre benutzerdefinierte Eingabeaufforderung für die KI ein...",
         "customPromptDescription": "Passen Sie an, wie die KI Ihre E-Mail beantwortet. Dies wird zur Base-Prompt hinzugefügt.",
         "noResultsFound": "Keine Ergebnisse gefunden",
-        "zeroSignature": "Zero-Signatur",
-        "zeroSignatureDescription": "Füge deinen E-Mails eine Zero-Signatur hinzu.",
+        "zeroSignature": "Solmail-Signatur",
+        "zeroSignatureDescription": "Füge deinen E-Mails eine Solmail-Signatur hinzu.",
         "defaultEmailAlias": "Standard-E-Mail-Alias",
         "selectDefaultEmail": "Standard-E-Mail auswählen",
         "defaultEmailDescription": "Diese E-Mail wird als Standard-Absenderadresse beim Verfassen neuer E-Mails verwendet",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "E-Mail Verbindungen",
-        "description": "Verbinde deine E-Mail Benutzerkonten zu Zero.",
+        "description": "Verbinde deine E-Mail Benutzerkonten zu Solmail.",
         "disconnectTitle": "E-Mail-Konto trennen",
         "disconnectDescription": "Sind Sie sicher, dass Sie die Verbindung zu dieser E-Mail trennen möchten?",
         "cancel": "Abbrechen",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Uns fehlen die Berechtigungen, die für dein vollständiges Erlebnis erforderlich sind. Bitte melde dich erneut an und erlaube den angeforderten Zugriff.",
     "early_access_required": "Für die Anmeldung ist ein Early-Access erforderlich",
-    "unauthorized": "Zero konnte deine Daten nicht vom Drittanbieter laden. Bitte versuche es erneut."
+    "unauthorized": "Solmail konnte deine Daten nicht vom Drittanbieter laden. Bitte versuche es erneut."
   }
 }

@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Írd be az egyéni utasításodat az AI számára...",
         "customPromptDescription": "Szabd testre, hogyan írja az AI az e-mail válaszaidat. Ez hozzáadódik az alap utasításhoz.",
         "noResultsFound": "Nincs találat",
-        "zeroSignature": "Zero aláírás",
-        "zeroSignatureDescription": "Zero aláírás hozzáadása az e-mailjeihez.",
+        "zeroSignature": "Solmail aláírás",
+        "zeroSignatureDescription": "Solmail aláírás hozzáadása az e-mailjeihez.",
         "defaultEmailAlias": "Alapértelmezett e-mail álnév",
         "selectDefaultEmail": "Alapértelmezett e-mail kiválasztása",
         "defaultEmailDescription": "Ez az e-mail lesz az alapértelmezett 'Feladó' cím új e-mailek írásakor",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "E-mail kapcsolatok",
-        "description": "Kapcsold össze e-mail fiókjaidat a Zero-val.",
+        "description": "Kapcsold össze e-mail fiókjaidat a Solmail-val.",
         "disconnectTitle": "E-mail fiók leválasztása",
         "disconnectDescription": "Biztosan le szeretnéd választani ezt az e-mail fiókot?",
         "cancel": "Mégsem",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Hiányoznak a teljes élményhez szükséges engedélyek. Kérjük, jelentkezz be újra és engedélyezd a kért hozzáféréseket.",
     "early_access_required": "A bejelentkezéshez korai hozzáférés szükséges",
-    "unauthorized": "A Zero nem tudta betölteni az adataidat a harmadik féltől származó szolgáltatótól. Kérjük, próbáld újra."
+    "unauthorized": "A Solmail nem tudta betölteni az adataidat a harmadik féltől származó szolgáltatótól. Kérjük, próbáld újra."
   }
 }

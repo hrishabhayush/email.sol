@@ -102,8 +102,8 @@ export function Navigation() {
         <nav className="border-input/50 flex w-full max-w-4xl items-center justify-between gap-2 rounded-xl border-t bg-[#1E1E1E] p-3 px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="relative bottom-1 cursor-pointer">
-              <img src="/solmail-logo-dark.png" alt="Zero Email" width={22} height={22} className="dark:hidden" />
-              <img src="/solmail-logo.png" alt="Zero Email" width={22} height={22} className="hidden dark:block" />
+              <img src="/solmail-logo-dark.png" alt="Solmail" width={22} height={22} className="dark:hidden" />
+              <img src="/solmail-logo.png" alt="Solmail" width={22} height={22} className="hidden dark:block" />
             </Link>
             <NavigationMenu>
               <NavigationMenuList className="gap-1">
@@ -239,7 +239,7 @@ export function Navigation() {
                 >
                   <img
                     src="/solmail-logo.png"
-                    alt="Zero Email"
+                    alt="Solmail"
                     className="hidden object-contain dark:block"
                     width={22}
                     height={22}

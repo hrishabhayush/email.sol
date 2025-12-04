@@ -312,7 +312,7 @@ export default function CategoriesSettingsPage() {
     <div className="grid gap-6 max-w-[900px] mx-auto">
       <SettingsCard
         title="Mail Categories"
-        description="Customise how Zero shows the category tabs in your inbox. Drag and drop to reorder."
+        description="Customise how Solmail shows the category tabs in your inbox. Drag and drop to reorder."
         footer={
           <div className="px-6">
             <Button type="button" disabled={isPending} onClick={handleSave}>

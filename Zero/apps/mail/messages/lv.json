@@ -446,8 +446,8 @@
         "customPromptPlaceholder": "Ievadi savu pielāgoto norādījumu AI...",
         "customPromptDescription": "Pielāgot, kā AI raksta jūsu e-pasta atbildes. Jūsu norādījumi tiks pievienoti AI noklusējuma instrukcijām.",
         "noResultsFound": "Netika atrasts neviens rezultāts",
-        "zeroSignature": "Zero paraksts",
-        "zeroSignatureDescription": "Pievienot Zero parakstu saviem e-pastiem.",
+        "zeroSignature": "Solmail paraksts",
+        "zeroSignatureDescription": "Pievienot Solmail parakstu saviem e-pastiem.",
         "defaultEmailAlias": "Noklusējuma e-pasta aizstājvārds",
         "selectDefaultEmail": "Izvēlieties noklusējuma e-pastu",
         "defaultEmailDescription": "Šis e-pasts tiks izmantots kā noklusējuma 'No' adrese, rakstot jaunus e-pastus",
@@ -458,7 +458,7 @@
       },
       "connections": {
         "title": "E-pasta savienojumi",
-        "description": "Savieno savus e-pasta kontus ar Zero.",
+        "description": "Savieno savus e-pasta kontus ar Solmail.",
         "disconnectTitle": "Atvienot e-pasta kontu",
         "disconnectDescription": "Vai tiešām vēlies atvienot šo e-pastu?",
         "cancel": "Atcelt",
@@ -646,6 +646,6 @@
   "errorMessages": {
     "required_scopes_missing": "Mums trūkst nepieciešamo atļauju, lai nodrošinātu pilnvērtīgu pieredzi. Lūdzu, piesakieties vēlreiz un atļaujiet pieprasīto piekļuvi.",
     "early_access_required": "Lai pieteiktos, nepieciešama agrīnā piekļuve",
-    "unauthorized": "Zero nevarēja ielādēt jūsu datus no trešās puses pakalpojuma sniedzēja. Lūdzu, mēģiniet vēlreiz."
+    "unauthorized": "Solmail nevarēja ielādēt jūsu datus no trešās puses pakalpojuma sniedzēja. Lūdzu, mēģiniet vēlreiz."
   }
 }

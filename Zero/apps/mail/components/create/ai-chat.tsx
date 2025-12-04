@@ -223,7 +223,7 @@ export function AIChat({
   }, [status, scrollToBottom]);
 
   const editor = useComposeEditor({
-    placeholder: 'Ask Zero to do anything...',
+    placeholder: 'Ask Solmail AI to do anything...',
     onLengthChange: () => setInput(editor.getText()),
     onKeydown(event) {
       if (event.key === '0' && event.metaKey) {
@@ -267,15 +267,15 @@ export function AIChat({
               className="absolute inset-0 flex flex-col items-center justify-center"
             >
               <TextShimmer className="text-center text-xl font-medium">
-                Upgrade to Zero Pro for unlimited AI chat
+                Upgrade to Solmail Pro for unlimited AI chat
               </TextShimmer>
               <Button className="mt-2 h-8 w-52">Start 7 day free trial</Button>
             </div>
           ) : !messages.length ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <div className="relative mb-4 h-[44px] w-[44px]">
-                <img src="/black-icon.svg" alt="Zero Logo" className="dark:hidden" />
-                <img src="/white-icon.svg" alt="Zero Logo" className="hidden dark:block" />
+                <img src="/black-icon.svg" alt="Solmail Logo" className="dark:hidden" />
+                <img src="/white-icon.svg" alt="Solmail Logo" className="hidden dark:block" />
               </div>
               <p className="mb-1 mt-2 hidden text-center text-sm font-medium text-black md:block dark:text-white">
                 Ask anything about your emails

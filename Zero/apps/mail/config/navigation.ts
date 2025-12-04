@@ -145,11 +145,6 @@ export const navigationConfig: Record<string, NavConfig> = {
             shortcut: 'g + s',
           },
           {
-            title: m['navigation.settings.connections'](),
-            url: '/settings/connections',
-            icon: Users,
-          },
-          {
             title: m['navigation.settings.privacy'](),
             url: '/settings/privacy',
             icon: LockIcon,
@@ -169,12 +164,6 @@ export const navigationConfig: Record<string, NavConfig> = {
           //     url: '/settings/categories',
           //     icon: Tabs,
           //   },
-          {
-            title: m['navigation.settings.signatures'](),
-            url: '/settings/signatures',
-            icon: MessageSquareIcon,
-            disabled: true,
-          },
           {
             title: m['navigation.settings.shortcuts'](),
             url: '/settings/shortcuts',
