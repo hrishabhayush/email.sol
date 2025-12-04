@@ -2,7 +2,7 @@
 
 <p align="center">
   <picture>
-    <source srcset="Zero/apps/mail/public/solmail-logo.png" media="(prefers-color-scheme: dark)">
+    <source srcset="Zero/apps/mail/public/solmail-logo-dark.png" media="(prefers-color-scheme: light)">
     <img src="Zero/apps/mail/public/solmail-logo.png" alt="SolMail Logo" width="64" style="background-color: #000; padding: 10px;"/>
   </picture>
 </p>
