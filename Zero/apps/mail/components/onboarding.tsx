@@ -2,43 +2,28 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
+import { ChevronLeft, ChevronRight } from '@/components/icons/icons';
 
 const steps = [
   {
-    title: 'Welcome to Zero Email!',
-    description: 'Your new intelligent email experience starts here.',
-    video: 'https://assets.0.email/get-started.png',
+    title: 'Hello from SolMail!',
+    description: 'Revolutionizing your cold emailing experience.',
+    video: '/solmail-logo.png',
   },
   {
-    title: 'Chat with your inbox',
-    description: 'Zero allows you to chat with your inbox, and take actions on your behalf.',
-    video: 'https://assets.0.email/step2.gif',
+    title: 'Send micropayments with your emails',
+    description: 'SolMail lets you send micropayments with your emails to encourage responses',
+    video: '/onboarding/coinenvelope.png',
   },
   {
-    title: 'AI Compose & Reply',
-    description: 'Our AI assistant allows you to write emails that sound like you.',
-    video: 'https://assets.0.email/step1.gif',
+    title: 'AI-validated responses',
+    description: 'An AI agent will evaluate the response quality and refund you if the response is not meaningful',
+    video: '/onboarding/checkx.png',
   },
   {
-    title: 'Label your emails',
-    description: 'Zero helps you label your emails to focus on what matters.',
-    video: 'https://assets.0.email/step3.gif',
-  },
-  {
-    title: 'Coming Soon',
-    description: (
-      <>
-        <span className="text-muted-foreground mb-4">
-          We're excited to bring these powerful features to all users very soon!
-        </span>
-      </>
-    ),
-    video: 'https://assets.0.email/coming-soon.png',
-  },
-  {
-    title: 'Ready to start?',
-    description: 'Click below to begin your intelligent email experience!',
-    video: 'https://assets.0.email/ready.png',
+    title: 'Incentivize correspondence ',
+    description: 'SolMail incentivizes meaningful responses and facilitate better correspondence',
+    video: '/onboarding/handshake.webp',
   },
 ];
 
@@ -61,12 +46,20 @@ export function OnboardingDialog({
     }
   }, [currentStep, steps.length]);
 
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
-    } else {
-      onOpenChange(false);
     }
+  };
+
+  const handleStart = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -79,13 +72,24 @@ export function OnboardingDialog({
         <div className="flex flex-col gap-4 p-4">
           {steps[currentStep] && steps[currentStep].video && (
             <div className="relative flex items-center justify-center">
-              <div className="bg-muted aspect-video w-full max-w-4xl overflow-hidden rounded-lg">
+              {/* Left Arrow */}
+              <button
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className="absolute left-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-5 w-5 fill-white" />
+              </button>
+
+              {/* Image Container */}
+              <div className="bg-muted flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:min-h-[400px]">
                 {steps.map(
                   (step, index) =>
                     step.video && (
                       <div
                         key={step.title}
-                        className={`absolute inset-0 transition-opacity duration-300 ${
+                        className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
                           index === currentStep ? 'opacity-100' : 'opacity-0'
                         }`}
                       >
@@ -95,47 +99,42 @@ export function OnboardingDialog({
                           height={500}
                           src={step.video}
                           alt={step.title}
-                          className="h-full w-full rounded-lg border object-cover"
+                          className="max-h-full max-w-full rounded-lg object-contain p-4"
                         />
                       </div>
                     ),
                 )}
               </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={handleNext}
+                disabled={currentStep === steps.length - 1}
+                className="absolute right-2 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-5 w-5 fill-white" />
+              </button>
             </div>
           )}
-          <div className="space-y-0">
+
+          {/* Text Content */}
+          <div className="space-y-0 text-center">
             <h2 className="text-4xl font-semibold">{steps[currentStep]?.title}</h2>
-            <p className="text-muted-foreground max-w-xl text-sm">
+            <div className="text-muted-foreground mx-auto max-w-xl text-sm">
               {steps[currentStep]?.description}
-            </p>
+            </div>
           </div>
 
-          <div className="mx-auto flex w-full justify-between">
-            <div className="flex gap-2">
-              <Button
-                size={'xs'}
-                onClick={() => setCurrentStep(currentStep - 1)}
-                variant="outline"
-                disabled={currentStep === 0}
-              >
-                Go back
-              </Button>
-              <Button size={'xs'} onClick={handleNext}>
-                {currentStep === steps.length - 1 ? 'Get Started' : 'Next'}
-              </Button>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="flex gap-1">
-                {steps.map((_, index) => (
-                  <div
-                    key={_.title}
-                    className={`h-1 w-4 rounded-full md:w-10 ${
-                      index === currentStep ? 'bg-primary' : 'bg-muted'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+          {/* Centered Start Button */}
+          <div className="flex justify-center">
+            <Button 
+              size="default" 
+              onClick={handleStart}
+              className="min-w-[120px]"
+            >
+              Start
+            </Button>
           </div>
         </div>
       </DialogContent>
