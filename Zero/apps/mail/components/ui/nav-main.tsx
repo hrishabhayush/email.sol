@@ -35,7 +35,6 @@ interface NavItemProps extends NavItem {
   isExpanded?: boolean;
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
   suffix?: React.ComponentType<IconProps>;
-  isSettingsPage?: boolean;
 }
 
 interface NavMainProps {
@@ -66,7 +65,8 @@ export function NavMain({ items }: NavMainProps) {
   const { state } = useSidebar();
 
   // Check if these are bottom navigation items by looking at the first section's title
-  const isBottomNav = items[0]?.title === '';
+  // If items array is empty, it's likely the bottom nav (which should be empty)
+  const isBottomNav = items.length === 0 || (items.length > 0 && items[0]?.title === '');
 
   /**
    * Validates URLs to prevent open redirect vulnerabilities.
@@ -95,25 +95,6 @@ export function NavMain({ items }: NavMainProps) {
       // Get the current 'from' parameter
       const currentFrom = searchParams.get('from');
 
-      // Handle settings navigation
-      if (item.isSettingsButton) {
-        // Include current path with category query parameter if present
-        const currentPath = category
-          ? `${pathname}?category=${encodeURIComponent(category)}`
-          : pathname;
-        return `${item.url}?from=${encodeURIComponent(currentPath)}`;
-      }
-
-      // Handle settings pages navigation
-      if (item.isSettingsPage && currentFrom) {
-        // Validate and sanitize the 'from' parameter to prevent open redirects
-        const decodedFrom = decodeURIComponent(currentFrom);
-        if (isValidInternalUrl(decodedFrom)) {
-          return `${item.url}?from=${encodeURIComponent(currentFrom)}`;
-        }
-        // Fall back to safe default if URL validation fails
-        return `${item.url}?from=/mail`;
-      }
 
       // Handle category links
       if (item.id === 'inbox' && category) {
@@ -197,10 +178,10 @@ export function NavMain({ items }: NavMainProps) {
             </SidebarMenuItem>
           </Collapsible>
         ))}
-        {!pathname.includes('/settings') && !isBottomNav && state !== 'collapsed' && (
+        {!isBottomNav && state !== 'collapsed' && activeAccount && (
           <Collapsible defaultOpen={true} className="group/collapsible flex-col">
             <SidebarMenuItem className="mb-4" style={{ height: 'auto' }}>
-              <div className="mx-2 mb-4 flex items-center justify-between">
+              <div className="mx-2 mb-2 flex items-center justify-between">
                 <span className="text-muted-foreground text-[13px] dark:text-[#898989]">
                   {activeAccount?.providerId === 'google' ? 'Labels' : 'Folders'}
                 </span>
@@ -217,10 +198,9 @@ export function NavMain({ items }: NavMainProps) {
                     }
                     onSubmit={onSubmit}
                   />
-                ) : activeAccount?.providerId === 'microsoft' ? null : null}
+                ) : null}
               </div>
-
-              {activeAccount ? <SidebarLabels data={userLabels ?? []} /> : null}
+              <SidebarLabels data={userLabels ?? []} />
             </SidebarMenuItem>
           </Collapsible>
         )}
