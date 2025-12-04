@@ -39,6 +39,7 @@ import { createAuth } from './lib/auth';
 import { aiRouter } from './routes/ai';
 import { Autumn } from 'autumn-js';
 import { appRouter } from './trpc';
+import { scoreEmailRouter } from './routes/agent/score-email';
 import { cors } from 'hono/cors';
 import { Hono } from 'hono';
 
@@ -591,6 +592,7 @@ const api = new Hono<HonoContext>()
   .route('/ai', aiRouter)
   .route('/autumn', autumnApi)
   .route('/public', publicRouter)
+  .route('/api/agent/score-email', scoreEmailRouter) // API endpoint for HTTP 402 that enables x402 payment protection
   .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => {
     return c.var.auth.handler(c.req.raw);
   })

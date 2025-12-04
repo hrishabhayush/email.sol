@@ -13,7 +13,6 @@ import {
   type EscrowActionParams,
 } from './escrow-actions';
 import { EmailScoringTool } from './email-scoring-tool';
-import { initializeX402Client } from './x402-client';
 
 /**
  * SendAI Escrow Agent
@@ -140,31 +139,10 @@ export async function processEmailReply(
 
     stream('agent_initialized', { wallet: anchorWallet.publicKey.toString() });
 
-    // Initialize x402 client for API payment handling
-    let x402Fetch: typeof fetch | undefined;
-    try {
-      x402Fetch = initializeX402Client(keypairWallet, connection, env.X402_NETWORK);
-      stream('x402_client_initialized', { network: env.X402_NETWORK || 'mainnet-beta' });
-    } catch (error) {
-      console.warn('[EscrowAgent] Failed to initialize x402 client, falling back to direct API:', error);
-      stream('x402_client_fallback', { error: error instanceof Error ? error.message : String(error) });
-    }
-
-    // Score the email using LLM with x402 payment handling
-    stream('scoring_email_start', { msgId, usingX402: !!x402Fetch });
-    let scoringResult;
-    try {
-      scoringResult = await scoreEmail(emailContent, x402Fetch);
-    } catch (error) {
-      // Fallback to direct API if x402 fails
-      if (x402Fetch) {
-        console.warn('[EscrowAgent] x402 payment failed, falling back to direct API:', error);
-        stream('x402_payment_failed_fallback', { error: error instanceof Error ? error.message : String(error) });
-        scoringResult = await scoreEmail(emailContent); // Retry without x402
-      } else {
-        throw error;
-      }
-    }
+    // Score the email using internal protected endpoint
+    // x402 payment is handled automatically by email-scoring-tool.ts
+    stream('scoring_email_start', { msgId });
+    const scoringResult = await scoreEmail(emailContent);
     const score = scoringResult.score;
     stream('scoring_email_complete', { score, msgId });
 
@@ -261,34 +239,17 @@ export function createEscrowAgentTools() {
   const connection = getConnection();
   const keypairWallet = agent.wallet as KeypairWallet;
 
-  // Initialize x402 client for tool usage (optional, will fallback if fails)
-  let x402Fetch: typeof fetch | undefined;
-  try {
-    x402Fetch = initializeX402Client(keypairWallet, connection, env.X402_NETWORK);
-  } catch (error) {
-    console.warn('[createEscrowAgentTools] x402 client initialization failed, using direct API:', error);
-  }
-
   // Registers tools with agent -> allows agent to dynamically call during workflow
   const tools = createLangchainTools(agent, [
     ...agent.actions, // existing actions from solana-agent-kit
     // Add custom email scoring tool as an action
+    // x402 payment is handled automatically by email-scoring-tool.ts
     {
       name: 'EMAIL_SCORING_ACTION',
       description: 'Score an email reply for quality (0-100)',
       // execute function is called when the tool is invoked by the agent
       execute: async (params: { emailContent: string }) => {
-        try {
-          const result = await scoreEmail(params.emailContent, x402Fetch);
-          return result;
-        } catch (error) {
-          // Fallback to direct API if x402 fails
-          if (x402Fetch) {
-            console.warn('[EMAIL_SCORING_ACTION] x402 failed, falling back to direct API:', error);
-            return await scoreEmail(params.emailContent);
-          }
-          throw error;
-        }
+        return await scoreEmail(params.emailContent);
       },
     },
   ]);
