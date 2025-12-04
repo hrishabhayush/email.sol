@@ -489,11 +489,11 @@ export default function HomeContent() {
             </div>
             <div className="mt-4 gap-4">
               <h1 className="mb-2 text-xl font-medium leading-loose text-white">
-                Lightning-Fast Interface
+                Incentivized Outreach
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Email at the speed of thought. Navigate your entire inbox using just your keyboard.
-                Process hundreds of emails in minutes.
+                Stand out in the inbox. Attach X402 micropayments to your cold emails, ensuring
+                recipients have a monetary incentive to prioritize your message.
               </p>
             </div>
           </motion.div>
@@ -722,10 +722,11 @@ export default function HomeContent() {
             </div>
             <div>
               <h1 className="mb-2 mt-4 text-lg font-medium leading-loose text-white">
-                Responses evaluated by AI
+                AI-Verified Quality
               </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                AI ensures that you only pay for meaningful responses and correspondence.
+                Never pay for low-effort replies. Our SendAI agents analyze incoming responses,
+                ensuring you only release funds for thoughtful, meaningful correspondence.
               </p>
             </div>
           </motion.div>
@@ -1003,10 +1004,10 @@ export default function HomeContent() {
               </div>
             </div>
             <div className="mt-4">
-              <h1 className="mb-2 text-lg font-medium leading-loose text-white">Smart Search</h1>
+              <h1 className="mb-2 text-lg font-medium leading-loose text-white">Seamless Smart Wallet</h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
-                Your inbox, your rules. Create personalized email processing flows that match
-                exactly how you organize,write, reply, and work.
+                Experience friction-free outreach. Pre-load your vault to eliminate repetitive
+                wallet confirmations, making secure payments as intuitive as clicking "Send".
               </p>
             </div>
           </motion.div>
