@@ -112,12 +112,22 @@ export default function HomeContent() {
               Get Started
             </Link>
           ) : (
-            <a
-              href={`${import.meta.env.VITE_PUBLIC_BACKEND_URL}/auth/sign-in/social/google?callbackURL=${encodeURIComponent(`${window.location.origin}/mail`)}`}
+            <button
+              onClick={() => {
+                toast.promise(
+                  signIn.social({
+                    provider: 'google',
+                    callbackURL: `${window.location.origin}/mail`,
+                  }),
+                  {
+                    error: 'Login redirect failed',
+                  },
+                );
+              }}
               className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
             >
               Get Started
-            </a>
+            </button>
           )}
         </motion.div>
       </section>
