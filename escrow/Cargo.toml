@@ -1,0 +1,13 @@
+[workspace]
+members = [
+  "programs/solmail_escrow",
+]
+
+[workspace.dependencies]
+anchor-lang = "0.32.1"
+
+[profile.release]
+overflow-checks = true
+
+
+

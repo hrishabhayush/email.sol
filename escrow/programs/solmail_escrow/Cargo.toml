@@ -1,0 +1,21 @@
+[package]
+name = "solmail_escrow"
+version = "0.1.0"
+description = "Escrow program for SolMail incentivized replies"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "solmail_escrow"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+default = []
+
+[dependencies]
+anchor-lang = { workspace = true }
+
+
