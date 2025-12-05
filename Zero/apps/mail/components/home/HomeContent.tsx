@@ -391,9 +391,6 @@ export default function HomeContent() {
                     <div className="flex-1 justify-start text-xs leading-3 text-[#929292]">
                       Search
                     </div>
-                    <div className="flex h-5 items-center justify-center gap-2 rounded-sm bg-[#262626] px-1">
-                      <div className="justify-start text-xs leading-3 text-[#929292]">⌘K</div>
-                    </div>
                   </div>
                   <div className="inline-flex items-start justify-start gap-1.5 self-stretch">
                     <div className="flex h-6 w-6 items-center justify-center gap-[3.04px] overflow-hidden rounded bg-[#313131]">

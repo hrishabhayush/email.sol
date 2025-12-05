@@ -2,7 +2,6 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { ChevronLeft, ChevronRight } from '@/components/icons/icons';
 
 const steps = [
   {
@@ -55,11 +54,9 @@ export function OnboardingDialog({
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
+    } else {
+      onOpenChange(false);
     }
-  };
-
-  const handleStart = () => {
-    onOpenChange(false);
   };
 
   return (
@@ -72,16 +69,6 @@ export function OnboardingDialog({
         <div className="flex flex-col gap-4 p-4">
           {steps[currentStep] && steps[currentStep].video && (
             <div className="relative flex items-center justify-center">
-              {/* Left Arrow */}
-              <button
-                onClick={handlePrevious}
-                disabled={currentStep === 0}
-                className="absolute left-2 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-5 w-5 fill-white" />
-              </button>
-
               {/* Image Container */}
               <div className="bg-muted flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:min-h-[400px]">
                 {steps.map(
@@ -105,16 +92,6 @@ export function OnboardingDialog({
                     ),
                 )}
               </div>
-
-              {/* Right Arrow */}
-              <button
-                onClick={handleNext}
-                disabled={currentStep === steps.length - 1}
-                className="absolute right-2 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-black/60 hover:bg-black/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all backdrop-blur-sm"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-5 w-5 fill-white" />
-              </button>
             </div>
           )}
 
@@ -126,14 +103,37 @@ export function OnboardingDialog({
             </div>
           </div>
 
-          {/* Centered Start Button */}
-          <div className="flex justify-center">
-            <Button 
-              size="default" 
-              onClick={handleStart}
-              className="min-w-[120px] cursor-pointer"
+          {/* Rectangle Indicators */}
+          <div className="flex justify-center gap-2">
+            {steps.map((_, index) => (
+              <div
+                key={index}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  index === currentStep
+                    ? 'w-8 bg-primary'
+                    : 'w-2 bg-muted-foreground/30'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Bottom Navigation Buttons */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="outline"
+              size="default"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className="cursor-pointer"
             >
-              Start
+              Back
+            </Button>
+            <Button
+              size="default"
+              onClick={handleNext}
+              className="cursor-pointer"
+            >
+              {currentStep === steps.length - 1 ? 'Start' : 'Next'}
             </Button>
           </div>
         </div>
