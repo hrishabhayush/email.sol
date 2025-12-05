@@ -858,7 +858,6 @@ export function EmailComposer({
                   <input
                     ref={toInputRef}
                     className="h-6 flex-1 bg-transparent text-sm font-normal leading-normal text-black placeholder:text-[#797979] focus:outline-none dark:text-white"
-                    placeholder="Enter email"
                     onPaste={(e) => {
                       e.preventDefault();
                       const pastedText = e.clipboardData.getData('text');
@@ -1075,7 +1074,6 @@ export function EmailComposer({
                     <input
                       ref={ccInputRef}
                       className="h-6 flex-1 bg-transparent text-sm font-normal leading-normal text-black placeholder:text-[#797979] focus:outline-none dark:text-white"
-                      placeholder="Enter email"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                           e.preventDefault();
@@ -1221,7 +1219,6 @@ export function EmailComposer({
                     <input
                       ref={bccInputRef}
                       className="h-6 flex-1 bg-transparent text-sm font-normal leading-normal text-black placeholder:text-[#797979] focus:outline-none dark:text-white"
-                      placeholder="Enter email"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                           e.preventDefault();
@@ -1329,7 +1326,6 @@ export function EmailComposer({
             <p className="text-sm font-medium text-[#8C8C8C]">Subject:</p>
             <input
               className="h-4 w-full bg-transparent text-sm font-normal leading-normal text-black placeholder:text-[#797979] focus:outline-none dark:text-white/90"
-              placeholder="Re: Design review feedback"
               value={subjectInput}
               onChange={(e) => {
                 const value = replaceEmojiShortcodes(e.target.value);
@@ -1337,20 +1333,6 @@ export function EmailComposer({
                 setHasUnsavedChanges(true);
               }}
             />
-            <button
-              onClick={handleGenerateSubject}
-              disabled={isLoading || isGeneratingSubject || messageLength < 1}
-            >
-              <div className="flex items-center justify-center gap-2.5 pl-0.5">
-                <div className="flex h-5 items-center justify-center gap-1 rounded-sm">
-                  {isGeneratingSubject ? (
-                    <Loader className="h-3.5 w-3.5 animate-spin fill-black dark:fill-white" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5 fill-black dark:fill-white" />
-                  )}
-                </div>
-              </div>
-            </button>
           </div>
         ) : null}
 
@@ -1412,24 +1394,11 @@ export function EmailComposer({
                   <span>Send </span>
                 </div>
               </div>
-              <div className="flex h-5 items-center justify-center gap-1 rounded-sm bg-white/10 px-1 dark:bg-black/10">
-                <Command className="h-3.5 w-3.5 text-white dark:text-black" />
-                <CurvedArrow className="mt-1.5 h-4 w-4 fill-white dark:fill-black" />
-              </div>
             </Button>
             <Button variant={'secondary'} size={'xs'} onClick={() => fileInputRef.current?.click()}>
               <Plus className="h-3 w-3 fill-[#9A9A9A]" />
               <span className="hidden px-0.5 text-sm md:block">Add</span>
             </Button>
-            <TemplateButton
-              editor={editor}
-              subject={subjectInput}
-              setSubject={(value) => setValue('subject', value)}
-              to={toEmails}
-              cc={ccEmails ?? []}
-              bcc={bccEmails ?? []}
-              setRecipients={(field, val) => setValue(field, val)}
-            />
             <Input
               type="file"
               id="attachment-input"
@@ -1602,32 +1571,6 @@ export function EmailComposer({
                 />
               ) : null}
             </AnimatePresence>
-            <Button
-              size={'xs'}
-              variant={'ghost'}
-              className="border border-[#8B5CF6]"
-              onClick={async () => {
-                if (!subjectInput.trim()) {
-                  await handleGenerateSubject();
-                }
-                setAiGeneratedMessage(null);
-                await handleAiGenerate();
-              }}
-              disabled={isLoading || aiIsLoading || messageLength < 1}
-            >
-              <div className="flex items-center justify-center gap-2.5 pl-0.5">
-                <div className="flex h-5 items-center justify-center gap-1 rounded-sm">
-                  {aiIsLoading ? (
-                    <Loader className="h-3.5 w-3.5 animate-spin fill-black dark:fill-white" />
-                  ) : (
-                    <Sparkles className="h-3.5 w-3.5 fill-black dark:fill-white" />
-                  )}
-                </div>
-                <div className="hidden text-center text-sm leading-none text-black md:block dark:text-white">
-                  Generate
-                </div>
-              </div>
-            </Button>
           </div>
           {/* <Tooltip>
               <TooltipTrigger asChild>
