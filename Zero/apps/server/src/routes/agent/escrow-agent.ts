@@ -124,7 +124,7 @@ export async function processEmailReply(
     const agent = getEscrowAgent();
     const connection = getConnection();
     const keypairWallet = agent.wallet as KeypairWallet;
-    
+
     // Convert KeypairWallet to Anchor Wallet -> for smart contract interactions
     const anchorWallet: AnchorWallet = {
       publicKey: keypairWallet.publicKey,
@@ -176,7 +176,7 @@ export async function processEmailReply(
     // Execute escrow action based on decision
     stream('executing_escrow_start', { decision, msgId });
     const executeResult = await executeEscrowAction(connection, anchorWallet, decision, escrowParams);
-    
+
     if (!executeResult.success) {
       stream('executing_escrow_error', { error: executeResult.error });
       return {
@@ -220,7 +220,7 @@ export async function processEmailReply(
  */
 export function createEscrowAgentTools() {
   const agent = getEscrowAgent();
-  
+
   // Registers tools with agent -> allows agent to dynamically call during workflow
   const tools = createLangchainTools(agent, [
     ...agent.actions, // existing actions from solana-agent-kit
