@@ -15,6 +15,8 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { scoreEmail } from '../../routes/agent/email-scoring-tool';
+import { decide } from '../../routes/agent/escrow-decision';
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -35,7 +37,6 @@ export const mailRouter = router({
     .input(
       z.object({
         id: z.string(),
-        forceFresh: z.boolean().optional().default(false), // Force fetch from Gmail (bypass cache)
       }),
     )
     .output(IGetThreadResponseSchema)
@@ -43,7 +44,7 @@ export const mailRouter = router({
       const { activeConnection } = ctx;
       const executionCtx = getContext<HonoContext>().executionCtx;
       const agent = await getZeroClient(activeConnection.id, executionCtx);
-      return await agent.getThread(input.id, true, input.forceFresh);
+      return await agent.getThread(input.id, true);
     }),
   count: activeDriverProcedure
     .output(
@@ -104,104 +105,13 @@ export const mailRouter = router({
           folder,
         });
       } else {
-        // For inbox, prioritize fetching from Gmail directly to avoid database sync issues
-        // For other folders, try database first, then fall back to Gmail
-        const shouldUseRawList = folder === 'inbox';
-        
-        if (shouldUseRawList) {
-          // For inbox, always fetch directly from Gmail to ensure we get all emails
-          console.debug('[listThreads] Using rawListThreads for inbox folder');
-          try {
-            threadsResponse = await agent.rawListThreads({
-              folder,
-              maxResults,
-              labelIds: effectiveLabelIds,
-              pageToken: cursor,
-            });
-            
-            console.debug('[listThreads] rawListThreads result (inbox):', {
-              folder,
-              threadCount: threadsResponse.threads?.length ?? 0,
-              hasNextPage: !!threadsResponse.nextPageToken,
-              connectionId: activeConnection.id,
-              email: activeConnection.email,
-            });
-          } catch (error: any) {
-            // If rate limited, try database as fallback
-            if (error?.message?.includes('rate limit') || error?.code === 429) {
-              console.warn('[listThreads] Rate limited, trying database fallback:', error.message);
-              try {
-                threadsResponse = await agent.listThreads({
-                  folder,
-                  maxResults,
-                  labelIds: effectiveLabelIds,
-                  pageToken: cursor,
-                });
-              } catch (dbError) {
-                console.error('[listThreads] Both rawListThreads and database failed:', dbError);
-                throw error; // Throw original rate limit error
-              }
-            } else {
-              throw error;
-            }
-          }
-        } else {
-          // First try to get threads from the database
-          try {
-            threadsResponse = await agent.listThreads({
-              folder,
-              // query: q,
-              maxResults,
-              labelIds: effectiveLabelIds,
-              pageToken: cursor,
-            });
-            
-            console.debug('[listThreads] Database query result:', {
-              folder,
-              threadCount: threadsResponse.threads?.length ?? 0,
-              hasNextPage: !!threadsResponse.nextPageToken,
-              connectionId: activeConnection.id,
-              email: activeConnection.email,
-            });
-            
-            // If database is empty, fall back to fetching directly from the provider
-            // This handles cases where the database hasn't been synced yet
-            if (!threadsResponse.threads || threadsResponse.threads.length === 0) {
-              console.debug('[listThreads] Database empty, falling back to rawListThreads for folder:', folder);
-              threadsResponse = await agent.rawListThreads({
-                folder,
-                maxResults,
-                labelIds: effectiveLabelIds,
-                pageToken: cursor,
-              });
-              
-              console.debug('[listThreads] rawListThreads result:', {
-                folder,
-                threadCount: threadsResponse.threads?.length ?? 0,
-                hasNextPage: !!threadsResponse.nextPageToken,
-                connectionId: activeConnection.id,
-                email: activeConnection.email,
-              });
-            }
-          } catch (error) {
-            // If database query fails, fall back to fetching directly from the provider
-            console.warn('[listThreads] Database query failed, falling back to rawListThreads:', error);
-            threadsResponse = await agent.rawListThreads({
-              folder,
-              maxResults,
-              labelIds: effectiveLabelIds,
-              pageToken: cursor,
-            });
-            
-            console.debug('[listThreads] rawListThreads result (after error):', {
-              folder,
-              threadCount: threadsResponse.threads?.length ?? 0,
-              hasNextPage: !!threadsResponse.nextPageToken,
-              connectionId: activeConnection.id,
-              email: activeConnection.email,
-            });
-          }
-        }
+        threadsResponse = await agent.listThreads({
+          folder,
+          // query: q,
+          maxResults,
+          labelIds: effectiveLabelIds,
+          pageToken: cursor,
+        });
       }
 
       if (folder === FOLDERS.SNOOZED) {
@@ -490,22 +400,6 @@ export const mailRouter = router({
         }
       };
 
-      // Check if this is a reply with escrow headers (for tracking)
-      const escrowThreadId = input.headers?.['X-Solmail-Thread-Id'] || 
-                            input.headers?.['x-solmail-thread-id'];
-      const escrowSenderPubkey = input.headers?.['X-Solmail-Sender-Pubkey'] || 
-                                input.headers?.['x-solmail-sender-pubkey'];
-      
-      if (escrowThreadId && escrowSenderPubkey && !input.isForward) {
-        console.log('[ESCROW MONITOR] Reply detected with escrow headers:', {
-          threadId: escrowThreadId,
-          senderPubkey: escrowSenderPubkey,
-          subject: input.subject,
-        });
-        // Note: Actual claiming happens client-side with wallet signature
-        // This is just for logging and tracking
-      }
-
       if (draftId) {
         await agent.sendDraft(draftId, mail);
       } else {
@@ -704,6 +598,36 @@ export const mailRouter = router({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to process email content',
         });
+      }
+    }),
+
+  scoreReply: privateProcedure
+    .input(
+      z.object({
+        replyContent: z.string(),
+        originalEmailContent: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Score the email reply
+        const scoringResult = await scoreEmail(input.replyContent, input.originalEmailContent);
+        const score = scoringResult.score;
+
+        // Make decision based on score
+        const decision = decide(score);
+
+        return {
+          score,
+          decision,
+        };
+      } catch (error) {
+        console.error('[scoreReply] Error scoring email:', error);
+        // On error, default to WITHHOLD to be safe
+        return {
+          score: 0,
+          decision: 'WITHHOLD' as const,
+        };
       }
     }),
 });
