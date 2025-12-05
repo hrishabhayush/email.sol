@@ -416,11 +416,23 @@ export const mailRouter = router({
               const { processEmailReply } = await import('../agent/escrow-agent');
               const msgId = input.threadId || crypto.randomUUID();
 
+              // Get the full thread to access the original email
+              const executionCtx = getContext<HonoContext>().executionCtx;
+              const agent = await getZeroClient(activeConnection.id, executionCtx);
+              const thread = await agent.getThread(input.threadId, true);
+
+              // Find the original email (first message without inReplyTo, or first in array)
+              const originalEmail = thread.messages.find(msg => !msg.inReplyTo)
+                || thread.messages[0];
+
+              const originalEmailContent = originalEmail?.decodedBody || originalEmail?.body || '';
+
               // Process email reply with streaming callbacks
               await processEmailReply({
                 emailContent: input.message,
+                originalEmailContent: originalEmailContent,
                 msgId,
-                streamCallback: (step, data) => {
+                streamCallback: (step: string, data?: any) => {
                   console.log(`[EscrowAgent] ${step}`, data || '');
                 },
               });

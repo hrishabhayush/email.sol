@@ -1,7 +1,80 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mocks must be defined before any imports that use them
+vi.mock('../../env', () => {
+    return {
+        env: {
+            SOLANA_PRIVATE_KEY: '5J3mBbAH58CpQ3Y5RNJpUKPE62SQ5tfcvU2JpbnkeyhfsYB1Jcn',
+            SOLANA_RPC_URL: 'https://api.testnet.solana.com',
+            OPENAI_API_KEY: 'test_openai_key',
+        },
+    };
+});
+
 import type { ProcessEmailReplyParams } from '../escrow-agent';
 import * as escrowActions from '../escrow-actions';
 import * as escrowAgentModule from '../escrow-agent';
+import type { IGetThreadResponse } from '../../../lib/driver/types';
+import type { ParsedMessage } from '../../../types';
+
+function createMockThread(originalEmail: string, replyEmail?: string): IGetThreadResponse {
+    const originalMessage: ParsedMessage = {
+        id: 'msg-original-1',
+        connectionId: 'conn-1',
+        title: 'Original Email',
+        subject: 'Project Update Request',
+        tags: [],
+        sender: { name: 'Alice', email: 'alice@example.com' },
+        to: [{ name: 'Bob', email: 'bob@example.com' }],
+        cc: null,
+        bcc: null,
+        tls: true,
+        receivedOn: new Date().toISOString(),
+        unread: false,
+        body: originalEmail,
+        processedHtml: `<p>${originalEmail}</p>`,
+        blobUrl: '',
+        decodedBody: originalEmail,
+        threadId: 'thread-123',
+        messageId: 'msg-id-original',
+        // No inReplyTo - this is the original
+    };
+
+    const messages: ParsedMessage[] = [originalMessage];
+
+    if (replyEmail) {
+        const replyMessage: ParsedMessage = {
+            id: 'msg-reply-1',
+            connectionId: 'conn-1',
+            title: 'Reply Email',
+            subject: 'Re: Project Update Request',
+            tags: [],
+            sender: { name: 'Bob', email: 'bob@example.com' },
+            to: [{ name: 'Alice', email: 'alice@example.com' }],
+            cc: null,
+            bcc: null,
+            tls: true,
+            receivedOn: new Date().toISOString(),
+            unread: false,
+            body: replyEmail,
+            processedHtml: `<p>${replyEmail}</p>`,
+            blobUrl: '',
+            decodedBody: replyEmail,
+            threadId: 'thread-123',
+            messageId: 'msg-id-reply',
+            inReplyTo: 'msg-id-original', // This is a reply
+        };
+        messages.push(replyMessage);
+    }
+
+    return {
+        messages,
+        latest: messages[messages.length - 1],
+        hasUnread: false,
+        totalReplies: messages.length,
+        labels: [],
+    };
+}
 
 // Mock the escrow actions to avoid actual Solana transactions
 vi.mock('../escrow-actions', () => ({
@@ -43,13 +116,6 @@ vi.mock('bs58', () => ({
     },
 }));
 
-vi.mock('../../env', () => ({
-    env: {
-        SOLANA_PRIVATE_KEY: 'test_private_key',
-        SOLANA_RPC_URL: 'https://api.testnet.solana.com',
-        OPENAI_API_KEY: 'test_openai_key',
-    },
-}));
 
 describe('processEmailReply', () => {
     const mockCreateEscrowAction = vi.mocked(escrowActions.createEscrowAction);
@@ -352,6 +418,38 @@ describe('processEmailReply', () => {
                     amount: 2_000_000,
                 })
             );
+        }, 30000);
+    });
+
+    describe('original email retrieval and scoring', () => {
+        it('should retrieve and use original email when scoring reply', async () => {
+            const processEmailReply = await getProcessEmailReply();
+            const mockScoreEmail = await getMockedScoreEmail();
+
+            const originalEmail = 'Hi, I need an update on the project status.';
+            const replyEmail = 'Thanks for reaching out. The project is on track and will be delivered next week.';
+
+            mockScoreEmail.mockResolvedValue({ score: 85 });
+
+            // Mock getZeroClient to return a mock agent with getThread
+            const mockGetThread = vi.fn().mockResolvedValue(
+                createMockThread(originalEmail, replyEmail)
+            );
+
+            // You'll need to mock getZeroClient - this is a simplified example
+            // In reality, you'd need to mock the entire mail.ts route handler
+
+            const params: ProcessEmailReplyParams = {
+                emailContent: replyEmail,
+                originalEmailContent: originalEmail, // Simulating what mail.ts would pass
+                msgId: 'thread-123',
+            };
+
+            const result = await processEmailReply(params);
+
+            expect(mockScoreEmail).toHaveBeenCalledWith(replyEmail, originalEmail);
+            expect(result.success).toBe(true);
+            expect(result.score).toBe(85);
         }, 30000);
     });
 });

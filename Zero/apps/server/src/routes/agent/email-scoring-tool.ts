@@ -23,8 +23,8 @@ Return a JSON object with a single "score" field containing a number from 0-100,
 - 30-49: Poor, limited relevance
 - 0-29: Very poor, irrelevant or unhelpful
 
-Email content:
-{emailContent}
+Original Email: {originalEmailSection}
+Reply Email: {emailContent}
 
 Respond with ONLY valid JSON: {"score": <number>}`;
 
@@ -50,7 +50,7 @@ export class EmailScoringTool extends StructuredTool {
     super({
       name: 'email_scoring_tool',
       description:
-        'Evaluates email quality and returns a score from 0-100 based on clarity, completeness, professionalism, relevance, and helpfulness.',
+        'Evaluates email reply quality and returns a score from 0-100 based on clarity, completeness, professionalism, relevance, and helpfulness. Can optionally include the original email for context.',
       schema: z.object({
         emailContent: z.string().describe('The plaintext email content to score'),
       }),
@@ -64,7 +64,7 @@ export class EmailScoringTool extends StructuredTool {
   }
 
   //_call method runs when the tool is invoked by LangChain.
-  async _call(input: { emailContent: string }): Promise<string> {
+  async _call(input: { emailContent: string; originalEmailContent?: string }): Promise<string> {
     try {
       // Strip HTML and get plaintext
       const plaintext = stripHtml(input.emailContent).result.trim();
@@ -73,17 +73,28 @@ export class EmailScoringTool extends StructuredTool {
         throw new Error('Email content is empty after stripping HTML');
       }
 
+      // Process original email content if provided
+      const originalText = input.originalEmailContent
+        ? stripHtml(input.originalEmailContent).result.trim()
+        : '';
+
+      const originalEmailSection = originalText
+        ? `Original Email:\n${originalText}\n\n`
+        : '';
+
       // Call LLM with scoring prompt
-      const prompt = SCORING_PROMPT.replace('{emailContent}', plaintext);
+      const prompt = SCORING_PROMPT
+        .replace('{originalEmailSection}', originalEmailSection)
+        .replace('{emailContent}', plaintext);
       const response = await this.llm.invoke(prompt);
 
       // Parse response as a string
       const content = typeof response.content === 'string' ? response.content : String(response.content);
-      
+
       // ---- start cleaning ----
       // Try to extract JSON from response
       let jsonStr = content.trim();
-      
+
       // Remove markdown code blocks if present
       if (jsonStr.startsWith('```')) {
         const lines = jsonStr.split('\n');
@@ -111,7 +122,7 @@ export class EmailScoringTool extends StructuredTool {
 
       // Validate score, ensuring it matches the schema
       const validated = ScoreSchema.parse(parsed);
-      
+
       return JSON.stringify(validated);
     } catch (error) {
       console.error('[EmailScoringTool] Error scoring email:', error);
@@ -125,9 +136,9 @@ export class EmailScoringTool extends StructuredTool {
  * Score an email using the LLM tool.
  * Returns the score (0-100) or throws an error.
  */
-export async function scoreEmail(emailContent: string): Promise<EmailScoringResult> {
+export async function scoreEmail(emailContent: string, originalEmailContent?: string): Promise<EmailScoringResult> {
   const tool = new EmailScoringTool();
-  const result = await tool._call({ emailContent });
+  const result = await tool._call({ emailContent, originalEmailContent });
   return JSON.parse(result) as EmailScoringResult;
 }
 

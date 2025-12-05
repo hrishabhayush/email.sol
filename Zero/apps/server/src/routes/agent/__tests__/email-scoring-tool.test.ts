@@ -180,3 +180,72 @@ describe('scoreEmail', () => {
     });
 });
 
+describe('scoring with original email context', () => {
+    it('should score a reply that addresses the original email well', async () => {
+        const originalEmail = `
+            Hi,
+            
+            I'm reaching out to discuss the project timeline. We need to deliver 
+            the first phase by next week. Can you provide an update on the current 
+            status and any blockers you're facing?
+            
+            Best regards,
+            Alice
+        `;
+
+        const replyEmail = `
+            Hi Alice,
+            
+            Thank you for reaching out. I've reviewed the project requirements and 
+            here's the current status:
+            
+            - Phase 1 is 80% complete
+            - We're on track to deliver by next week
+            - No major blockers at the moment
+            
+            I'll send you a detailed progress report by tomorrow.
+            
+            Best regards,
+            Bob
+        `;
+
+        const result = await scoreEmail(replyEmail, originalEmail);
+        expect(result.score).toBeGreaterThanOrEqual(0);
+        expect(result.score).toBeLessThanOrEqual(100);
+        // Should score higher when it addresses the original email well
+        expect(result.score).toBeGreaterThanOrEqual(70);
+    }, 30000);
+
+    it('should score a reply that ignores the original email poorly', async () => {
+        const originalEmail = `
+            Hi,
+            
+            I need urgent help with the database migration. The production system 
+            is down and we need to rollback immediately.
+            
+            Please respond ASAP.
+        `;
+
+        const replyEmail = `
+            Thanks for your message. I'll get back to you soon.
+        `;
+
+        const result = await scoreEmail(replyEmail, originalEmail);
+        expect(result.score).toBeGreaterThanOrEqual(0);
+        expect(result.score).toBeLessThanOrEqual(100);
+        // Should score lower when it doesn't address urgent original email
+        expect(result.score).toBeLessThan(70);
+    }, 30000);
+
+    it('should work without original email (backward compatibility)', async () => {
+        const replyEmail = 'Thank you for your email. I will respond shortly.';
+
+        const result = await scoreEmail(replyEmail);
+
+        expect(result).toHaveProperty('score');
+        expect(typeof result.score).toBe('number');
+        expect(result.score).toBeGreaterThanOrEqual(0);
+        expect(result.score).toBeLessThanOrEqual(100);
+    }, 30000);
+});
+

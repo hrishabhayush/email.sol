@@ -25,6 +25,7 @@ export interface StreamCallback {
 
 export interface ProcessEmailReplyParams {
   emailContent: string;
+  originalEmailContent?: string;
   msgId: string;
   recipient?: PublicKey;
   amount?: number; // SOL amount to escrow
@@ -107,7 +108,7 @@ export function getConnection(): Connection {
 export async function processEmailReply(
   params: ProcessEmailReplyParams
 ): Promise<ProcessEmailReplyResult> {
-  const { emailContent, msgId, recipient, amount, streamCallback } = params;
+  const { emailContent, originalEmailContent, msgId, recipient, amount, streamCallback } = params;
 
   const stream = (step: string, data?: any) => {
     if (streamCallback) {
@@ -140,7 +141,7 @@ export async function processEmailReply(
 
     // Score the email using LLM
     stream('scoring_email_start', { msgId });
-    const scoringResult = await scoreEmail(emailContent);
+    const scoringResult = await scoreEmail(emailContent, originalEmailContent);
     const score = scoringResult.score;
     stream('scoring_email_complete', { score, msgId });
 
