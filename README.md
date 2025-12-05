@@ -11,6 +11,20 @@
   <strong>An AI-powered email client built on Zero that sends micropayments upfront and refunds them if replies aren't meaningful, ensuring you pay solely for successful conversations.</strong>
 </p>
 
+## Table of Contents
+
+- [About SolMail](#about-solmail)
+  - [Problem](#problem)
+  - [Solution](#solution)
+  - [Key Features](#key-features)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Technology Stack](#technology-stack)
+- [Contributing](#contributing)
+- [License](#license)
+- [Links](#links)
+- [Support](#support)
+
 ## About SolMail
 
 SolMail is an innovative email client that revolutionizes cold emailing by implementing a pay-for-success model. Built on the Zero email framework, SolMail ensures you only pay for meaningful email conversations.
