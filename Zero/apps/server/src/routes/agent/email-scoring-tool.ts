@@ -58,7 +58,7 @@ export class EmailScoringTool extends StructuredTool {
 
     this.llm = new ChatOpenAI({
       modelName: env.OPENAI_MODEL || 'gpt-4o-mini',
-      temperature: 0,
+      temperature: 1,
       openAIApiKey: env.OPENAI_API_KEY,
     });
   }

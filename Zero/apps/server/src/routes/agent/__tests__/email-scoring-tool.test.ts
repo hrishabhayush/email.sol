@@ -1,4 +1,16 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+
+// Mock env module to use process.env.OPENAI_API_KEY
+vi.mock('../../env', () => {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    return {
+        env: {
+            OPENAI_API_KEY: OPENAI_API_KEY || 'test-key',
+            OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        },
+    };
+});
+
 import { scoreEmail } from '../email-scoring-tool';
 
 // Check if OpenAI API key is available
