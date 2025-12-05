@@ -1,10 +1,7 @@
-import { SolanaAgentKit, KeypairWallet, createLangchainTools } from 'solana-agent-kit';
-// TokenPlugin causes Cloudflare Workers CSP error (js-sha256 uses eval)
-// Only import if actually needed for token operations
-// import TokenPlugin from '@solana-agent-kit/plugin-token';
-import { Keypair, Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
+import { createSigner, type Signer, isSvmSignerWallet } from 'x402/types';
 import { env } from '../../env';
 import { scoreEmail } from './email-scoring-tool';
 import { decide, type EscrowDecision } from './escrow-decision';
@@ -14,7 +11,6 @@ import {
   calculateApiFee,
   type EscrowActionParams,
 } from './escrow-actions';
-import { EmailScoringTool } from './email-scoring-tool';
 
 /**
  * SendAI Escrow Agent
@@ -44,71 +40,126 @@ export interface ProcessEmailReplyResult {
 }
 
 // global states
-// wrapped in SolanaAgentKit instance to access the wallet and connection and integrate with Agent
-let agentInstance: SolanaAgentKit | null = null;
 // allows read/write to the Solana blockchain
 let connectionInstance: Connection | null = null;
+// x402 signer for all wallet operations (created using x402's createSigner)
+let x402SignerInstance: Signer | null = null;
+// Cached keypair extracted from x402 signer for Anchor wallet operations
+let cachedKeypair: Keypair | null = null;
 
 /**
- * Initialize the SendAI agent with wallet and plugins.
+ * Get or create x402 signer from private key.
+ * Uses x402's createSigner function to create a signer for all wallet operations.
+ * This is the primary wallet interface - no solana-agent-kit involved.
  */
-export function initializeEscrowAgent(): SolanaAgentKit {
-  if (agentInstance) {
-    return agentInstance;
+export async function getX402Signer(): Promise<Signer> {
+  if (x402SignerInstance) {
+    return x402SignerInstance;
   }
 
+  const privateKey = env.SOLANA_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
+  }
+
+  // Convert private key to base58 string if needed
+  // x402's createSigner expects base58 for SVM/Solana
+  let privateKeyBase58: string;
   try {
-    // Create keypair from private key
-    const privateKey = env.SOLANA_PRIVATE_KEY;
-    if (!privateKey) {
-      throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
+    // Try parsing as JSON array first (format: [121,119,92,...])
+    const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
+    if (Array.isArray(parsed)) {
+      // Convert Uint8Array to base58
+      privateKeyBase58 = bs58.encode(new Uint8Array(parsed));
+    } else {
+      // Assume it's already base58
+      privateKeyBase58 = env.SOLANA_PRIVATE_KEY;
     }
-
-    // Handle both formats: JSON array or base58 string
-    let secretKey: Uint8Array;
-    try {
-      // Try parsing as JSON array first (format: [121,119,92,...])
-      const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
-      if (Array.isArray(parsed)) {
-        secretKey = new Uint8Array(parsed);
-      } else {
-        // If it's a string, try base58 decode
-        secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
-      }
-    } catch {
-      // If JSON parse fails, assume it's base58 encoded
-      secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
-    }
-
-    const keypair = Keypair.fromSecretKey(secretKey);
-    const wallet = new KeypairWallet(keypair);
-
-    // Create connection
-    const rpcUrl = env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-    connectionInstance = new Connection(rpcUrl, 'confirmed');
-
-    // Initialize agent
-    // Note: TokenPlugin removed due to Cloudflare Workers CSP restrictions (js-sha256 uses eval)
-    // Add it back if token operations are needed: .use(TokenPlugin)
-    agentInstance = new SolanaAgentKit(wallet, rpcUrl, {
-      OPENAI_API_KEY: env.OPENAI_API_KEY,
-    });
-
-    return agentInstance;
-  } catch (error) {
-    console.error('[initializeEscrowAgent] Error:', error);
-    throw new Error(
-      `Failed to initialize escrow agent: ${error instanceof Error ? error.message : String(error)}`
-    );
+  } catch {
+    // If JSON parse fails, assume it's base58 encoded
+    privateKeyBase58 = env.SOLANA_PRIVATE_KEY;
   }
+
+  // Get network for x402 (solana or solana-devnet)
+  const network = env.X402_NETWORK || 'solana-devnet';
+
+  // Create signer using x402's createSigner - this is our wallet
+  x402SignerInstance = await createSigner(network, privateKeyBase58);
+
+  return x402SignerInstance;
 }
 
 /**
- * Get the agent instance, initializing if necessary.
+ * Get the keypair from x402 signer for Anchor wallet operations.
+ * Extracts the keypair from the x402 signer to use with Anchor.
  */
-export function getEscrowAgent(): SolanaAgentKit {
-  return initializeEscrowAgent();
+async function getKeypairFromX402Signer(): Promise<Keypair> {
+  if (cachedKeypair) {
+    return cachedKeypair;
+  }
+
+  const signer = await getX402Signer();
+
+  if (!isSvmSignerWallet(signer)) {
+    throw new Error('Signer is not an SVM signer');
+  }
+
+  // x402's SvmSigner doesn't expose keypair directly
+  // We need to recreate the keypair from the private key for Anchor operations
+  // The x402 signer is used for x402 payments, keypair is used for Anchor transactions
+  const privateKey = env.SOLANA_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error('SOLANA_PRIVATE_KEY is not set');
+  }
+
+  let secretKey: Uint8Array;
+  try {
+    const parsed = JSON.parse(privateKey);
+    if (Array.isArray(parsed)) {
+      secretKey = new Uint8Array(parsed);
+    } else {
+      secretKey = bs58.decode(privateKey);
+    }
+  } catch {
+    secretKey = bs58.decode(privateKey);
+  }
+
+  cachedKeypair = Keypair.fromSecretKey(secretKey);
+  return cachedKeypair;
 }
+
+/**
+ * Create an Anchor wallet from the keypair.
+ * Uses the same keypair that x402 signer is based on, but signs directly with Keypair
+ * for Anchor operations. x402 signer is used separately for x402 payment operations.
+ */
+async function getAnchorWalletFromX402Signer(): Promise<AnchorWallet> {
+  const keypair = await getKeypairFromX402Signer();
+
+  // Create Anchor wallet using the keypair directly
+  // This uses the same private key as x402 signer but signs with Keypair for Anchor compatibility
+  const anchorWallet: AnchorWallet = {
+    publicKey: keypair.publicKey,
+    payer: keypair,
+    signTransaction: async (tx) => {
+      // Sign directly with keypair for Anchor operations
+      // Keypair implements Signer interface, use type assertion
+      tx.sign(keypair as any);
+      return tx;
+    },
+    signAllTransactions: async (txs) => {
+      // Sign all transactions directly with keypair
+      txs.forEach(tx => tx.sign(keypair as any));
+      return txs;
+    },
+  };
+
+  return anchorWallet;
+}
+
+/**
+ * Get the connection instance.
+ */
 
 /**
  * Get the connection instance.
@@ -141,21 +192,12 @@ export async function processEmailReply(
   try {
     stream('initializing', { msgId });
 
-    // Initialize agent and connection
-    const agent = getEscrowAgent();
+    // Initialize connection and get x402 signer (our wallet)
     const connection = getConnection();
-    const keypairWallet = agent.wallet as KeypairWallet;
+    const x402Signer = await getX402Signer();
 
-    // Convert KeypairWallet to Anchor Wallet -> for smart contract interactions
-    const anchorWallet: AnchorWallet = {
-      publicKey: keypairWallet.publicKey,
-      signTransaction: async (tx) => {
-        return await keypairWallet.signTransaction(tx);
-      },
-      signAllTransactions: async (txs) => {
-        return await keypairWallet.signAllTransactions(txs);
-      },
-    };
+    // Create Anchor wallet adapter from x402 signer
+    const anchorWallet = await getAnchorWalletFromX402Signer();
 
     stream('agent_initialized', { wallet: anchorWallet.publicKey.toString() });
 
@@ -253,26 +295,20 @@ export async function processEmailReply(
 
 /**
  * Create tools for the agent (for LangChain integration).
+ * Note: This function is kept for compatibility but no longer uses solana-agent-kit.
  */
 export function createEscrowAgentTools() {
-  const agent = getEscrowAgent();
-  const connection = getConnection();
-  const keypairWallet = agent.wallet as KeypairWallet;
-
-  // Registers tools with agent -> allows agent to dynamically call during workflow
-  const tools = createLangchainTools(agent, [
-    ...agent.actions, // existing actions from solana-agent-kit
-    // Add custom email scoring tool as an action
-    // x402 payment is handled automatically by email-scoring-tool.ts
+  // Return tools array - can be extended with custom tools
+  // x402 payment is handled automatically by email-scoring-tool.ts
+  const tools = [
     {
       name: 'EMAIL_SCORING_ACTION',
       description: 'Score an email reply for quality (0-100)',
-      // execute function is called when the tool is invoked by the agent
       execute: async (params: { emailContent: string }) => {
         return await scoreEmail(params.emailContent);
       },
     },
-  ]);
+  ];
 
   return tools;
 }

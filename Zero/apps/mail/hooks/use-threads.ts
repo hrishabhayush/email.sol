@@ -76,7 +76,7 @@ export const useThread = (threadId: string | null) => {
         id: id!,
       },
       {
-        enabled: !!id && !!session?.user.id,
+        enabled: !!id && !!session?.user?.id,
         staleTime: 1000 * 60 * 60, // 1 minute
       },
     ),

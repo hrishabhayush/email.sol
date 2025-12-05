@@ -29,13 +29,13 @@ const SCORE_EMAIL_ENDPOINT = '/api/agent/score-email';
  */
 let cachedX402Fetch: typeof fetch | null = null;
 
-function getX402Fetch(): typeof fetch {
+async function getX402Fetch(): Promise<typeof fetch> {
   if (!cachedX402Fetch) {
     try {
-      const agent = getEscrowAgent();
       const connection = getConnection();
-      const keypairWallet = agent.wallet as any; // KeypairWallet type
-      cachedX402Fetch = initializeX402Client(keypairWallet, connection, env.X402_NETWORK);
+      const { getX402Signer } = await import('./escrow-agent');
+      const signer = await getX402Signer();
+      cachedX402Fetch = await initializeX402Client(signer, connection, env.X402_NETWORK);
     } catch (error) {
       console.warn('[EmailScoringTool] Failed to initialize x402 client:', error);
       // Fallback to regular fetch if x402 initialization fails
@@ -74,7 +74,7 @@ export class EmailScoringTool extends (StructuredTool as any) {
       const url = `${baseUrl}${SCORE_EMAIL_ENDPOINT}`;
 
       // Get x402-wrapped fetch (handles payments automatically)
-      const x402Fetch = getX402Fetch();
+      const x402Fetch = await getX402Fetch();
       console.log('[DEBUG] x402Fetch:', x402Fetch);
 
       // Make request to internal protected endpoint

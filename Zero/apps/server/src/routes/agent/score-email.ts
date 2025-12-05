@@ -77,7 +77,7 @@ console.log('[DEBUG] Receiving wallet address:', receivingAddress);
 console.log('[DEBUG] Configuring facilitator with PayAI facilitator');
 const facilitatorConfig = {
     // Use the PayAI facilitator (no authentication required)
-    url: 'https://facilitator.payai.network' as const,
+    url: 'https://facilitator.corbits.dev' as const,
 };
 
 console.log('[DEBUG] Facilitator config created:', {
@@ -102,7 +102,7 @@ export const scoreEmailRouter = new Hono()
             {
                 'POST /api/agent/score-email': {
                     price: '$0.01',
-                    network: 'solana' as any, // PayAI facilitator supports solana mainnet
+                    network: 'solana-devnet' as any, // PayAI facilitator supports solana mainnet
                 },
             },
             facilitatorConfig
