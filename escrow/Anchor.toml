@@ -1,14 +1,14 @@
 [workspace]
 members = ["programs/solmail_escrow"]
 
-[programs.localnet]
+[programs.devnet]
 solmail_escrow = "Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
