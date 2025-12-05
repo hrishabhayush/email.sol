@@ -15,6 +15,8 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { scoreEmail } from '../../routes/agent/email-scoring-tool';
+import { decide } from '../../routes/agent/escrow-decision';
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -596,6 +598,36 @@ export const mailRouter = router({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to process email content',
         });
+      }
+    }),
+
+  scoreReply: privateProcedure
+    .input(
+      z.object({
+        replyContent: z.string(),
+        originalEmailContent: z.string(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      try {
+        // Score the email reply
+        const scoringResult = await scoreEmail(input.replyContent, input.originalEmailContent);
+        const score = scoringResult.score;
+
+        // Make decision based on score
+        const decision = decide(score);
+
+        return {
+          score,
+          decision,
+        };
+      } catch (error) {
+        console.error('[scoreReply] Error scoring email:', error);
+        // On error, default to WITHHOLD to be safe
+        return {
+          score: 0,
+          decision: 'WITHHOLD' as const,
+        };
       }
     }),
 });
