@@ -53,6 +53,9 @@ import { useAtom } from 'jotai';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAnimations } from '@/hooks/use-animations';
+import { RefundEscrowButton } from './refund-escrow-button';
+import { useActiveConnection } from '@/hooks/use-connections';
+import { useEscrowMonitor } from '@/hooks/use-escrow-monitor';
 
 const formatFileSize = (size: number) => {
   const sizeInMB = (size / (1024 * 1024)).toFixed(2);
@@ -167,6 +170,36 @@ export function ThreadDisplay() {
   const { data: emailData, isLoading, refetch: refetchThread } = useThread(id ?? null);
   const [, items] = useThreads();
   const [isStarred, setIsStarred] = useState(false);
+  const { data: activeConnection } = useActiveConnection();
+  
+  // Monitor escrow headers in the current thread
+  const messages = emailData?.messages || [];
+  useEscrowMonitor(messages);
+  // Choose the best message to source escrow headers for refund:
+  // 1) Prefer a message from the current user that already has escrow headers
+  // 2) Otherwise, any message from the current user
+  const refundSourceMessage = useMemo(() => {
+    if (!messages || messages.length === 0 || !activeConnection?.email) return undefined;
+
+    const isSender = (msg: ParsedMessage) =>
+      msg.sender.email.toLowerCase() === activeConnection.email.toLowerCase();
+
+    const hasEscrowHeaders = (msg: ParsedMessage) => {
+      const headers = msg.headers || {};
+      return Boolean(
+        headers['X-Solmail-Thread-Id'] ||
+          headers['x-solmail-thread-id'] ||
+          headers['X-SOLMAIL-THREAD-ID'] ||
+          headers['X-Solmail-Thread-ID'],
+      );
+    };
+
+    const withHeaders = messages.find((m) => isSender(m) && hasEscrowHeaders(m));
+    if (withHeaders) return withHeaders;
+
+    const anySender = messages.find((m) => isSender(m));
+    return anySender;
+  }, [messages, activeConnection?.email]);
   const [isImportant, setIsImportant] = useState(false);
   
   const [navigationDirection, setNavigationDirection] = useState<'previous' | 'next' | null>(null);
@@ -877,6 +910,16 @@ export function ThreadDisplay() {
                   </div>
                 </button>
                 <NotesPanel threadId={id} />
+                {/* Show refund button if user is the sender (wallet connection checked inside component) */}
+                {refundSourceMessage && activeConnection?.email && 
+                 refundSourceMessage.sender.email.toLowerCase() === activeConnection.email.toLowerCase() && (
+                  <RefundEscrowButton
+                    subject={refundSourceMessage.subject || ''}
+                    senderEmail={refundSourceMessage.sender.email}
+                    emailMessage={refundSourceMessage}
+                    className="flex"
+                  />
+                )}
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>

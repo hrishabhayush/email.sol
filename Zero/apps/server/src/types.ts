@@ -152,6 +152,7 @@ export const ParsedMessageSchema = z.object({
     )
     .optional(),
   isDraft: z.boolean().optional(),
+  headers: z.record(z.string()).optional(),
 });
 
 export type ParsedMessage = z.infer<typeof ParsedMessageSchema>;

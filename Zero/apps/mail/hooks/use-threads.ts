@@ -74,10 +74,11 @@ export const useThread = (threadId: string | null) => {
     trpc.mail.get.queryOptions(
       {
         id: id!,
+        forceFresh: false, // Default to cached data
       },
       {
         enabled: !!id && !!session?.user.id,
-        staleTime: 1000 * 60 * 60, // 1 minute
+        staleTime: 1000 * 60 * 60, // 1 hour
       },
     ),
   );

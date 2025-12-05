@@ -1,0 +1,394 @@
+{
+  "address": "Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb",
+  "metadata": {
+    "name": "solmail_escrow",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Escrow program for SolMail incentivized replies"
+  },
+  "docs": [
+    "The escrow program powering SolMail's incentivized replies."
+  ],
+  "instructions": [
+    {
+      "name": "initialize_escrow",
+      "docs": [
+        "Initialize an escrow account for a given email thread.",
+        "",
+        "- `thread_id` is a 32-byte identifier derived from the email thread (e.g. a hash).",
+        "- `amount` is the number of lamports the sender wants to escrow."
+      ],
+      "discriminator": [
+        243,
+        160,
+        77,
+        153,
+        11,
+        92,
+        48,
+        209
+      ],
+      "accounts": [
+        {
+          "name": "sender",
+          "docs": [
+            "The sender funding the escrow."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA that will hold the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              },
+              {
+                "kind": "arg",
+                "path": "thread_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program for creating the account and transferring lamports."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "thread_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "refund_escrow",
+      "docs": [
+        "Refund the escrowed funds back to the sender.",
+        "",
+        "Can only be called by the sender after the 15-day expiry period.",
+        "- `thread_id` must match the one used in `initialize_escrow`."
+      ],
+      "discriminator": [
+        107,
+        186,
+        89,
+        99,
+        26,
+        194,
+        23,
+        204
+      ],
+      "accounts": [
+        {
+          "name": "sender",
+          "docs": [
+            "The sender who funded the escrow (only they can refund)."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA holding the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "sender"
+              },
+              {
+                "kind": "arg",
+                "path": "thread_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program for closing the account."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "thread_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "register_and_claim",
+      "docs": [
+        "Register the receiver's wallet and claim the escrowed funds.",
+        "",
+        "This is called when the receiver replies to the email thread.",
+        "- `sender_pubkey` is needed to derive the escrow PDA.",
+        "- `thread_id` must match the one used in `initialize_escrow`."
+      ],
+      "discriminator": [
+        127,
+        144,
+        210,
+        98,
+        66,
+        165,
+        255,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "receiver",
+          "docs": [
+            "The receiver claiming the funds."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "docs": [
+            "PDA holding the escrowed lamports and state."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "sender_pubkey"
+              },
+              {
+                "kind": "arg",
+                "path": "thread_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "System program for closing the account."
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sender_pubkey",
+          "type": "pubkey"
+        },
+        {
+          "name": "thread_id",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Escrow",
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidStatus",
+      "msg": "Escrow is not in a valid status for this operation"
+    },
+    {
+      "code": 6001,
+      "name": "ThreadIdMismatch",
+      "msg": "Thread ID does not match the escrow"
+    },
+    {
+      "code": 6002,
+      "name": "SenderMismatch",
+      "msg": "Sender does not match the escrow"
+    },
+    {
+      "code": 6003,
+      "name": "NotExpired",
+      "msg": "Escrow has not expired yet (15 days required)"
+    },
+    {
+      "code": 6004,
+      "name": "InsufficientFunds",
+      "msg": "Insufficient funds in escrow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Escrow",
+      "docs": [
+        "Escrow account storing all data needed to manage the incentive."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "sender",
+            "docs": [
+              "Wallet that funded the escrow."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "receiver",
+            "docs": [
+              "Wallet that will eventually receive the funds (set on claim)."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "thread_id",
+            "docs": [
+              "Deterministic identifier for the email thread."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of lamports escrowed."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "docs": [
+              "Unix timestamp when the escrow was created."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "expires_at",
+            "docs": [
+              "Unix timestamp after which the sender can refund."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Current status of the escrow."
+            ],
+            "type": {
+              "defined": {
+                "name": "EscrowStatus"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowStatus",
+      "docs": [
+        "Simple status enum so we can extend behavior later."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Refunded"
+          }
+        ]
+      }
+    }
+  ]
+}

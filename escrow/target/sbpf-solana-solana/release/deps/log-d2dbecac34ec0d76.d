@@ -1,0 +1,10 @@
+/Users/hrishabhayush/Developer/Hackathon/zero-test/email.sol/escrow/target/sbpf-solana-solana/release/deps/liblog-d2dbecac34ec0d76.rmeta: /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/lib.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/macros.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/serde.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/__private_api.rs
+
+/Users/hrishabhayush/Developer/Hackathon/zero-test/email.sol/escrow/target/sbpf-solana-solana/release/deps/liblog-d2dbecac34ec0d76.rlib: /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/lib.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/macros.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/serde.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/__private_api.rs
+
+/Users/hrishabhayush/Developer/Hackathon/zero-test/email.sol/escrow/target/sbpf-solana-solana/release/deps/log-d2dbecac34ec0d76.d: /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/lib.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/macros.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/serde.rs /Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/__private_api.rs
+
+/Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/lib.rs:
+/Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/macros.rs:
+/Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/serde.rs:
+/Users/hrishabhayush/.cargo/registry/src/index.crates.io-6f17d22bba15001f/log-0.4.29/src/__private_api.rs:
