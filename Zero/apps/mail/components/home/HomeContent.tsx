@@ -214,7 +214,7 @@ export default function HomeContent() {
         >
           <div className="bg-panelDark mx-auto mt-10 inline-flex max-w-[600px] flex-col items-center justify-center overflow-hidden rounded-2xl shadow-md">
             <div className="inline-flex h-12 items-center justify-start gap-2 self-stretch border-b-[0.50px] p-4">
-              <div className="text-base-gray-500/50 justify-start text-sm leading-none">To:</div>
+              <div className="text-sm font-medium text-[#8C8C8C]">To:</div>
               <div className="flex flex-1 items-center justify-start gap-1">
                 <div className="outline-tokens-badge-default/10 flex items-center justify-start gap-1.5 rounded-full border border-[#2B2B2B] py-1 pl-1 pr-1.5">
                   <img
@@ -252,7 +252,7 @@ export default function HomeContent() {
               </div>
             </div>
             <div className="inline-flex h-12 items-center justify-start gap-2.5 self-stretch p-4">
-              <Clock className="relative h-3.5 w-3.5 overflow-hidden fill-[#9A9A9A]" />
+              <div className="text-sm font-medium text-[#8C8C8C]">Subject:</div>
               <div className="inline-flex flex-1 flex-col items-start justify-start gap-3">
                 <div className="inline-flex items-center justify-start gap-1 self-stretch">
                   <div className="text-base-gray-950 flex-1 justify-start text-sm font-normal leading-none">
@@ -263,11 +263,11 @@ export default function HomeContent() {
             </div>
             <div className="flex flex-col items-start justify-start gap-12 self-stretch rounded-2xl bg-[#202020] px-4 py-3">
               <div className="flex flex-col items-start justify-start gap-3 self-stretch">
-              <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">                  
+                <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
                   Good afternoon Mr. Ayush,
                 </div>
-                <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">                  
-                I’m a student interested in the Goldman Sachs Summer Analyst program and would appreciate a brief coffee chat if you’re available.
+                <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
+                  I'm a student interested in the Goldman Sachs Summer Analyst program and would appreciate a brief coffee chat if you're available.
                 </div>
                 <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
                   If you're available, I'd be grateful for any insights you can share about the program or the recruiting process.
