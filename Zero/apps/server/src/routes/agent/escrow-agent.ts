@@ -67,19 +67,19 @@ export function initializeEscrowAgent(): SolanaAgentKit {
     // Handle both formats: JSON array or base58 string
     let secretKey: Uint8Array;
     try {
-        // Try parsing as JSON array first (format: [121,119,92,...])
-        const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
-        if (Array.isArray(parsed)) {
-            secretKey = new Uint8Array(parsed);
-        } else {
-            // If it's a string, try base58 decode
-            secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
-        }
-    } catch {
-        // If JSON parse fails, assume it's base58 encoded
+      // Try parsing as JSON array first (format: [121,119,92,...])
+      const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
+      if (Array.isArray(parsed)) {
+        secretKey = new Uint8Array(parsed);
+      } else {
+        // If it's a string, try base58 decode
         secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
+      }
+    } catch {
+      // If JSON parse fails, assume it's base58 encoded
+      secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
     }
-    
+
     const keypair = Keypair.fromSecretKey(secretKey);
     const wallet = new KeypairWallet(keypair);
 
@@ -115,7 +115,7 @@ export function getEscrowAgent(): SolanaAgentKit {
  */
 export function getConnection(): Connection {
   if (!connectionInstance) {
-    const rpcUrl = env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+    const rpcUrl = env.SOLANA_RPC_URL || 'https://solana-mainnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
     connectionInstance = new Connection(rpcUrl, 'confirmed');
   }
   return connectionInstance;
@@ -175,7 +175,7 @@ export async function processEmailReply(
     stream('creating_escrow_start', { msgId, decision });
 
     // Calculate total amount and API fee
-    const totalAmount = amount || 1_000_000; // Default 0.001 SOL (1M lamports)
+    const totalAmount = amount || 1; // Default 0.001 SOL (1M lamports)
     const feePercentage = parseFloat(env.X402_FEE_PERCENTAGE || '2');
     const apiFeeAmount = calculateApiFee(totalAmount, feePercentage);
 

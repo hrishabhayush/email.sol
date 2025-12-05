@@ -120,7 +120,7 @@ export async function createEscrowAction(
     const program = await getEscrowProgram(connection, wallet);
     const [escrowPDA] = findEscrowPDA(params.msgId, ESCROW_PROGRAM_ID);
 
-    const totalAmount = params.amount || 1_000_000; // Default 0.001 SOL (1M lamports)
+    const totalAmount = params.amount || 1; // Default 0.001 SOL (1M lamports)
 
     // Calculate and deduct API fee (2% by default)
     // If apiFeeAmount is provided, use it; otherwise calculate 2% of total

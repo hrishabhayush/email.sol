@@ -6,7 +6,7 @@ import type { X402PaymentResponse } from '../../x402-client';
  */
 export function createMockX402PaymentHeader(paymentInfo: Partial<X402PaymentResponse> = {}): string {
     const defaultPayment: X402PaymentResponse = {
-        amount: '0.0001',
+        amount: '0.000000000001',
         recipient: '11111111111111111111111111111111',
         network: 'mainnet-beta',
         ...paymentInfo,

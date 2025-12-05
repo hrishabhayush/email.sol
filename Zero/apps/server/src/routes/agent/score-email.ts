@@ -6,6 +6,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { stripHtml } from 'string-strip-html';
 import { z } from 'zod';
 import { scoreEmail } from './email-scoring-tool';
+import bs58 from 'bs58';
 
 /**
  * Email scoring endpoint with x402 payment protection.
@@ -46,8 +47,23 @@ function getReceivingWalletAddress(): string {
         throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
     }
 
-    const secret = JSON.parse(env.SOLANA_PRIVATE_KEY);
-    const keypair = Keypair.fromSecretKey(new Uint8Array(secret));
+    // Handle both formats: JSON array or base58 string
+    let secretKey: Uint8Array;
+    try {
+        // Try parsing as JSON array first (format: [121,119,92,...])
+        const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
+        if (Array.isArray(parsed)) {
+            secretKey = new Uint8Array(parsed);
+        } else {
+            // If it's a string, try base58 decode
+            secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
+        }
+    } catch {
+        // If JSON parse fails, assume it's base58 encoded
+        secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
+    }
+
+    const keypair = Keypair.fromSecretKey(secretKey);
     // For Solana, return the public key as a base58 string
     return keypair.publicKey.toString();
 }
@@ -57,11 +73,11 @@ console.log('[DEBUG] Getting receiving wallet address from SOLANA_PRIVATE_KEY');
 const receivingAddress = getReceivingWalletAddress();
 console.log('[DEBUG] Receiving wallet address:', receivingAddress);
 
-// Configure facilitator - using public x402.org facilitator (no API keys required)
-console.log('[DEBUG] Configuring facilitator with public x402.org facilitator');
+// Configure facilitator - using PayAI facilitator (no API keys required)
+console.log('[DEBUG] Configuring facilitator with PayAI facilitator');
 const facilitatorConfig = {
-    // Use the public x402.org facilitator (no authentication required)
-    url: 'https://x402.org/facilitator' as const,
+    // Use the PayAI facilitator (no authentication required)
+    url: 'https://facilitator.payai.network' as const,
 };
 
 console.log('[DEBUG] Facilitator config created:', {
@@ -86,7 +102,7 @@ export const scoreEmailRouter = new Hono()
             {
                 'POST /api/agent/score-email': {
                     price: '$0.01',
-                    network: 'devnet',
+                    network: 'solana' as any, // PayAI facilitator supports solana mainnet
                 },
             },
             facilitatorConfig

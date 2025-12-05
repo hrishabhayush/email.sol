@@ -14,7 +14,7 @@ import { wrapFetchWithPayment } from 'x402-fetch';
 export interface X402ClientOptions {
   wallet: KeypairWallet;
   connection: Connection;
-  network?: string; // 'mainnet-beta' or 'devnet' or 'testnet'
+  network?: string; // 'solana' (mainnet) or 'solana-devnet' (devnet)
 }
 
 /**
@@ -32,7 +32,7 @@ export function initializeX402Client(
   connection: Connection,
   network?: string
 ): typeof fetch {
-  const networkName = network || env.X402_NETWORK || 'devnet';
+  const networkName = network || env.X402_NETWORK || 'solana';
   console.log('[DEBUG] Initializing x402 client with network:', networkName);
 
   // Create a Solana signer for x402-fetch
@@ -56,11 +56,12 @@ export function initializeX402Client(
   };
 
   // Determine network string for x402
-  // x402-fetch uses 'solana' for mainnet and 'solana-devnet' for devnet
-  const x402Network = networkName;
+  // PayAI facilitator uses 'solana' for mainnet and 'solana-devnet' for devnet
+  // Convert 'mainnet-beta' or 'mainnet' to 'solana' if needed
+  const x402Network = networkName === 'mainnet-beta' || networkName === 'mainnet' ? 'solana' : networkName;
 
   // Wrap fetch with payment handling
-  // Configuration for public x402.org facilitator (no API keys required)
+  // Configuration for PayAI facilitator (no API keys required)
   // Note: wrapFetchWithPayment API may vary - using type assertion for flexibility
   // The actual API will be determined when x402-fetch package is installed
   console.log('[DEBUG] Wrapping fetch with payment handling');
@@ -70,7 +71,7 @@ export function initializeX402Client(
     {
       network: x402Network,
       facilitator: {
-        url: 'https://x402.org/facilitator',
+        url: 'https://facilitator.payai.network',
       },
     }
   ) as typeof fetch;
