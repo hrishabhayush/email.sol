@@ -17,12 +17,12 @@ const steps = [
   {
     title: 'AI-validated responses',
     description: 'An AI agent will evaluate the response quality and refund you if the response is not meaningful',
-    video: '/onboarding/checkx.png',
+    video: '/onboarding/check4.png',
   },
   {
     title: 'Incentivize correspondence ',
     description: 'SolMail incentivizes meaningful responses and facilitate better correspondence',
-    video: '/onboarding/handshake.webp',
+    video: '/onboarding/handshake4.png',
   },
 ];
 
