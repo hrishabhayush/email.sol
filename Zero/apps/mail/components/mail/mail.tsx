@@ -528,17 +528,6 @@ export function MailLayout() {
                                 Clear
                               </Button>
                             )}
-                            <kbd className="bg-muted text-md pointer-events-none mr-0.5 hidden h-7 select-none flex-row items-center gap-1 rounded-md border-none px-2 font-medium leading-[0]! opacity-100 sm:flex dark:bg-[#262626] dark:text-[#929292]">
-                              <span
-                                className={cn(
-                                  'h-min leading-[0.2]!',
-                                  isMac ? 'mt-px text-lg' : 'text-sm',
-                                )}
-                              >
-                                {isMac ? '⌘' : 'Ctrl'}{' '}
-                              </span>
-                              <span className="h-min text-sm leading-[0.2]!"> K</span>
-                            </kbd>
                           </span>
                         </Button>
                         {activeConnection?.providerId === 'google' && folder === 'inbox' && (

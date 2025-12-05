@@ -508,3 +508,48 @@
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Wallet Modal Overlay - Block clicks behind modal on narrow screens */
+@media (max-width: 768px) {
+  .wallet-adapter-modal-overlay {
+    pointer-events: auto !important;
+    cursor: default !important;
+  }
+  
+  .wallet-adapter-modal-overlay * {
+    pointer-events: none;
+  }
+  
+  .wallet-adapter-modal-wrapper,
+  .wallet-adapter-modal-wrapper *,
+  .wallet-adapter-modal-button,
+  .wallet-adapter-modal-button *,
+  .wallet-adapter-modal-button-close,
+  .wallet-adapter-modal-button-close * {
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure X button has hover behavior on narrow screens */
+  .wallet-adapter-modal-button-close {
+    cursor: pointer !important;
+    transition: opacity 0.2s ease !important;
+  }
+  
+  .wallet-adapter-modal-button-close:hover {
+    opacity: 0.7 !important;
+  }
+}
+
+/* Ensure wallet modal overlay blocks clicks on all screen sizes */
+.wallet-adapter-modal-overlay {
+  pointer-events: auto !important;
+}
+
+.wallet-adapter-modal-overlay *:not(.wallet-adapter-modal-wrapper):not(.wallet-adapter-modal-wrapper *) {
+  pointer-events: none !important;
+}
+
+.wallet-adapter-modal-wrapper,
+.wallet-adapter-modal-wrapper * {
+  pointer-events: auto !important;
+}

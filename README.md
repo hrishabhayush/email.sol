@@ -2,7 +2,7 @@
 
 <p align="center">
   <picture>
-    <source srcset="Zero/apps/mail/public/solmail-logo.png" media="(prefers-color-scheme: dark)">
+    <source srcset="Zero/apps/mail/public/solmail-logo-dark.png" media="(prefers-color-scheme: light)">
     <img src="Zero/apps/mail/public/solmail-logo.png" alt="SolMail Logo" width="64" style="background-color: #000; padding: 10px;"/>
   </picture>
 </p>
@@ -10,6 +10,20 @@
 <p align="center">
   <strong>An AI-powered email client built on Zero that sends micropayments upfront and refunds them if replies aren't meaningful, ensuring you pay solely for successful conversations.</strong>
 </p>
+
+## Table of Contents
+
+- [About SolMail](#about-solmail)
+  - [Problem](#problem)
+  - [Solution](#solution)
+  - [Key Features](#key-features)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Technology Stack](#technology-stack)
+- [Contributing](#contributing)
+- [License](#license)
+- [Links](#links)
+- [Support](#support)
 
 ## About SolMail
 

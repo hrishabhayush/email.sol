@@ -15,7 +15,7 @@ import { useLabels } from '@/hooks/use-labels';
 import { Badge } from '@/components/ui/badge';
 import { useStats } from '@/hooks/use-stats';
 import SidebarLabels from './sidebar-labels';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { BASE_URL } from '@/lib/constants';
 import { useQueryState } from 'nuqs';
 import { Plus, Wallet } from 'lucide-react';
@@ -24,6 +24,14 @@ import { toast } from 'sonner';
 import * as React from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   ref?: React.Ref<SVGSVGElement>;
@@ -272,17 +280,25 @@ function ConnectWalletButton() {
   const { wallet, publicKey, disconnect, connecting } = useWallet();
   const { setVisible } = useWalletModal();
   const { state } = useSidebar();
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
 
   const handleClick = () => {
     if (wallet && publicKey) {
-      // Wallet is connected, show disconnect option
-      disconnect().catch((err: unknown) => {
-        console.error('Error disconnecting wallet:', err);
-        toast.error('Failed to disconnect wallet');
-      });
+      // Wallet is connected, show disconnect confirmation dialog
+      setShowDisconnectDialog(true);
     } else {
       // No wallet connected, open wallet modal
       setVisible(true);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnect();
+      setShowDisconnectDialog(false);
+    } catch (err: unknown) {
+      console.error('Error disconnecting wallet:', err);
+      toast.error('Failed to disconnect wallet');
     }
   };
 
@@ -291,16 +307,46 @@ function ConnectWalletButton() {
     : 'Connect Wallet';
 
   return (
-    <SidebarMenuButton
-      onClick={handleClick}
-      disabled={connecting}
-      tooltip={state === 'collapsed' ? displayText : undefined}
-      className="hover:bg-subtleWhite flex cursor-pointer items-center dark:hover:bg-[#202020]"
-    >
-      <Wallet className="relative mr-2.5 h-3 w-3 fill-[#8F8F8F] text-[#8F8F8F]" />
-      <p className="relative bottom-0.5 mt-0.5 truncate text-[13px]">
-        {connecting ? 'Connecting...' : displayText}
-      </p>
-    </SidebarMenuButton>
+    <>
+      <SidebarMenuButton
+        onClick={handleClick}
+        disabled={connecting}
+        tooltip={state === 'collapsed' ? displayText : undefined}
+        className={cn(
+          "flex items-center cursor-pointer hover:bg-subtleWhite dark:hover:bg-[#202020]"
+        )}
+      >
+        <Wallet className="relative mr-2.5 h-3 w-3 fill-[#8F8F8F] text-[#8F8F8F]" />
+        <p className="relative bottom-0.5 mt-0.5 truncate text-[13px]">
+          {connecting ? 'Connecting...' : displayText}
+        </p>
+      </SidebarMenuButton>
+
+      <Dialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <DialogContent showOverlay className="sm:max-w-[425px]">
+          <DialogHeader className="space-y-3 pb-4">
+            <DialogTitle>Disconnect Wallet</DialogTitle>
+            <DialogDescription className="text-base">
+              Are you sure you want to disconnect this {wallet?.adapter.name} wallet? You'll need to connect again to send emails.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDisconnectDialog(false)}
+              className="flex-1 sm:flex-initial min-w-[100px]"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDisconnect}
+              className="bg-red-600 hover:bg-red-700 text-white flex-1 sm:flex-initial min-w-[100px]"
+            >
+              Disconnect
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
