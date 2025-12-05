@@ -1073,6 +1073,17 @@ export class OutlookMailManager implements MailManager {
     // The `wasSentWithTLS` utility would need to be adapted or rewritten for Outlook header formats.
     const tls = false; // Placeholder - needs proper header parsing
 
+    // Extract headers into a key-value object
+    // Note: Outlook Graph API doesn't provide full headers in the Message object
+    // We'll construct what we can from the available fields
+    const headers: Record<string, string> = {};
+    if (references) headers['References'] = references;
+    if (inReplyTo) headers['In-Reply-To'] = inReplyTo;
+    if (replyTo) headers['Reply-To'] = replyTo;
+    if (listUnsubscribe) headers['List-Unsubscribe'] = listUnsubscribe;
+    if (listUnsubscribePost) headers['List-Unsubscribe-Post'] = listUnsubscribePost;
+    // TODO: If Outlook Graph API provides internetMessageHeaders, extract custom headers from there
+
     return {
       id: id || 'ERROR',
       bcc,
@@ -1092,6 +1103,7 @@ export class OutlookMailManager implements MailManager {
       receivedOn: receivedOn.toString(),
       subject: subject ? he.decode(subject).trim() : '(no subject)',
       messageId: internetMessageId || id || 'ERROR',
+      headers,
     };
   }
   private async parseOutgoingOutlook({
@@ -1140,18 +1152,20 @@ export class OutlookMailManager implements MailManager {
     };
 
     if (headers) {
-      // Graph API doesn't have a direct 'headers' property for sending
-      // Custom headers are usually not added this way.
-      // Some headers like Reply-To can be set as properties, but not general headers.
-      console.warn(
-        'Custom headers from IOutgoingMessage are not directly applied when sending via Microsoft Graph API.',
-      );
-      // If you need to set specific headers like In-Reply-To or References for threading replies:
-      // outlookMessage.internetMessageHeaders = Object.entries(headers).map(([name, value]) => ({ name, value: value?.toString() }));
-      // Note: internetMessageHeaders might be read-only or limited for sending.
-      // Setting properties like InReplyTo, References on the message object itself is the standard way if supported.
-      // outlookMessage.inReplyTo = headers.inReplyTo as string | undefined; // Example if supported
-      // outlookMessage.references = headers.references as string | undefined; // Example if supported
+      // Microsoft Graph API supports custom headers via internetMessageHeaders
+      // This allows us to set custom headers like X-Solmail-Thread-Id and X-Solmail-Sender-Pubkey
+      outlookMessage.internetMessageHeaders = Object.entries(headers).map(([name, value]) => ({
+        name,
+        value: value?.toString() || '',
+      }));
+      
+      // Also set standard headers as properties if they exist
+      if (headers['In-Reply-To']) {
+        outlookMessage.inReplyTo = headers['In-Reply-To'];
+      }
+      if (headers['References']) {
+        outlookMessage.internetMessageId = headers['References']?.split(' ')?.[0]?.replace(/[<>]/g, '') || outlookMessage.internetMessageId;
+      }
     }
 
     // Handle inline images and attachments

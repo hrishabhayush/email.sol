@@ -84,6 +84,7 @@ export interface ParsedMessage {
   threadId?: string;
   isDraft?: boolean;
   attachments?: Attachment[];
+  headers?: Record<string, string>;
 }
 
 export interface IConnection {

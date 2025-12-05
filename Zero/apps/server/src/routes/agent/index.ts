@@ -667,10 +667,32 @@ export class ZeroDriver extends Agent<ZeroEnv> {
     return await this.driver.list(params);
   }
 
-  async getThread(threadId: string, includeDrafts: boolean = false) {
+  async getThread(threadId: string, includeDrafts: boolean = false, forceFresh: boolean = false) {
     if (!this.driver) {
       throw new Error('No driver available');
     }
+    
+    // If forceFresh is true, fetch directly from Gmail API (bypass cache)
+    // This is critical for escrow settlement - we need the latest headers
+    if (forceFresh) {
+      console.log('[ESCROW LOG] Force fetching thread directly from Gmail (bypassing cache):', {
+        threadId,
+        connectionId: this.name,
+      });
+      try {
+        const freshThread = await this.getWithRetry(threadId);
+        // Immediately sync this fresh data to update cache
+        this.queue('syncThread', { threadId }).catch((error) => {
+          console.error(`[ESCROW LOG] Failed to queue sync after fresh fetch:`, error);
+        });
+        return freshThread;
+      } catch (error) {
+        console.error('[ESCROW LOG] Failed to force fetch thread, falling back to cache:', error);
+        // Fall back to cached data if fresh fetch fails
+        return await this.getThreadFromDB(threadId, includeDrafts);
+      }
+    }
+    
     return await this.getThreadFromDB(threadId, includeDrafts);
   }
 
@@ -947,6 +969,44 @@ export class ZeroDriver extends Agent<ZeroEnv> {
         );
 
         result.normalizedReceivedOn = normalizedReceivedOn;
+
+        // Check for escrow headers and ensure they're properly stored
+        // This is critical for cross-account escrow settlement
+        if (threadData.messages && threadData.messages.length > 0) {
+          const messagesWithHeaders = threadData.messages.filter((msg: any) => {
+            const headers = msg.headers || {};
+            return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
+                     headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+          });
+          if (messagesWithHeaders.length > 0) {
+            console.log('[ESCROW LOG] Storing thread with escrow headers (CRITICAL for cross-account sync):', {
+              threadId,
+              totalMessages: threadData.messages.length,
+              messagesWithHeaders: messagesWithHeaders.length,
+              messageIds: messagesWithHeaders.map((m: any) => m.id),
+              connectionId: this.name, // Log which account/connection this is for
+            });
+            
+            // Ensure headers are preserved in all messages
+            // Sometimes headers might be missing due to parsing issues
+            for (const msg of threadData.messages) {
+              if (!msg.headers || Object.keys(msg.headers).length === 0) {
+                console.warn('[ESCROW LOG] Message missing headers, attempting to preserve:', {
+                  messageId: msg.id,
+                  threadId,
+                });
+              }
+            }
+          } else {
+            // Log when we expect headers but don't find them (for debugging)
+            console.log('[ESCROW LOG] Thread synced but no escrow headers found:', {
+              threadId,
+              totalMessages: threadData.messages.length,
+              connectionId: this.name,
+              note: 'This might be expected if email was sent without escrow',
+            });
+          }
+        }
 
         // Store thread data in bucket
         yield* Effect.tryPromise(() =>
@@ -1722,12 +1782,106 @@ export class ZeroDriver extends Agent<ZeroEnv> {
           labels: [],
         } satisfies IGetThreadResponse;
       }
-      const row = result[0] as { latest_label_ids: string };
+      const row = result[0] as { 
+        latest_label_ids: string;
+        latest_received_on: string;
+        updated_at: string;
+      };
       const storedThread = await this.env.THREADS_BUCKET.get(this.getThreadKey(id));
 
       let messages: ParsedMessage[] = storedThread
         ? (JSON.parse(await storedThread.text()) as IGetThreadResponse).messages
         : [];
+
+      // Check if thread needs re-syncing for escrow headers
+      // Re-sync if:
+      // 1. Thread was updated recently (within last 24 hours) - might have new messages with escrow headers
+      // 2. Thread has no escrow headers but is recent (within last 7 days) - might need to pick up headers
+      const updatedAt = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+      const receivedOn = row.latest_received_on ? new Date(row.latest_received_on).getTime() : 0;
+      const now = Date.now();
+      const oneDayAgo = now - (24 * 60 * 60 * 1000);
+      const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+      
+      const hasEscrowHeaders = messages.some((msg) => {
+        const headers = (msg as any).headers || {};
+        return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
+                 headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+      });
+
+      // Determine if we should re-sync this thread to pick up escrow headers
+      // Re-sync conditions:
+      // 1. Thread has no escrow headers but was updated/received recently (within 7 days)
+      // 2. Thread was updated in last 24 hours (might have new messages with escrow headers)
+      // 3. Thread has messages but no headers and is recent (might have missed headers on first sync)
+      const isRecent = updatedAt > oneDayAgo || receivedOn > sevenDaysAgo;
+      const shouldReSync = 
+        (!hasEscrowHeaders && isRecent) ||
+        (updatedAt > oneDayAgo && messages.length > 0); // Re-sync recent threads to catch new messages
+
+      if (shouldReSync && !this.syncThreadsInProgress.has(id)) {
+        console.log('[ESCROW LOG] Triggering re-sync for thread (may have escrow headers):', {
+          threadId: id,
+          hasEscrowHeaders,
+          updatedAt: new Date(updatedAt).toISOString(),
+          receivedOn: new Date(receivedOn).toISOString(),
+          messageCount: messages.length,
+          reason: !hasEscrowHeaders && isRecent ? 'No headers but recent' : 'Recently updated',
+          connectionId: this.name, // Log which account this is for (cross-account sync)
+        });
+        
+        // For very recent threads without headers, try immediate sync first
+        // This is critical for cross-account escrow settlement
+        if (!hasEscrowHeaders && updatedAt > oneDayAgo) {
+          console.log('[ESCROW LOG] Attempting immediate sync for recent thread without headers:', {
+            threadId: id,
+            connectionId: this.name,
+          });
+          // Try immediate sync, but don't block if it fails
+          this.syncThread({ threadId: id }).catch((error) => {
+            console.error(`[ESCROW LOG] Immediate sync failed, will retry in background:`, error);
+            // Fall back to background sync
+            this.queue('syncThread', { threadId: id }).catch((queueError) => {
+              console.error(`[ESCROW LOG] Failed to queue re-sync for thread ${id}:`, queueError);
+            });
+          });
+        } else {
+          // For other cases, use background sync
+          this.queue('syncThread', { threadId: id }).catch((error) => {
+            console.error(`[ESCROW LOG] Failed to queue re-sync for thread ${id}:`, error);
+          });
+        }
+      } else if (shouldReSync && this.syncThreadsInProgress.has(id)) {
+        console.log('[ESCROW LOG] Re-sync already in progress for thread:', {
+          threadId: id,
+          connectionId: this.name,
+        });
+      }
+
+      // Log headers presence for debugging escrow issues
+      if (messages.length > 0) {
+        const messagesWithHeaders = messages.filter((msg) => {
+          const headers = (msg as any).headers || {};
+          return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
+                   headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+        });
+        if (messagesWithHeaders.length > 0) {
+          console.log('[ESCROW LOG] Retrieved thread with escrow headers:', {
+            threadId: id,
+            totalMessages: messages.length,
+            messagesWithHeaders: messagesWithHeaders.length,
+            messageIds: messagesWithHeaders.map((m) => m.id),
+          });
+        } else {
+          console.log('[ESCROW LOG] Retrieved thread without escrow headers:', {
+            threadId: id,
+            totalMessages: messages.length,
+            messageIds: messages.map((m) => m.id),
+            sampleHeaders: messages[0] ? Object.keys((messages[0] as any).headers || {}) : [],
+            willReSync: shouldReSync,
+          });
+        }
+      }
 
       const isLatestDraft = messages.some((e) => e.isDraft === true);
 

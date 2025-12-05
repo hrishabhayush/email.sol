@@ -20,12 +20,12 @@ export function SolanaWalletProvider({ children }: PropsWithChildren) {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'
   // You can also provide a custom RPC endpoint
   const endpoint = useMemo(() => {
-    const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || 'https://solana-mainnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
+    const rpcUrl = import.meta.env.VITE_SOLANA_RPC_URL || 'https://solana-devnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
     
     // Ensure the URL is valid and starts with http:// or https://
     if (!rpcUrl || (typeof rpcUrl === 'string' && !rpcUrl.startsWith('http://') && !rpcUrl.startsWith('https://'))) {
       console.warn('Invalid RPC URL, using default:', rpcUrl);
-      return 'https://solana-mainnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
+      return 'https://solana-devnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
     }
     
     return rpcUrl;

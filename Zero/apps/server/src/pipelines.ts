@@ -606,6 +606,40 @@ export class WorkflowRunner extends DurableObject<ZeroEnv> {
           catch: (error) => ({ _tag: 'GmailApiError' as const, error }),
         });
 
+        // CRITICAL: Check for escrow headers and force immediate sync if found
+        // This ensures cross-account escrow headers are properly synced
+        // This must happen AFTER getting the thread but BEFORE processing
+        const hasEscrowHeaders = thread.messages.some((msg: any) => {
+          const headers = msg.headers || {};
+          return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
+                   headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+        });
+        
+        if (hasEscrowHeaders) {
+          yield* Console.log('[ESCROW LOG] Thread workflow detected escrow headers - forcing immediate sync:', {
+            threadId: threadId.toString(),
+            connectionId: connectionId.toString(),
+            messageCount: thread.messages.length,
+          });
+          // Force immediate sync to ensure headers are stored in database
+          // This is critical for cross-account escrow settlement
+          yield* Effect.tryPromise({
+            try: async () => {
+              await agent.syncThread({ threadId: threadId.toString() });
+              console.log('[ESCROW LOG] Forced sync completed for thread with escrow headers');
+            },
+            catch: (error) => {
+              console.error('[ESCROW LOG] Failed to force sync thread with escrow headers:', error);
+              return error;
+            },
+          }).pipe(
+            Effect.catchAll((error) => {
+              console.error('[ESCROW LOG] Sync error handled, continuing workflow:', error);
+              return Effect.succeed(undefined);
+            })
+          );
+        }
+
         if (!thread.messages || thread.messages.length === 0) {
           yield* Console.log('[THREAD_WORKFLOW] Thread has no messages, skipping processing');
           // Add thread processing key to cleanup list

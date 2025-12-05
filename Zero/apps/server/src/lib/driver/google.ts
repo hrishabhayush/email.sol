@@ -348,15 +348,64 @@ export class GoogleMailManager implements MailManager {
       async () => {
         const { folder: normalizedFolder, q: normalizedQ } = this.normalizeSearch(folder, q ?? '');
         const labelIds = [..._labelIds];
-        if (normalizedFolder) labelIds.push(normalizedFolder.toUpperCase());
+        if (normalizedFolder) {
+          const folderLabel = normalizedFolder.toUpperCase();
+          // Only add if not already present
+          if (!labelIds.includes(folderLabel)) {
+            labelIds.push(folderLabel);
+          }
+        }
+
+        // For inbox folder, ensure INBOX label is always included
+        // This is critical for getting results when database is empty
+        if (folder === 'inbox' && !labelIds.includes('INBOX')) {
+          labelIds.push('INBOX');
+        }
+
+        // For inbox with no query, ensure we use 'in:inbox' in query string
+        // This provides a more reliable way to get inbox results
+        let finalQuery = normalizedQ;
+        let finalLabelIds: string[] = [];
+        
+        if (folder === 'inbox') {
+          if (normalizedQ) {
+            // If there's a query, use it with labelIds
+            finalQuery = normalizedQ;
+            finalLabelIds = labelIds;
+          } else {
+            // If no query, use 'in:inbox' in query string for maximum reliability
+            finalQuery = 'in:inbox';
+            finalLabelIds = []; // Don't use labelIds when we have explicit query
+          }
+        } else {
+          finalQuery = normalizedQ;
+          finalLabelIds = [];
+        }
+
+        console.debug('[GoogleMailManager.list]', {
+          folder,
+          normalizedFolder,
+          normalizedQ,
+          finalQuery,
+          finalLabelIds,
+          maxResults,
+          pageToken,
+          email: this.config.auth?.email,
+        });
 
         const res = await this.gmail.users.threads.list({
           userId: 'me',
-          q: normalizedQ ? normalizedQ : undefined,
-          labelIds: folder === 'inbox' ? labelIds : [],
+          q: finalQuery ? finalQuery : undefined,
+          labelIds: finalLabelIds.length > 0 ? finalLabelIds : undefined,
           maxResults,
           pageToken: pageToken ? pageToken : undefined,
           quotaUser: this.getQuotaUser(),
+        });
+
+        console.debug('[GoogleMailManager.list] Response', {
+          threadCount: res.data.threads?.length ?? 0,
+          hasNextPage: !!res.data.nextPageToken,
+          email: this.config.auth?.email,
         });
 
         const threads = res.data.threads ?? [];
@@ -1055,6 +1104,33 @@ export class GoogleMailManager implements MailManager {
       (header) => header.name?.toLowerCase() === 'tls-report',
     );
 
+    // Extract all headers into a key-value object for easy access
+    // This is especially important for custom headers like X-Solmail-Thread-Id and X-Solmail-Sender-Pubkey
+    const headers: Record<string, string> = {};
+    if (payload?.headers) {
+      for (const header of payload.headers) {
+        if (header.name && header.value) {
+          headers[header.name] = header.value;
+        }
+      }
+    }
+    
+    // Log escrow-related headers for monitoring
+    const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'];
+    const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'];
+    if (escrowThreadId || escrowSenderPubkey) {
+      console.log('[ESCROW LOG] Parsed email with escrow headers:', {
+        timestamp: new Date().toISOString(),
+        messageId: id,
+        subject,
+        hasThreadId: !!escrowThreadId,
+        hasSenderPubkey: !!escrowSenderPubkey,
+        threadId: escrowThreadId || 'NOT FOUND',
+        senderPubkey: escrowSenderPubkey || 'NOT FOUND',
+        allHeaderKeys: Object.keys(headers),
+      });
+    }
+
     return {
       id: id || 'ERROR',
       bcc: [],
@@ -1075,6 +1151,7 @@ export class GoogleMailManager implements MailManager {
       subject: subject ? subject.replace(/"/g, '').trim() : '(no subject)',
       messageId,
       isDraft: labelIds ? labelIds.includes('DRAFT') : false,
+      headers,
     };
   }
   private async parseOutgoing({
