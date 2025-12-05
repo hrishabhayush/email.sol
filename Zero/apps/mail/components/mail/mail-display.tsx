@@ -364,16 +364,6 @@ const ActionButton = ({ onClick, icon, text, shortcut }: ActionButtonProps) => {
       <div className="flex items-center justify-center gap-2.5 pl-0.5 pr-1">
         <div className="justify-start text-sm leading-none text-black dark:text-white">{text}</div>
       </div>
-      {shortcut && (
-        <kbd
-          className={cn(
-            'border-muted-foreground/10 bg-accent h-6 rounded-[6px] border px-1.5 font-mono text-xs leading-6',
-            '-me-1 ms-auto hidden max-h-full items-center md:inline-flex',
-          )}
-        >
-          {shortcut}
-        </kbd>
-      )}
     </button>
   );
 };

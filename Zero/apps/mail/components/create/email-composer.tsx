@@ -1397,7 +1397,6 @@ export function EmailComposer({
             </Button>
             <Button variant={'secondary'} size={'xs'} onClick={() => fileInputRef.current?.click()}>
               <Plus className="h-3 w-3 fill-[#9A9A9A]" />
-              <span className="hidden px-0.5 text-sm md:block">Add</span>
             </Button>
             <Input
               type="file"
