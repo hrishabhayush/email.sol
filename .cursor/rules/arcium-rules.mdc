@@ -1,0 +1,26 @@
+---
+alwaysApply: true
+---
+
+All plaintext becomes encrypted + secret-shared before any processing.
+
+Implement fixed-shape, deterministic circuits (no randomness, no recursion).
+
+Preprocessing inside MPC only; prompt construction outside MPC.
+
+Circuit output must be structured (e.g., {score: u8}).
+
+MPC wrappers must validate stage, shares, and return typed errors.
+
+As for LLM usage within Arcium:
+Keys loaded from env; never printed or embedded.
+Prompts must be small, static, and validated.
+LLM outputs must be strict JSON with a score.
+If malformed, return classification error, never guess.
+
+Use https://docs.arcium.com/developers/hello-world as a reference as to how to integrate Arcium. You should be using MXE encryption, and follow building conventions:
+
+Step    Instruction Analogy
+1   init_classify_email_comp_def    Tell the MPC network “I have a classification function.”
+2   classify_email  Submit encrypted email text for scoring.
+3   classify_email_callback MPC returns the score (0–100) back to Solana.
