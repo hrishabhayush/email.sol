@@ -85,7 +85,8 @@ export type ZeroEnv = {
   SOLANA_PRIVATE_KEY: string;
   X402_NETWORK: string;
   X402_API_URL: string;
-  X402_FEE_PERCENTAGE: string;
+  X402_FEE_PERCENTAGE: string; //TODO: likely dont need this -> clean
+  FACILITATOR_API_KEY: string; 
 };
 
 const env = _env as ZeroEnv;

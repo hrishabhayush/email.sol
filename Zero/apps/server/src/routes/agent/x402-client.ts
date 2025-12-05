@@ -24,7 +24,7 @@ export interface X402ClientOptions {
  * The wrapped fetch will:
  * - Detect 402 Payment Required responses
  * - Create and sign payment payloads using the Solana wallet
- * - Submit payments to the Coinbase facilitator
+ * - Submit payments to the x402.org facilitator
  * - Retry the original request with payment proof
  */
 export function initializeX402Client(
@@ -57,7 +57,7 @@ export function initializeX402Client(
   const x402Network = networkName === 'mainnet-beta' ? 'solana' : 'solana-devnet';
 
   // Wrap fetch with payment handling
-  // Configuration for Coinbase CDP facilitator
+  // Configuration for public x402.org facilitator (no API keys required)
   // Note: wrapFetchWithPayment API may vary - using type assertion for flexibility
   // The actual API will be determined when x402-fetch package is installed
   const wrappedFetch = (wrapFetchWithPayment as any)(
@@ -66,7 +66,7 @@ export function initializeX402Client(
     {
       network: x402Network,
       facilitator: {
-        url: 'https://api.cdp.coinbase.com/platform/v2/x402',
+        url: 'https://x402.org/facilitator',
       },
     }
   ) as typeof fetch;
