@@ -155,7 +155,7 @@ export default function HomeContent() {
               {tabs.map((tab) => (
                 <TabsContent key={tab.value} value={tab.value}>
                   <img
-                    src="/email-preview.png"
+                    src="/homepagess.png"
                     alt="Solmail Preview"
                     width={1920}
                     height={1080}
@@ -171,7 +171,7 @@ export default function HomeContent() {
 
       <div className="flex items-center justify-center px-4 md:hidden">
         <img
-          src="/email-preview.png"
+          src="/homepagess.png"
           alt="Solmail Preview"
           width={1920}
           height={1080}
