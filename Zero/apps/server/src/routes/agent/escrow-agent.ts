@@ -1,5 +1,7 @@
 import { SolanaAgentKit, KeypairWallet, createLangchainTools } from 'solana-agent-kit';
-import TokenPlugin from '@solana-agent-kit/plugin-token';
+// TokenPlugin causes Cloudflare Workers CSP error (js-sha256 uses eval)
+// Only import if actually needed for token operations
+// import TokenPlugin from '@solana-agent-kit/plugin-token';
 import { Keypair, Connection, PublicKey } from '@solana/web3.js';
 import { Wallet as AnchorWallet } from '@coral-xyz/anchor';
 import bs58 from 'bs58';
@@ -62,8 +64,23 @@ export function initializeEscrowAgent(): SolanaAgentKit {
       throw new Error('SOLANA_PRIVATE_KEY is not set in environment variables');
     }
 
-    const secret = JSON.parse(env.SOLANA_PRIVATE_KEY);
-    const keypair = Keypair.fromSecretKey(new Uint8Array(secret));
+    // Handle both formats: JSON array or base58 string
+    let secretKey: Uint8Array;
+    try {
+        // Try parsing as JSON array first (format: [121,119,92,...])
+        const parsed = JSON.parse(env.SOLANA_PRIVATE_KEY);
+        if (Array.isArray(parsed)) {
+            secretKey = new Uint8Array(parsed);
+        } else {
+            // If it's a string, try base58 decode
+            secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
+        }
+    } catch {
+        // If JSON parse fails, assume it's base58 encoded
+        secretKey = bs58.decode(env.SOLANA_PRIVATE_KEY);
+    }
+    
+    const keypair = Keypair.fromSecretKey(secretKey);
     const wallet = new KeypairWallet(keypair);
 
     // Create connection
@@ -71,9 +88,11 @@ export function initializeEscrowAgent(): SolanaAgentKit {
     connectionInstance = new Connection(rpcUrl, 'confirmed');
 
     // Initialize agent
+    // Note: TokenPlugin removed due to Cloudflare Workers CSP restrictions (js-sha256 uses eval)
+    // Add it back if token operations are needed: .use(TokenPlugin)
     agentInstance = new SolanaAgentKit(wallet, rpcUrl, {
       OPENAI_API_KEY: env.OPENAI_API_KEY,
-    }).use(TokenPlugin);
+    });
 
     return agentInstance;
   } catch (error) {
@@ -96,7 +115,7 @@ export function getEscrowAgent(): SolanaAgentKit {
  */
 export function getConnection(): Connection {
   if (!connectionInstance) {
-    const rpcUrl = env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+    const rpcUrl = env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
     connectionInstance = new Connection(rpcUrl, 'confirmed');
   }
   return connectionInstance;

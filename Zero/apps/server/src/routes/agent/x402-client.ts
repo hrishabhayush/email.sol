@@ -33,20 +33,23 @@ export function initializeX402Client(
   network?: string
 ): typeof fetch {
   const networkName = network || env.X402_NETWORK || 'devnet';
+  console.log('[DEBUG] Initializing x402 client with network:', networkName);
 
   // Create a Solana signer for x402-fetch
   // x402-fetch expects a signer that can sign payment payloads
   // For Solana, we need to provide a signer interface
+  console.log('[DEBUG] Creating signer for x402 client');
   const signer = {
     // The public key of the wallet (as string for x402)
     address: wallet.publicKey.toString(),
-
     // Sign function for payment payloads
     // x402-fetch will call this to sign payment transactions
     sign: async (message: Uint8Array): Promise<Uint8Array> => {
+      console.log('[DEBUG] Signing message:', message);
       // x402-fetch handles the actual payment creation and signing
       // This signer is used internally by wrapFetchWithPayment
       // TODO: unsure if this works
+      console.log('[DEBUG] Signing message with keypair', keypair);
       const keypair = (wallet as any).keypair; // Access underlying keypair
       return keypair.sign(message).signature;
     }
@@ -54,12 +57,13 @@ export function initializeX402Client(
 
   // Determine network string for x402
   // x402-fetch uses 'solana' for mainnet and 'solana-devnet' for devnet
-  const x402Network = networkName === 'mainnet-beta' ? 'solana' : 'solana-devnet';
+  const x402Network = networkName;
 
   // Wrap fetch with payment handling
   // Configuration for public x402.org facilitator (no API keys required)
   // Note: wrapFetchWithPayment API may vary - using type assertion for flexibility
   // The actual API will be determined when x402-fetch package is installed
+  console.log('[DEBUG] Wrapping fetch with payment handling');
   const wrappedFetch = (wrapFetchWithPayment as any)(
     fetch,
     signer,

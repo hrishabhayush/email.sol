@@ -5,6 +5,7 @@ import { env } from '../../env';
 import { ChatOpenAI } from '@langchain/openai';
 import { stripHtml } from 'string-strip-html';
 import { z } from 'zod';
+import { scoreEmail } from './email-scoring-tool';
 
 /**
  * Email scoring endpoint with x402 payment protection.
@@ -80,74 +81,80 @@ export const scoreEmailRouter = new Hono()
         await next();
     })
     .use(
-        paymentMiddleware(
+        paymentMiddleware( // returns 402
             receivingAddress as any, // Type assertion for Solana address format
             {
                 'POST /api/agent/score-email': {
                     price: '$0.01',
-                    network: 'solana-devnet',
+                    network: 'devnet',
                 },
             },
             facilitatorConfig
         ) as any // Type assertion to work around Hono version mismatch
     )
     .use(async (c, next) => {
+        // Log payment header status before calling next
+        const hasPaymentHeader = !!c.req.header('X-PAYMENT');
         console.log('[DEBUG] Post-middleware: Request passed through payment middleware', {
             method: c.req.method,
             path: c.req.path,
-            hasPaymentHeader: !!c.req.header('X-PAYMENT'),
+            hasPaymentHeader,
             paymentHeader: c.req.header('X-PAYMENT') ? 'present' : 'missing',
             timestamp: new Date().toISOString(),
         });
+
+        // Run the next middleware in the chain (or the route handler if this is the last middleware) and wait for it to finish before continuing.
         await next();
+
+        // After next(), check if response is 402 and log the body
+        if (c.res.status === 402) {
+            console.log('[DEBUG] 402 Payment Required response detected');
+
+            // Clone the response to read the body without consuming it
+            const clonedResponse = c.res.clone();
+            try {
+                const responseBody = await clonedResponse.json();
+                console.log('[DEBUG] 402 Response Body:', JSON.stringify(responseBody, null, 2));
+            } catch (error) {
+                // If JSON parsing fails, try as text
+                const clonedResponse2 = c.res.clone();
+                const responseText = await clonedResponse2.text();
+                console.log('[DEBUG] 402 Response Body (text):', responseText);
+            }
+        }
     })
-    .post('', async (c) => {
-        console.log('[DEBUG] Route handler: POST / reached - payment was verified or bypassed');
-        console.log('[DEBUG] Route handler: Request details', {
+    .post('', async (c) => { //full url path: /api/agent/score-email -> if u run POST /api/agent/score-email/ -> THIS post middleware runs, not the /test post middleware
+        console.log('[DEBUG] Route handler: POST / reached - payment was verified');
+        console.log('[DEBUG] Route handler: Payment verified, proceeding with email scoring', {
             method: c.req.method,
             path: c.req.path,
             hasPaymentHeader: !!c.req.header('X-PAYMENT'),
-            contentType: c.req.header('Content-Type'),
             timestamp: new Date().toISOString(),
         });
 
         try {
             // Extract email content from request body
-            console.log('[DEBUG] Route handler: Parsing request body');
             const body = await c.req.json();
-            console.log('[DEBUG] Route handler: Request body parsed', {
-                hasEmailContent: !!body.emailContent,
-                emailContentLength: body.emailContent?.length || 0,
-            });
-
             const { emailContent } = body;
 
             if (!emailContent || typeof emailContent !== 'string') {
-                console.error('[ERROR] Route handler: Invalid emailContent', {
-                    type: typeof emailContent,
-                    isString: typeof emailContent === 'string',
-                });
+                console.error('[ERROR] Route handler: Invalid emailContent');
                 return c.json({ error: 'emailContent is required and must be a string' }, 400);
             }
 
             // Strip HTML and get plaintext
-            console.log('[DEBUG] Route handler: Stripping HTML from email content');
             const plaintext = stripHtml(emailContent).result.trim();
-            console.log('[DEBUG] Route handler: Plaintext extracted', {
-                originalLength: emailContent.length,
-                plaintextLength: plaintext.length,
-            });
 
             if (!plaintext) {
                 console.error('[ERROR] Route handler: Email content is empty after stripping HTML');
                 return c.json({ error: 'Email content is empty after stripping HTML' }, 400);
             }
 
-            // Initialize LangChain ChatOpenAI (same as email-scoring-tool.ts)
-            console.log('[DEBUG] Route handler: Initializing ChatOpenAI', {
-                model: env.OPENAI_MODEL || 'gpt-4o-mini',
-                hasApiKey: !!env.OPENAI_API_KEY,
+            console.log('[DEBUG] Route handler: Calling OpenAI for email scoring', {
+                plaintextLength: plaintext.length,
             });
+
+            // Initialize LangChain ChatOpenAI and score the email
             const llm = new ChatOpenAI({
                 modelName: env.OPENAI_MODEL || 'gpt-4o-mini',
                 temperature: 1,
@@ -155,28 +162,17 @@ export const scoreEmailRouter = new Hono()
             });
 
             // Call LLM with scoring prompt
-            console.log('[DEBUG] Route handler: Calling OpenAI API for email scoring');
             const prompt = SCORING_PROMPT.replace('{emailContent}', plaintext);
             const response = await llm.invoke(prompt);
-            console.log('[DEBUG] Route handler: OpenAI API response received', {
-                responseType: typeof response.content,
-                hasContent: !!response.content,
-            });
 
             // Parse response as a string
-            console.log('[DEBUG] Route handler: Parsing OpenAI response');
             const content = typeof response.content === 'string' ? response.content : String(response.content);
-            console.log('[DEBUG] Route handler: Response content', {
-                length: content.length,
-                preview: content.substring(0, 100),
-            });
 
             // Clean and parse JSON
             let jsonStr = content.trim();
 
             // Remove markdown code blocks if present
             if (jsonStr.startsWith('```')) {
-                console.log('[DEBUG] Route handler: Removing markdown code blocks');
                 const lines = jsonStr.split('\n');
                 lines.shift(); // Remove first line (```json or ```)
                 if (lines[lines.length - 1] === '```') {
@@ -186,41 +182,28 @@ export const scoreEmailRouter = new Hono()
             }
 
             // Parse JSON
-            console.log('[DEBUG] Route handler: Attempting to parse JSON');
             let parsed: { score: number };
             try {
                 parsed = JSON.parse(jsonStr);
-                console.log('[DEBUG] Route handler: JSON parsed successfully', { score: parsed.score });
             } catch (parseError) {
-                console.warn('[WARN] Route handler: JSON parse failed, trying regex fallback', {
-                    error: parseError instanceof Error ? parseError.message : 'Unknown error',
-                });
                 // Try to extract score using regex as fallback
                 const scoreMatch = jsonStr.match(/"score"\s*:\s*(\d+)/);
                 if (scoreMatch) {
                     parsed = { score: parseInt(scoreMatch[1], 10) };
-                    console.log('[DEBUG] Route handler: Score extracted via regex', { score: parsed.score });
                 } else {
-                    console.error('[ERROR] Route handler: Failed to parse LLM response', {
-                        content: content.substring(0, 200),
-                    });
                     throw new Error(`Failed to parse LLM response as JSON: ${content}`);
                 }
             }
 
             // Validate score
-            console.log('[DEBUG] Route handler: Validating score with schema');
             const validated = ScoreSchema.parse(parsed);
-            console.log('[DEBUG] Route handler: Score validated', { score: validated.score });
 
-            // Return score
-            console.log('[DEBUG] Route handler: Returning successful response', { score: validated.score });
+            console.log('[DEBUG] Route handler: Email scoring complete', { score: validated.score });
             return c.json({ score: validated.score });
         } catch (error) {
             console.error('[ERROR] Route handler: Error scoring email', {
                 error: error instanceof Error ? error.message : 'Unknown error',
                 stack: error instanceof Error ? error.stack : undefined,
-                timestamp: new Date().toISOString(),
             });
             return c.json(
                 {
@@ -230,7 +213,62 @@ export const scoreEmailRouter = new Hono()
                 500
             );
         }
+    })
+    // Test endpoint to trigger full x402 payment flow
+    // This endpoint calls scoreEmail() which will:
+    // 1. Initialize x402 client (initializeX402Client)
+    // 2. Call protected endpoint with wrapped fetch
+    // 3. Handle 402 payment automatically
+    // 4. Return the score
+    // Use: POST /api/agent/score-email/test
+    .post('/test', async (c) => { //full url path: /api/agent/score-email/test
+        console.log('[DEBUG] Test endpoint: /test called - will trigger full x402 flow');
+
+        try {
+            const body = await c.req.json();
+            const { emailContent } = body;
+
+            if (!emailContent || typeof emailContent !== 'string') {
+                return c.json({ error: 'emailContent is required and must be a string' }, 400);
+            }
+
+            console.log('[DEBUG] Test endpoint: Calling scoreEmail() - this will initialize x402 client');
+            console.log('[DEBUG] Test endpoint: Email content length:', emailContent.length);
+
+            // This will trigger the full flow:
+            // 1. scoreEmail() -> EmailScoringTool._call()
+            // 2. getX402Fetch() -> initializeX402Client() (FIRST TIME IT RUNS)
+            // 3. Wrapped fetch calls /api/agent/score-email
+            // 4. Gets 402, automatically pays, retries
+            // 5. Returns score
+            const result = await scoreEmail(emailContent);
+
+            console.log('[DEBUG] Test endpoint: scoreEmail() completed successfully', {
+                score: result.score,
+            });
+
+            return c.json({
+                success: true,
+                score: result.score,
+                message: 'Full x402 payment flow completed successfully',
+            });
+        } catch (error) {
+            console.error('[ERROR] Test endpoint: Error in scoreEmail()', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : undefined,
+            });
+            return c.json(
+                {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                },
+                500
+            );
+        }
     });
 
 console.log('[DEBUG] scoreEmailRouter initialized and exported');
+console.log('[DEBUG] Routes available:');
+console.log('[DEBUG]   - POST /api/agent/score-email (protected, requires payment)');
+console.log('[DEBUG]   - POST /api/agent/score-email/test (test endpoint, triggers full flow)');
 

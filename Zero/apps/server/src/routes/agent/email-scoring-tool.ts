@@ -75,6 +75,7 @@ export class EmailScoringTool extends (StructuredTool as any) {
 
       // Get x402-wrapped fetch (handles payments automatically)
       const x402Fetch = getX402Fetch();
+      console.log('[DEBUG] x402Fetch:', x402Fetch);
 
       // Make request to internal protected endpoint
       // The wrapped fetch will automatically handle 402 payments

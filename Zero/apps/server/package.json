@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --show-interactive-dev-session=false --inspector-port=0 --experimental-vectorize-bind-to-prod --env local",
+    "dev": "wrangler dev --show-interactive-dev-session=false --inspector-port=0 --env local",
     "deploy": "wrangler deploy",
     "types": "wrangler types --env local",
     "lint": "eslint .",
@@ -96,7 +96,7 @@
     "bs58": "^6.0.0",
     "x402-fetch": "^0.1.0",
     "x402-hono": "^0.1.0",
-    "@coinbase/x402": "^1.0.0"
+    "@coinbase/x402": "^0.7.3"
   },
   "devDependencies": {
     "@effect/language-service": "0.31.1",

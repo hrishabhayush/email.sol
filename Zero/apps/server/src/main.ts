@@ -592,7 +592,7 @@ const api = new Hono<HonoContext>()
   .route('/ai', aiRouter)
   .route('/autumn', autumnApi)
   .route('/public', publicRouter)
-  .route('/agent/score-email', scoreEmailRouter) // API endpoint for HTTP 402 that enables x402 payment protection
+  .route('/agent/score-email', scoreEmailRouter) // API endpoint for HTTP 402 that enables x402 payment protection (includes /test route)
   .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => {
     return c.var.auth.handler(c.req.raw);
   })
