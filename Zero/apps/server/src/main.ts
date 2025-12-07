@@ -595,10 +595,6 @@ const api = new Hono<HonoContext>()
     console.log('Auth route hit:', c.req.method, c.req.path);
     return c.var.auth.handler(c.req.raw);
   })
-  .on(['GET', 'POST', 'OPTIONS'], '/auth/sign-in/social', (c) => { //matches HTTP requests for according path
-    console.log('Auth route hit:', c.req.method, c.req.path);
-    return c.var.auth.handler(c.req.raw);
-  })
   .use(
     trpcServer({
       endpoint: '/api/trpc',

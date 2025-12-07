@@ -112,10 +112,10 @@ function LoginClientContent({ providers, isProd }: LoginClientProps) {
     if (provider.isCustom && provider.customRedirectPath) {
       navigate(provider.customRedirectPath);
     } else {
-      toast.promise(
+      toast.promise(  
         signIn.social({
           provider: provider.id as any,
-          callbackURL: `${window.location.origin}/mail`,
+          callbackURL: `${window.location.origin}/mail`, //where user is directed to after auth
         }),
         {
           error: 'Login redirect failed',
