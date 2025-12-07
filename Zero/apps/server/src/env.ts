@@ -82,6 +82,8 @@ export type ZeroEnv = {
   thread_queue: Queue;
   VECTORIZE: VectorizeIndex;
   VECTORIZE_MESSAGE: VectorizeIndex;
+  SOLANA_RPC_URL: string;
+  SOLANA_PRIVATE_KEY: string;
 };
 
 const env = _env as ZeroEnv;

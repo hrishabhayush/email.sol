@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+Never expose plaintext.
+
+Never hardcode keys.
+
+Never generate dynamic prompts.
+
+Never bypass stage validation.
+
+Never produce non-deterministic MPC code.
