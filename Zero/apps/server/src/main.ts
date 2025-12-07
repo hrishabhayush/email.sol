@@ -588,10 +588,15 @@ const api = new Hono<HonoContext>()
     c.set('autumn', undefined as any);
     c.set('auth', undefined as any);
   })
-  .route('/ai', aiRouter)
+  .route('/ai', aiRouter) //Mounts all routes from aiRouter under /ai
   .route('/autumn', autumnApi)
   .route('/public', publicRouter)
-  .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => {
+  .on(['GET', 'POST', 'OPTIONS'], '/auth/*', (c) => { //matches HTTP requests for according path
+    console.log('Auth route hit:', c.req.method, c.req.path);
+    return c.var.auth.handler(c.req.raw);
+  })
+  .on(['GET', 'POST', 'OPTIONS'], '/auth/sign-in/social', (c) => { //matches HTTP requests for according path
+    console.log('Auth route hit:', c.req.method, c.req.path);
     return c.var.auth.handler(c.req.raw);
   })
   .use(

@@ -42,9 +42,9 @@ export const useThreads = () => {
   const threads = useMemo(() => {
     return threadsQuery.data
       ? threadsQuery.data.pages
-          .flatMap((e) => e.threads)
-          .filter(Boolean)
-          .filter((e) => !isInQueue(`thread:${e.id}`))
+        .flatMap((e) => e.threads)
+        .filter(Boolean)
+        .filter((e) => !isInQueue(`thread:${e.id}`))
       : [];
   }, [threadsQuery.data, threadsQuery.dataUpdatedAt, isInQueue, backgroundQueue]);
 
@@ -77,7 +77,7 @@ export const useThread = (threadId: string | null) => {
         forceFresh: false, // Default to cached data
       },
       {
-        enabled: !!id && !!session?.user.id,
+        enabled: !!id && !!session?.user?.id,
         staleTime: 1000 * 60 * 60, // 1 hour
       },
     ),
@@ -99,13 +99,13 @@ export const useThread = (threadId: string | null) => {
 
     const isGroupThread = threadQuery.data.latest?.id
       ? (() => {
-          const totalRecipients = [
-            ...(threadQuery.data.latest.to || []),
-            ...(threadQuery.data.latest.cc || []),
-            ...(threadQuery.data.latest.bcc || []),
-          ].length;
-          return totalRecipients > 1;
-        })()
+        const totalRecipients = [
+          ...(threadQuery.data.latest.to || []),
+          ...(threadQuery.data.latest.cc || []),
+          ...(threadQuery.data.latest.bcc || []),
+        ].length;
+        return totalRecipients > 1;
+      })()
       : false;
 
     const nonDraftMessages = threadQuery.data.messages.filter((e) => !e.isDraft);
@@ -126,7 +126,7 @@ export const useThread = (threadId: string | null) => {
   // Extract image loading condition to avoid duplication
   const shouldLoadImages = useMemo(() => {
     if (!settings?.settings || !latestMessage?.sender?.email) return false;
-    
+
     return settings.settings.externalImages ||
       settings.settings.trustedSenders?.includes(latestMessage.sender.email) ||
       false;

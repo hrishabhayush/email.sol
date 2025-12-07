@@ -350,6 +350,7 @@ const createAuthConfig = () => {
       },
     },
     baseURL: env.VITE_PUBLIC_BACKEND_URL,
+    basePath: '/api/auth',
     trustedOrigins: [
       'https://app.0.email',
       'https://sapi.0.email',
