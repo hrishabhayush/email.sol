@@ -250,6 +250,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             decodedBody: msg.decodedBody || '',
             subject: msg.subject || '',
           }));
+
           console.log('[EMAIL SCORING] Thread emails result:', {
             count: threadEmails.length,
             emails: threadEmails.map((email, index) => ({
@@ -269,13 +270,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
           emailScore = scoringResult.score;
           escrowDecision = scoringResult.decision as 'RELEASE' | 'WITHHOLD';
-
-          console.log('[EMAIL SCORING] Email scored successfully:', {
-            score: emailScore,
-            decision: escrowDecision,
-            threshold: 70,
-            willProceed: escrowDecision === 'RELEASE',
-          });
 
           // If decision is WITHHOLD, block escrow release and email sending
           if (escrowDecision === 'WITHHOLD') {
