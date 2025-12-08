@@ -250,6 +250,16 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             decodedBody: msg.decodedBody || '',
             subject: msg.subject || '',
           }));
+          console.log('[EMAIL SCORING] Thread emails result:', {
+            count: threadEmails.length,
+            emails: threadEmails.map((email, index) => ({
+              index,
+              subject: email.subject,
+              bodyLength: email.decodedBody?.length || 0,
+              bodyPreview: email.decodedBody?.substring(0, 100) || '',
+            })),
+            fullData: threadEmails,
+          });
 
           // Call scoring function with reply content and thread context
           const scoringResult = await scoreEmail({
@@ -408,44 +418,144 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                 console.log('[SETTLEMENT] Could not parse latest transaction');
               } else {
                 // Check if this transaction involves the escrow program
-                const accountKeys = tx.transaction.message.accountKeys;
-                const hasEscrowProgram = accountKeys.some((key: any) => {
-                  const pubkey = typeof key === 'string' ? new PublicKey(key) : key.pubkey;
-                  return pubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID);
-                });
-
-                if (!hasEscrowProgram) {
-                  console.log('[SETTLEMENT] Latest transaction does not involve escrow program');
+                // Handle both legacy and versioned transactions
+                let accountKeys: any[] = [];
+                if ('accountKeys' in tx.transaction.message) {
+                  // Legacy transaction - direct property access
+                  accountKeys = tx.transaction.message.accountKeys || [];
+                } else if ('getAccountKeys' in tx.transaction.message) {
+                  // Versioned transaction (v0) - use method
+                  accountKeys = tx.transaction.message.getAccountKeys().keySegments().flat();
                 } else {
-                  console.log('[SETTLEMENT] Latest transaction involves escrow program, extracting escrow account...');
+                  console.log('[SETTLEMENT] Could not extract account keys from transaction');
+                }
 
-                  // Look at account balance changes to find which account received funds
-                  // The escrow account will have a positive balance change (received funds from sender)
-                  if (tx.meta.preBalances && tx.meta.postBalances && accountKeys.length === tx.meta.preBalances.length) {
-                    for (let i = 0; i < accountKeys.length; i++) {
-                      const accountKey = accountKeys[i];
-                      const accountPubkey = typeof accountKey === 'string'
-                        ? new PublicKey(accountKey)
-                        : accountKey.pubkey;
+                if (accountKeys && accountKeys.length > 0) {
+                  console.log(`[SETTLEMENT] Extracted ${accountKeys.length} account keys from transaction`);
+                  const hasEscrowProgram = accountKeys.some((key: any) => {
+                    if (!key) return false;
+                    const pubkey = typeof key === 'string' ? new PublicKey(key) : (key.pubkey || key);
+                    if (!pubkey) return false;
+                    return pubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID);
+                  });
 
-                      // Skip sender and program ID
-                      if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
-                        continue;
+                  if (!hasEscrowProgram) {
+                    console.log('[SETTLEMENT] Latest transaction does not involve escrow program');
+                  } else {
+                    console.log('[SETTLEMENT] Latest transaction involves escrow program, extracting escrow account...');
+                    console.log(`[SETTLEMENT] Looking for escrow with sender: ${senderPubkey.toBase58()}, threadId from headers: ${threadIdFromHeaders || 'NOT FOUND'}`);
+
+                    // Look at account balance changes to find which account received funds
+                    // The escrow account will have a positive balance change (received funds from sender)
+                    if (tx.meta.preBalances && tx.meta.postBalances && accountKeys.length === tx.meta.preBalances.length) {
+                      for (let i = 0; i < accountKeys.length; i++) {
+                        const accountKey = accountKeys[i];
+                        if (!accountKey) continue;
+
+                        const accountPubkey = typeof accountKey === 'string'
+                          ? new PublicKey(accountKey)
+                          : (accountKey.pubkey || accountKey);
+
+                        if (!accountPubkey) continue;
+
+                        // Skip sender and program ID
+                        if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
+                          continue;
+                        }
+
+                        const preBalance = tx.meta.preBalances[i];
+                        const postBalance = tx.meta.postBalances[i];
+                        const balanceChange = postBalance - preBalance;
+
+                        // If this account received funds (positive balance change), it might be the escrow
+                        if (balanceChange > 0) {
+                          // Check if this account is owned by the escrow program
+                          const accountInfo = await connection.getAccountInfo(accountPubkey);
+                          if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
+                            // This is an escrow account! Check if it's pending
+                            const data = accountInfo.data;
+                            console.log(`[SETTLEMENT] Found escrow account (balance method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                            if (data.length > 128) {
+                              const statusByte = data[128];
+                              console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
+
+                              if (statusByte === 0) { // Pending
+                                // Extract sender and thread_id from escrow data
+                                const senderPubkeyBytes = data.slice(8, 40);
+                                const threadIdBytes = data.slice(72, 104);
+                                const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
+                                const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                                console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
+                                console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId from headers: ${threadIdFromHeaders || 'NOT FOUND'}`);
+
+                                // Verify this escrow belongs to our sender
+                                if (escrowSenderPubkey.equals(senderPubkey)) {
+                                  console.log(`[SETTLEMENT] Sender matches! Checking thread ID...`);
+                                  if (threadIdFromHeaders && threadIdHexFromEscrow === threadIdFromHeaders) {
+                                    console.log(`[SETTLEMENT] Thread ID matches!`);
+                                  } else if (threadIdFromHeaders) {
+                                    console.log(`[SETTLEMENT] Thread ID mismatch: expected ${threadIdFromHeaders}, got ${threadIdHexFromEscrow}`);
+                                  } else {
+                                    console.log(`[SETTLEMENT] No thread ID from headers - matching by sender only`);
+                                  }
+                                } else {
+                                  console.log(`[SETTLEMENT] Sender mismatch: expected ${senderPubkey.toBase58()}, got ${escrowSenderPubkey.toBase58()}`);
+                                }
+
+                                // Verify this escrow belongs to our sender AND thread (if threadId is available)
+                                const threadMatches = !threadIdFromHeaders || threadIdHexFromEscrow === threadIdFromHeaders;
+                                if (escrowSenderPubkey.equals(senderPubkey) && threadMatches) {
+                                  // Found valid pending escrow account from LATEST transaction!
+                                  escrowAccountAddress = accountPubkey.toBase58();
+                                  threadIdHex = threadIdHexFromEscrow;
+                                  senderPubkeyStr = SENDER_PUBKEY_TO_USE;
+                                  hasEscrowToClaim = true;
+
+                                  console.log('✅✅✅ [SETTLEMENT] Found escrow account from LATEST transaction!', {
+                                    escrowAccountAddress,
+                                    senderPubkey: SENDER_PUBKEY_TO_USE,
+                                    threadIdHex,
+                                    escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
+                                    balanceChange: `${balanceChange / 1_000_000_000} SOL`,
+                                    transactionSignature: latestSig.signature,
+                                    note: 'Will initiate transaction FROM this account TO receiver',
+                                  });
+                                  break; // Found it!
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
+                    }
 
-                      const preBalance = tx.meta.preBalances[i];
-                      const postBalance = tx.meta.postBalances[i];
-                      const balanceChange = postBalance - preBalance;
+                    // If we didn't find it via balance changes, try checking all accounts owned by escrow program
+                    if (!hasEscrowToClaim) {
+                      console.log('[SETTLEMENT] Trying alternative method: checking all accounts in transaction...');
+                      for (const accountKey of accountKeys) {
+                        if (!accountKey) continue;
 
-                      // If this account received funds (positive balance change), it might be the escrow
-                      if (balanceChange > 0) {
+                        const accountPubkey = typeof accountKey === 'string'
+                          ? new PublicKey(accountKey)
+                          : (accountKey.pubkey || accountKey);
+
+                        if (!accountPubkey) continue;
+
+                        // Skip sender and program ID
+                        if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
+                          continue;
+                        }
+
                         // Check if this account is owned by the escrow program
                         const accountInfo = await connection.getAccountInfo(accountPubkey);
                         if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                           // This is an escrow account! Check if it's pending
                           const data = accountInfo.data;
-                          if (data.length >= 138) {
-                            const statusByte = data[120];
+                          console.log(`[SETTLEMENT] Found escrow account (alternative method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                          if (data.length > 128) {
+                            const statusByte = data[128];
+                            console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
 
                             if (statusByte === 0) { // Pending
                               // Extract sender and thread_id from escrow data
@@ -454,83 +564,114 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                               const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
                               const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                              // Verify this escrow belongs to our sender
-                              if (escrowSenderPubkey.equals(senderPubkey)) {
-                                // Found valid pending escrow account from LATEST transaction!
+                              console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
+                              console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId: ${threadIdHex}`);
+
+                              // Verify this escrow belongs to our sender AND thread
+                              if (escrowSenderPubkey.equals(senderPubkey) && threadIdHexFromEscrow === threadIdHex) {
+                                // Found valid pending escrow account!
                                 escrowAccountAddress = accountPubkey.toBase58();
                                 threadIdHex = threadIdHexFromEscrow;
                                 senderPubkeyStr = SENDER_PUBKEY_TO_USE;
                                 hasEscrowToClaim = true;
 
-                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from LATEST transaction!', {
+                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!', {
                                   escrowAccountAddress,
                                   senderPubkey: SENDER_PUBKEY_TO_USE,
                                   threadIdHex,
                                   escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
-                                  balanceChange: `${balanceChange / 1_000_000_000} SOL`,
                                   transactionSignature: latestSig.signature,
                                   note: 'Will initiate transaction FROM this account TO receiver',
                                 });
                                 break; // Found it!
+                              } else {
+                                console.log(`[SETTLEMENT] Escrow found but doesn't match: sender=${escrowSenderPubkey.equals(senderPubkey)}, threadId=${threadIdHexFromEscrow === threadIdHex}`);
                               }
+                            } else {
+                              console.log(`[SETTLEMENT] Escrow account found but status is not pending: ${statusByte}`);
                             }
+                          } else {
+                            console.log(`[SETTLEMENT] Escrow account data too short: ${data.length} < 138`);
                           }
+                        } else {
+                          console.log(`[SETTLEMENT] Account ${accountPubkey.toBase58()} is not owned by escrow program`);
+                        }
+                      }
+                    } else {
+                      console.log(`[SETTLEMENT] Balance change method: accountKeys.length (${accountKeys.length}) != preBalances.length (${tx.meta.preBalances?.length || 0})`);
+                    }
+
+                    // If we didn't find it via balance changes, try checking all accounts owned by escrow program
+                    if (!hasEscrowToClaim) {
+                      console.log('[SETTLEMENT] Trying alternative method: checking all accounts in transaction...');
+                      for (const accountKey of accountKeys) {
+                        if (!accountKey) continue;
+
+                        const accountPubkey = typeof accountKey === 'string'
+                          ? new PublicKey(accountKey)
+                          : (accountKey.pubkey || accountKey);
+
+                        if (!accountPubkey) continue;
+
+                        // Skip sender and program ID
+                        if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
+                          continue;
+                        }
+
+                        // Check if this account is owned by the escrow program
+                        const accountInfo = await connection.getAccountInfo(accountPubkey);
+                        if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
+                          // This is an escrow account! Check if it's pending
+                          const data = accountInfo.data;
+                          console.log(`[SETTLEMENT] Found escrow account (alternative method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                          if (data.length > 128) { //8 additional bytes: Anchor discriminator (0-8)
+                            const statusByte = data[128];
+                            console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
+
+                            if (statusByte === 0) { // Pending
+                              // Extract sender and thread_id from escrow data
+                              const senderPubkeyBytes = data.slice(8, 40);
+                              const threadIdBytes = data.slice(72, 104);
+                              const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
+                              const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                              console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
+                              console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId: ${threadIdHex}`);
+
+                              // Verify this escrow belongs to our sender AND thread
+                              if (escrowSenderPubkey.equals(senderPubkey) && threadIdHexFromEscrow === threadIdHex) {
+                                // Found valid pending escrow account!
+                                escrowAccountAddress = accountPubkey.toBase58();
+                                threadIdHex = threadIdHexFromEscrow;
+                                senderPubkeyStr = SENDER_PUBKEY_TO_USE;
+                                hasEscrowToClaim = true;
+
+                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!', {
+                                  escrowAccountAddress,
+                                  senderPubkey: SENDER_PUBKEY_TO_USE,
+                                  threadIdHex,
+                                  escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
+                                  transactionSignature: latestSig.signature,
+                                  note: 'Will initiate transaction FROM this account TO receiver',
+                                });
+                                break; // Found it!
+                              } else {
+                                console.log(`[SETTLEMENT] Escrow found but doesn't match: sender=${escrowSenderPubkey.equals(senderPubkey)}, threadId=${threadIdHexFromEscrow === threadIdHex}`);
+                              }
+                            } else {
+                              console.log(`[SETTLEMENT] Escrow account found but status is not pending: ${statusByte}`);
+                            }
+                          } else {
+                            console.log(`[SETTLEMENT] Escrow account data too short: ${data.length} < 138`);
+                          }
+                        } else {
+                          console.log(`[SETTLEMENT] Account ${accountPubkey.toBase58()} is not owned by escrow program`);
                         }
                       }
                     }
                   }
-
-                  // If we didn't find it via balance changes, try checking all accounts owned by escrow program
-                  if (!hasEscrowToClaim) {
-                    console.log('[SETTLEMENT] Trying alternative method: checking all accounts in transaction...');
-                    for (const accountKey of accountKeys) {
-                      const accountPubkey = typeof accountKey === 'string'
-                        ? new PublicKey(accountKey)
-                        : accountKey.pubkey;
-
-                      // Skip sender and program ID
-                      if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
-                        continue;
-                      }
-
-                      // Check if this account is owned by the escrow program
-                      const accountInfo = await connection.getAccountInfo(accountPubkey);
-                      if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
-                        // This is an escrow account! Check if it's pending
-                        const data = accountInfo.data;
-                        if (data.length >= 138) {
-                          const statusByte = data[120];
-
-                          if (statusByte === 0) { // Pending
-                            // Extract sender and thread_id from escrow data
-                            const senderPubkeyBytes = data.slice(8, 40);
-                            const threadIdBytes = data.slice(72, 104);
-                            const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
-                            const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-
-                            // Verify this escrow belongs to our sender
-                            if (escrowSenderPubkey.equals(senderPubkey)) {
-                              // Found valid pending escrow account!
-                              escrowAccountAddress = accountPubkey.toBase58();
-                              threadIdHex = threadIdHexFromEscrow;
-                              senderPubkeyStr = SENDER_PUBKEY_TO_USE;
-                              hasEscrowToClaim = true;
-
-                              console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!', {
-                                escrowAccountAddress,
-                                senderPubkey: SENDER_PUBKEY_TO_USE,
-                                threadIdHex,
-                                escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
-                                transactionSignature: latestSig.signature,
-                                note: 'Will initiate transaction FROM this account TO receiver',
-                              });
-                              break; // Found it!
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                } else {
+                  console.log('[SETTLEMENT] No account keys extracted from transaction');
                 }
               }
             } catch (txError: any) {
