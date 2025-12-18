@@ -366,21 +366,11 @@ export function NavUser() {
                 </DropdownMenu>
               )}
 
-              {isPro ? (
-                <AddConnectionDialog>
-                  <button className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border border-dashed dark:bg-[#262626] dark:text-[#929292]">
-                    <Plus className="size-4" />
-                  </button>
-                </AddConnectionDialog>
-              ) : (
-                <>
-                  <Button
-                    className="hover:bg-offsetLight/80 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed bg-transparent px-0 text-black dark:bg-[#262626] dark:text-[#929292]"
-                  >
-                    <Plus className="size-4" />
-                  </Button>
-                </>
-              )}
+              <AddConnectionDialog>
+                <button className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-[5px] border border-dashed dark:bg-[#262626] dark:text-[#929292]">
+                  <Plus className="size-4" />
+                </button>
+              </AddConnectionDialog>
             </div>
 
             <div className="flex items-center justify-center gap-1">
