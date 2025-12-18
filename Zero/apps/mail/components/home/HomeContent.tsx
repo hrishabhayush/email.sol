@@ -203,7 +203,7 @@ export default function HomeContent() {
             Responses evalauated by AI
           </h1>
           <h1 className="mb-3 text-center text-4xl font-medium text-white/40 md:text-6xl">
-            Solana-powered micropayments 
+            Solana-powered micropayments
           </h1>
         </motion.div>
         <motion.div

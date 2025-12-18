@@ -1,5 +1,4 @@
 import { ChatOpenAI } from '@langchain/openai';
-import { StructuredTool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { env } from '../../env';
 import { stripHtml } from 'string-strip-html';
@@ -41,33 +40,21 @@ export interface EmailScoringResult {
   recommendations: string[];
 }
 
-// StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
-export class EmailScoringTool extends StructuredTool {
+// Email scoring tool class for LLM-based email quality evaluation
+export class EmailScoringTool {
   private llm: ChatOpenAI;
+  private progressCallback?: (step: 'calculating_score' | 'parsing_results', data?: any) => void;
 
-  // defines a tool in LangChain terms
-  constructor() {
-    // calls parent class constructor with the following arguments
-    // name: how the agent references it
-    // description: used by LLMs when reasoning about tool usage
-    // schema: expected input format
-    super({
-      name: 'email_scoring_tool',
-      description:
-        'Evaluates email reply quality and returns a score from 0-100 based on clarity, completeness, professionalism, relevance, and helpfulness. Can optionally include the original email for context.',
-      schema: z.object({
-        emailContent: z.string().describe('The plaintext email content to score'),
-      }),
-    });
-
+  constructor(progressCallback?: (step: 'calculating_score' | 'parsing_results', data?: any) => void) {
     this.llm = new ChatOpenAI({
       modelName: env.OPENAI_MODEL || 'gpt-4o-mini',
       temperature: 1,
       openAIApiKey: env.OPENAI_API_KEY,
     });
+    this.progressCallback = progressCallback;
   }
 
-  //_call method runs when the tool is invoked by LangChain.
+  // Call method to score an email
   async _call(input: { emailContent: string; originalEmailContent?: string }): Promise<string> {
     try {
       // Strip HTML and get plaintext
@@ -90,7 +77,14 @@ export class EmailScoringTool extends StructuredTool {
       const prompt = SCORING_PROMPT
         .replace('{originalEmailSection}', originalEmailSection)
         .replace('{emailContent}', plaintext);
-      const response = await this.llm.invoke(prompt);
+
+      // Step 2: Calculating score - only when LLM is actually invoked
+      this.progressCallback?.('calculating_score');
+
+      const response = await this.llm.invoke([{ role: 'user', content: prompt }]);
+
+      // Step 3: Parsing results - right after getting response from LLM
+      this.progressCallback?.('parsing_results');
 
       // Parse response as a string
       const content = typeof response.content === 'string' ? response.content : String(response.content);
@@ -144,7 +138,7 @@ export class EmailScoringTool extends StructuredTool {
 /**
  * Progress callback type for tracking scoring stages
  */
-export type ScoringProgressCallback = (step: 'reading_input' | 'calculating_score' | 'creating_recommendations', data?: any) => void;
+export type ScoringProgressCallback = (step: 'reading_input' | 'calculating_score' | 'parsing_results' | 'creating_recommendations', data?: any) => void;
 
 /**
  * Score an email using the LLM tool.
@@ -158,24 +152,26 @@ export async function scoreEmail(
   try {
     // Step 1: Reading input
     progressCallback?.('reading_input', { emailLength: emailContent.length });
-    
-    const tool = new EmailScoringTool();
-    
-    // Step 2: Calculating score
-    progressCallback?.('calculating_score');
-    
+
+    // Create tool with progress callback for internal steps
+    const internalProgressCallback = (step: 'calculating_score' | 'parsing_results') => {
+      progressCallback?.(step);
+    };
+    const tool = new EmailScoringTool(internalProgressCallback);
+
+    // Step 2 & 3 happen inside _call (calculating_score and parsing_results)
     const result = await tool._call({ emailContent, originalEmailContent });
-    
-    // Step 3: Creating recommendations
+
+    // Step 4: Creating recommendations (after parsing is complete)
     progressCallback?.('creating_recommendations');
-    
+
     const parsed = JSON.parse(result) as EmailScoringResult;
-    
+
     // Ensure recommendations array exists
     if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
       parsed.recommendations = [];
     }
-    
+
     return parsed;
   } catch (error) {
     console.error('[scoreEmail] Error:', error);

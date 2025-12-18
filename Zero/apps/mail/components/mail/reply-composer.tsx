@@ -5,6 +5,7 @@ import { EmailComposer } from '../create/email-composer';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useThread } from '@/hooks/use-threads';
 import { useSession } from '@/lib/auth-client';
@@ -43,14 +44,15 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   const { data: emailData, refetch, latestDraft } = useThread(threadId);
   const { data: draft } = useDraft(draftId ?? null);
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const { mutateAsync: sendEmail } = useMutation(trpc.mail.send.mutationOptions());
   const { mutateAsync: scoreEmail } = useMutation(trpc.mail.scoreEmail.mutationOptions());
   const { data: activeConnection } = useActiveConnection();
-  
+
   // Email scoring modal state
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringRequestId, setScoringRequestId] = useState<string | null>(null);
-  const [scoringProgress, setScoringProgress] = useState<'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed'>('reading_input');
+  const [scoringProgress, setScoringProgress] = useState<'reading_input' | 'calculating_score' | 'parsing_results' | 'creating_recommendations' | 'completed'>('reading_input');
   const [scoringResult, setScoringResult] = useState<{ score: number; recommendations: string[] } | null>(null);
   const progressPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { data: settings, isLoading: settingsLoading } = useSettings();
@@ -216,7 +218,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         try {
           // Fetch directly with forceFresh=true to bypass cache
           // Use try-catch to handle TRPC errors gracefully
-          const freshData = await trpc.mail.get.query({ id: threadId, forceFresh: true }).catch((err) => {
+          const freshData = await queryClient.fetchQuery(
+            trpc.mail.get.queryOptions({ id: threadId, forceFresh: true })
+          ).catch((err: any) => {
             console.warn('[ESCROW LOG] TRPC query failed, will use cached data:', err);
             return null;
           });
@@ -278,40 +282,42 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           setScoringModalOpen(true);
 
           // Start progress polling
-          const pollProgress = () => {
+          const pollProgress = async () => {
             if (!requestId) return;
-            
-            trpc.mail.scoreEmailProgress.query({ requestId })
-              .then((progress) => {
-                if (progress.step && progress.step !== 'completed') {
-                  setScoringProgress(progress.step as typeof scoringProgress);
+
+            try {
+              const progress = await queryClient.fetchQuery(
+                trpc.mail.scoreEmailProgress.queryOptions({ requestId })
+              );
+
+              if (progress.step && progress.step !== 'completed') {
+                setScoringProgress(progress.step as typeof scoringProgress);
+              }
+
+              if (progress.completed && progress.result) {
+                setScoringProgress('completed');
+                setScoringResult({
+                  score: progress.result.score,
+                  recommendations: progress.result.recommendations || [],
+                });
+
+                // Stop polling
+                if (progressPollIntervalRef.current) {
+                  clearInterval(progressPollIntervalRef.current);
+                  progressPollIntervalRef.current = null;
                 }
-                
-                if (progress.completed && progress.result) {
-                  setScoringProgress('completed');
-                  setScoringResult({
-                    score: progress.result.score,
-                    recommendations: progress.result.recommendations || [],
-                  });
-                  
-                  // Stop polling
-                  if (progressPollIntervalRef.current) {
-                    clearInterval(progressPollIntervalRef.current);
-                    progressPollIntervalRef.current = null;
-                  }
-                } else if (progress.completed && progress.error) {
-                  // Error occurred
-                  setScoringModalOpen(false);
-                  toast.error(`Failed to score email: ${progress.error}`, {
-                    id: 'email-scoring-error',
-                    duration: 10000,
-                  });
-                  throw new Error(`Email scoring failed: ${progress.error}`);
-                }
-              })
-              .catch((error) => {
-                console.error('[EMAIL SCORING] Error polling progress:', error);
-              });
+              } else if (progress.completed && progress.error) {
+                // Error occurred
+                setScoringModalOpen(false);
+                toast.error(`Failed to score email: ${progress.error}`, {
+                  id: 'email-scoring-error',
+                  duration: 10000,
+                });
+                throw new Error(`Email scoring failed: ${progress.error}`);
+              }
+            } catch (error) {
+              console.error('[EMAIL SCORING] Error polling progress:', error);
+            }
           };
 
           // Poll every 300ms
