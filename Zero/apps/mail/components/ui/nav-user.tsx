@@ -47,7 +47,6 @@ export function NavUser() {
   const pathname = useLocation().pathname;
   const queryClient = useQueryClient();
   const { data: activeConnection, refetch: refetchActiveConnection } = useActiveConnection();
-  const [, setPricingDialog] = useQueryState('pricingDialog');
   const [category] = useQueryState('category', { defaultValue: 'All Mail' });
   const { setLoading } = useLoading();
 
@@ -376,7 +375,6 @@ export function NavUser() {
               ) : (
                 <>
                   <Button
-                    onClick={() => setPricingDialog('true')}
                     className="hover:bg-offsetLight/80 flex h-7 w-7 cursor-pointer items-center justify-center rounded-[5px] border border-dashed bg-transparent px-0 text-black dark:bg-[#262626] dark:text-[#929292]"
                   >
                     <Plus className="size-4" />

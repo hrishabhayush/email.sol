@@ -37,7 +37,6 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useNavigate, useParams } from 'react-router';
 import { useMail } from '@/components/mail/use-mail';
 import { SidebarToggle } from '../ui/sidebar-toggle';
-import { PricingDialog } from '../ui/pricing-dialog';
 // import { Textarea } from '@/components/ui/textarea';
 // import { useBrainState } from '@/hooks/use-summary';
 import { clearBulkSelectionAtom } from './use-mail';
@@ -460,7 +459,6 @@ export function MailLayout() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <PricingDialog />
       <div className="rounded-inherit relative z-5 flex p-0 md:mr-0.5 md:mt-1">
         <ResizablePanelGroup
           direction="horizontal"

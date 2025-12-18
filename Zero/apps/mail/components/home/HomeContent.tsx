@@ -3,8 +3,6 @@ import {
   CurvedArrow,
   GitHub,
   Plus,
-  Cube,
-  MediumStack,
   Clock,
   PanelLeftOpen,
   Check,
@@ -256,7 +254,7 @@ export default function HomeContent() {
               <div className="inline-flex flex-1 flex-col items-start justify-start gap-3">
                 <div className="inline-flex items-center justify-start gap-1 self-stretch">
                   <div className="text-base-gray-950 flex-1 justify-start text-sm font-normal leading-none">
-                    Goldman Sachs Summer Analyst program
+                    Goldman Sachs Summer Analyst Program
                   </div>
                 </div>
               </div>
@@ -290,26 +288,6 @@ export default function HomeContent() {
                   </div>
                   <div className="flex h-auto w-auto items-center justify-center rounded border border-[#2B2B2B] bg-background p-1.5">
                     <Type className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-                <div className="hidden items-start justify-start gap-3 md:flex">
-                  <div className="flex h-7 items-center justify-center gap-0.5 overflow-hidden rounded-md bg-[#373737] px-1.5">
-                    <Cube className="relative h-3 w-3 overflow-hidden fill-[#9A9A9A]" />
-
-                    <div className="flex items-center justify-center gap-2.5 px-0.5">
-                      <div className="text-base-gray-950 justify-start text-sm leading-none">
-                        Neutral
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex h-7 items-center justify-center gap-0.5 overflow-hidden rounded-md bg-[#373737] px-1.5">
-                    <MediumStack className="relative mx-1 h-2.5 w-2.5 overflow-hidden fill-[#9A9A9A]" />
-
-                    <div className="flex items-center justify-center gap-2.5 px-0.5">
-                      <div className="text-base-gray-950 justify-start text-sm leading-none">
-                        Medium-length
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
