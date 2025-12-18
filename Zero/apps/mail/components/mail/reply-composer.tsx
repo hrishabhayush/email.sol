@@ -52,7 +52,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   // Email scoring modal state
   const [scoringModalOpen, setScoringModalOpen] = useState(false);
   const [scoringRequestId, setScoringRequestId] = useState<string | null>(null);
-  const [scoringProgress, setScoringProgress] = useState<'reading_input' | 'calculating_score' | 'parsing_results' | 'creating_recommendations' | 'completed'>('reading_input');
+  const [scoringProgress, setScoringProgress] = useState<'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed'>('reading_input');
   const [scoringResult, setScoringResult] = useState<{ score: number; recommendations: string[] } | null>(null);
   const progressPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { data: settings, isLoading: settingsLoading } = useSettings();

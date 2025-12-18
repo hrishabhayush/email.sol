@@ -21,7 +21,7 @@ import { decide } from '../../routes/agent/escrow-decision';
 // In-memory progress cache for email scoring
 // Key: requestId, Value: { step: string, data?: any, completed?: boolean, result?: any }
 const scoringProgressCache = new Map<string, {
-  step: 'reading_input' | 'calculating_score' | 'parsing_results' | 'creating_recommendations' | 'completed';
+  step: 'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed';
   data?: any;
   completed?: boolean;
   result?: { score: number; recommendations: string[]; decision: 'RELEASE' | 'WITHHOLD' };

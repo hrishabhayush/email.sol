@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
 import { useEffect } from 'react';
 
-type ProgressStep = 'reading_input' | 'calculating_score' | 'parsing_results' | 'creating_recommendations' | 'completed';
+type ProgressStep = 'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed';
 
 interface EmailScoringModalProps {
     open: boolean;
@@ -18,7 +18,6 @@ interface EmailScoringModalProps {
 const STEP_LABELS: Record<ProgressStep, string> = {
     reading_input: 'Reading input...',
     calculating_score: 'Calculating score...',
-    parsing_results: 'Parsing results...',
     creating_recommendations: 'Creating recommendations...',
     completed: 'Completed',
 };
@@ -45,7 +44,7 @@ export function EmailScoringModal({
         }
     }, [isSuccess, open, onOpenChange]);
 
-    const steps: ProgressStep[] = ['reading_input', 'calculating_score', 'parsing_results', 'creating_recommendations'];
+    const steps: ProgressStep[] = ['reading_input', 'calculating_score', 'creating_recommendations'];
     const currentStepIndex = steps.indexOf(progressStep);
 
     return (
