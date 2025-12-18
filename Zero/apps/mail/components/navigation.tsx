@@ -10,7 +10,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GitHub, Star } from './icons/icons';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-import { signIn, useSession } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect, useRef, startTransition } from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { SignInDialog } from './connection/sign-in-dialog';
 
 const aboutLinks = [
   {
@@ -210,22 +210,11 @@ export function Navigation() {
                 Get Started
               </Link>
             ) : (
-              <button
-                onClick={() => {
-                  toast.promise(
-                    signIn.social({
-                      provider: 'google',
-                      callbackURL: `${window.location.origin}/mail`,
-                    }),
-                    {
-                      error: 'Login redirect failed',
-                    },
-                  );
-                }}
-                className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
-              >
-                Get Started
-              </button>
+              <SignInDialog>
+                <button className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline">
+                  Get Started
+                </button>
+              </SignInDialog>
             )}
           </div>
         </nav>

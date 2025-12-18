@@ -129,6 +129,10 @@ const connectionHandlerHook = async (account: Account) => {
     updatingInfo,
   );
 
+  // Set the newly created/updated connection as the default active connection
+  // This ensures that when a user signs in with a new account, they're taken to that account's inbox
+  await db.updateUser({ defaultConnectionId: result.id });
+
   if (env.NODE_ENV === 'production') {
     await Effect.runPromise(
       scheduleCampaign({ address: userInfo.address, name: userInfo.name || 'there' }),

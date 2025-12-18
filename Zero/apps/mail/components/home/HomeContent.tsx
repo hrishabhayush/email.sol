@@ -26,14 +26,14 @@ import {
 import { Type } from 'lucide-react';
 import { PixelatedBackground, PixelatedLeft, PixelatedRight } from '@/components/home/pixelated-bg';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { signIn, useSession } from '@/lib/auth-client';
+import { useSession } from '@/lib/auth-client';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Balancer } from 'react-wrap-balancer';
 import { Navigation } from '../navigation';
 import { motion } from 'motion/react';
 import { useEffect } from 'react';
-import { toast } from 'sonner';
+import { SignInDialog } from '../connection/sign-in-dialog';
 import Footer from './footer';
 import React from 'react';
 
@@ -111,22 +111,11 @@ export default function HomeContent() {
               Get Started
             </Link>
           ) : (
-            <button
-              onClick={() => {
-                toast.promise(
-                  signIn.social({
-                    provider: 'google',
-                    callbackURL: `${window.location.origin}/mail`,
-                  }),
-                  {
-                    error: 'Login redirect failed',
-                  },
-                );
-              }}
-              className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline"
-            >
-              Get Started
-            </button>
+            <SignInDialog>
+              <button className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline">
+                Get Started
+              </button>
+            </SignInDialog>
           )}
         </motion.div>
       </section>

@@ -35,7 +35,7 @@ import { toast } from 'sonner';
 
 export function NavUser() {
   const { data: session } = useSession();
-  const { data } = useConnections();
+  const { data, refetch: refetchConnections } = useConnections();
   const [isRendered, setIsRendered] = useState(false);
   const { state } = useSidebar();
   const trpc = useTRPC();
@@ -43,10 +43,14 @@ export function NavUser() {
   const { mutateAsync: setDefaultConnection } = useMutation(
     trpc.connections.setDefault.mutationOptions(),
   );
+  const { mutateAsync: deleteConnection } = useMutation(
+    trpc.connections.delete.mutationOptions(),
+  );
   const { openBillingPortal, customer: billingCustomer, isPro } = useBilling();
   const pathname = useLocation().pathname;
   const queryClient = useQueryClient();
   const { data: activeConnection, refetch: refetchActiveConnection } = useActiveConnection();
+  const activeAccount = activeConnection; // Alias for consistency with UI code
   const [category] = useQueryState('category', { defaultValue: 'All Mail' });
   const { setLoading } = useLoading();
 
@@ -61,8 +65,6 @@ export function NavUser() {
     await navigator.clipboard.writeText(activeConnection?.id || '');
     toast.success('Connection ID copied to clipboard');
   }, [activeConnection]);
-
-  const { data: activeAccount } = useActiveConnection();
 
   useEffect(() => setIsRendered(true), []);
 
@@ -88,15 +90,43 @@ export function NavUser() {
   };
 
   const handleLogout = async () => {
-    toast.promise(signOut(), {
-      loading: 'Signing out...',
-      success: () => 'Signed out successfully!',
-      error: 'Error signing out',
-      async finally() {
-        // await handleClearCache();
-        window.location.href = '/login';
-      },
-    });
+    // Check if there are multiple connections
+    const hasMultipleConnections = data && data.connections && data.connections.length > 1;
+
+    if (hasMultipleConnections && activeConnection?.id) {
+      // If multiple accounts exist, delete the current connection and switch to another
+      try {
+        setLoading(true, 'Disconnecting account...');
+        setThreadId(null);
+
+        await deleteConnection({ connectionId: activeConnection.id });
+
+        // Clear cache to refresh with new active connection
+        queryClient.clear();
+
+        // Refetch both connections list and active connection to switch to the other account
+        await Promise.all([refetchConnections(), refetchActiveConnection()]);
+
+        toast.success('Account disconnected');
+      } catch (error) {
+        console.error('Error disconnecting account:', error);
+        toast.error('Failed to disconnect account');
+        await refetchActiveConnection();
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // If only one account or no active connection, sign out completely
+      toast.promise(signOut(), {
+        loading: 'Signing out...',
+        success: () => 'Signed out successfully!',
+        error: 'Error signing out',
+        async finally() {
+          // await handleClearCache();
+          window.location.href = '/login';
+        },
+      });
+    }
   };
 
   const otherConnections = useMemo(() => {

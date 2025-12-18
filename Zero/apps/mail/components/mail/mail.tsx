@@ -387,9 +387,15 @@ export function MailLayout() {
   const { data: session, isPending } = useSession();
   const prevFolderRef = useRef(folder);
   const { enableScope, disableScope } = useHotkeysContext();
-  const { data: activeConnection } = useActiveConnection();
+  const { data: activeConnection, refetch: refetchActiveConnection } = useActiveConnection();
   const { activeFilters, clearAllFilters } = useCommandPalette();
   const [, setIsCommandPaletteOpen] = useQueryState('isCommandPaletteOpen');
+
+  // Refetch active connection on mount to ensure we have the latest one after OAuth redirects
+  useEffect(() => {
+    refetchActiveConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   useEffect(() => {
     if (prevFolderRef.current !== folder && mail.bulkSelected.length > 0) {
