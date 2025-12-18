@@ -15,8 +15,24 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-import { scoreEmail } from '../../routes/agent/email-scoring-tool';
+import { scoreEmail, type ScoringProgressCallback } from '../../routes/agent/email-scoring-tool';
 import { decide } from '../../routes/agent/escrow-decision';
+
+// In-memory progress cache for email scoring
+// Key: requestId, Value: { step: string, data?: any, completed?: boolean, result?: any }
+const scoringProgressCache = new Map<string, {
+  step: 'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed';
+  data?: any;
+  completed?: boolean;
+  result?: { score: number; recommendations: string[]; decision: 'RELEASE' | 'WITHHOLD' };
+  error?: string;
+}>();
+
+// Clean up progress cache entries older than 5 minutes
+setInterval(() => {
+  // Note: In a production environment, you'd want to track timestamps
+  // For now, we'll rely on the frontend to stop polling after completion
+}, 5 * 60 * 1000);
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -708,6 +724,23 @@ export const mailRouter = router({
         });
       }
     }),
+  scoreEmailProgress: activeDriverProcedure
+    .input(
+      z.object({
+        requestId: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const progress = scoringProgressCache.get(input.requestId);
+      if (!progress) {
+        return {
+          step: 'reading_input' as const,
+          data: null,
+          completed: false,
+        };
+      }
+      return progress;
+    }),
   scoreEmail: activeDriverProcedure
     .input(
       z.object({
@@ -721,10 +754,20 @@ export const mailRouter = router({
           )
           .optional()
           .describe('Array of emails in the thread for context'),
+        requestId: z.string().optional().describe('Optional request ID for progress tracking'),
       }),
     )
     .mutation(async ({ input }) => {
+      // Generate requestId if not provided
+      const requestId = input.requestId || `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
       try {
+        // Initialize progress
+        scoringProgressCache.set(requestId, {
+          step: 'reading_input',
+          completed: false,
+        });
+
         // Combine thread emails into a single context string
         const originalEmailContent = input.threadEmails
           ?.map((email) => {
@@ -734,20 +777,65 @@ export const mailRouter = router({
           })
           .join('\n\n---\n\n') || undefined;
 
-        // Score the email
-        const scoringResult = await scoreEmail(input.replyContent, originalEmailContent);
+        // Progress callback
+        const progressCallback: ScoringProgressCallback = (step, data) => {
+          scoringProgressCache.set(requestId, {
+            step,
+            data,
+            completed: false,
+          });
+        };
+
+        // Score the email with progress tracking
+        const scoringResult = await scoreEmail(
+          input.replyContent,
+          originalEmailContent,
+          progressCallback
+        );
         const score = scoringResult.score;
+        const recommendations = scoringResult.recommendations || [];
 
         // Make decision based on score
         const decision = decide(score);
 
+        // Mark as completed
+        scoringProgressCache.set(requestId, {
+          step: 'completed',
+          completed: true,
+          result: {
+            score,
+            recommendations,
+            decision,
+          },
+        });
+
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          scoringProgressCache.delete(requestId);
+        }, 30 * 1000);
+
         return {
+          requestId,
           score,
+          recommendations,
           decision,
           success: true,
         };
       } catch (error) {
         console.error('[scoreEmail] Error scoring email:', error);
+
+        // Store error in progress cache
+        scoringProgressCache.set(requestId, {
+          step: 'completed',
+          completed: true,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          scoringProgressCache.delete(requestId);
+        }, 30 * 1000);
+
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: `Failed to score email: ${error instanceof Error ? error.message : 'Unknown error'}`,

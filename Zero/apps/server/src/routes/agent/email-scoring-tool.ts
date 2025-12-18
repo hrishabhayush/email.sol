@@ -16,25 +16,29 @@ const SCORING_PROMPT = `Evaluate the quality and relevance of this email reply. 
 - Relevance: Is the content relevant to the original message?
 - Helpfulness: Does it provide value or useful information?
 
-Return a JSON object with a single "score" field containing a number from 0-100, where:
+Return a JSON object with a "score" field (number from 0-100) and a "recommendations" field (array of strings with specific improvement suggestions). The score ranges are:
 - 90-100: Excellent, highly relevant and valuable
 - 70-89: Good, relevant and helpful
 - 50-69: Adequate, somewhat relevant
 - 30-49: Poor, limited relevance
 - 0-29: Very poor, irrelevant or unhelpful
 
+For recommendations: If the score is below 70, provide 3-5 specific, actionable suggestions for improvement. If the score is 70 or above, provide an empty array.
+
 Original Email: {originalEmailSection}
 Reply Email: {emailContent}
 
-Respond with ONLY valid JSON: {"score": <number>}`;
+Respond with ONLY valid JSON: {"score": <number>, "recommendations": ["suggestion1", "suggestion2", ...]}`;
 
 // zod schema for the score -> allows for type safety and validation at runtime
 const ScoreSchema = z.object({
   score: z.number().min(0).max(100),
+  recommendations: z.array(z.string()),
 });
 
 export interface EmailScoringResult {
   score: number;
+  recommendations: string[];
 }
 
 // StructuredTool automatically handles input validation, parsing, and type safety when calling tools from agents.
@@ -106,19 +110,24 @@ export class EmailScoringTool extends StructuredTool {
       }
 
       // Parse JSON
-      let parsed: { score: number };
+      let parsed: { score: number; recommendations?: string[] };
       try {
         parsed = JSON.parse(jsonStr);
       } catch (parseError) {
         // Try to extract score using regex as fallback
         const scoreMatch = jsonStr.match(/"score"\s*:\s*(\d+)/);
         if (scoreMatch) {
-          parsed = { score: parseInt(scoreMatch[1], 10) };
+          parsed = { score: parseInt(scoreMatch[1], 10), recommendations: [] };
         } else {
           throw new Error(`Failed to parse LLM response as JSON: ${content}`);
         }
       }
       // ---- end cleaning ----
+
+      // Ensure recommendations array exists
+      if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
+        parsed.recommendations = [];
+      }
 
       // Validate score, ensuring it matches the schema
       const validated = ScoreSchema.parse(parsed);
@@ -127,18 +136,50 @@ export class EmailScoringTool extends StructuredTool {
     } catch (error) {
       console.error('[EmailScoringTool] Error scoring email:', error);
       // Return a default low score on error rather than failing completely
-      return JSON.stringify({ score: 0 });
+      return JSON.stringify({ score: 0, recommendations: [] });
     }
   }
 }
 
 /**
- * Score an email using the LLM tool.
- * Returns the score (0-100) or throws an error.
+ * Progress callback type for tracking scoring stages
  */
-export async function scoreEmail(emailContent: string, originalEmailContent?: string): Promise<EmailScoringResult> {
-  const tool = new EmailScoringTool();
-  const result = await tool._call({ emailContent, originalEmailContent });
-  return JSON.parse(result) as EmailScoringResult;
+export type ScoringProgressCallback = (step: 'reading_input' | 'calculating_score' | 'creating_recommendations', data?: any) => void;
+
+/**
+ * Score an email using the LLM tool.
+ * Returns the score (0-100) and recommendations or throws an error.
+ */
+export async function scoreEmail(
+  emailContent: string,
+  originalEmailContent?: string,
+  progressCallback?: ScoringProgressCallback
+): Promise<EmailScoringResult> {
+  try {
+    // Step 1: Reading input
+    progressCallback?.('reading_input', { emailLength: emailContent.length });
+    
+    const tool = new EmailScoringTool();
+    
+    // Step 2: Calculating score
+    progressCallback?.('calculating_score');
+    
+    const result = await tool._call({ emailContent, originalEmailContent });
+    
+    // Step 3: Creating recommendations
+    progressCallback?.('creating_recommendations');
+    
+    const parsed = JSON.parse(result) as EmailScoringResult;
+    
+    // Ensure recommendations array exists
+    if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
+      parsed.recommendations = [];
+    }
+    
+    return parsed;
+  } catch (error) {
+    console.error('[scoreEmail] Error:', error);
+    throw error;
+  }
 }
 

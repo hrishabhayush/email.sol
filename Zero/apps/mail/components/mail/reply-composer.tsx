@@ -13,12 +13,13 @@ import { useDraft } from '@/hooks/use-drafts';
 import { m } from '@/paraglide/messages';
 import type { Sender } from '@/types';
 import { useQueryState } from 'nuqs';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import posthog from 'posthog-js';
 import { toast } from 'sonner';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import { useEscrowTracker } from '@/hooks/use-escrow-tracker';
+import { EmailScoringModal } from './email-scoring-modal';
 
 // SolMail Escrow program configuration
 const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
@@ -45,6 +46,13 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   const { mutateAsync: sendEmail } = useMutation(trpc.mail.send.mutationOptions());
   const { mutateAsync: scoreEmail } = useMutation(trpc.mail.scoreEmail.mutationOptions());
   const { data: activeConnection } = useActiveConnection();
+  
+  // Email scoring modal state
+  const [scoringModalOpen, setScoringModalOpen] = useState(false);
+  const [scoringRequestId, setScoringRequestId] = useState<string | null>(null);
+  const [scoringProgress, setScoringProgress] = useState<'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed'>('reading_input');
+  const [scoringResult, setScoringResult] = useState<{ score: number; recommendations: string[] } | null>(null);
+  const progressPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const { data: session } = useSession();
 
@@ -262,14 +270,76 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             fullData: threadEmails,
           });
 
+          // Generate request ID for progress tracking
+          const requestId = `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+          setScoringRequestId(requestId);
+          setScoringProgress('reading_input');
+          setScoringResult(null);
+          setScoringModalOpen(true);
+
+          // Start progress polling
+          const pollProgress = () => {
+            if (!requestId) return;
+            
+            trpc.mail.scoreEmailProgress.query({ requestId })
+              .then((progress) => {
+                if (progress.step && progress.step !== 'completed') {
+                  setScoringProgress(progress.step as typeof scoringProgress);
+                }
+                
+                if (progress.completed && progress.result) {
+                  setScoringProgress('completed');
+                  setScoringResult({
+                    score: progress.result.score,
+                    recommendations: progress.result.recommendations || [],
+                  });
+                  
+                  // Stop polling
+                  if (progressPollIntervalRef.current) {
+                    clearInterval(progressPollIntervalRef.current);
+                    progressPollIntervalRef.current = null;
+                  }
+                } else if (progress.completed && progress.error) {
+                  // Error occurred
+                  setScoringModalOpen(false);
+                  toast.error(`Failed to score email: ${progress.error}`, {
+                    id: 'email-scoring-error',
+                    duration: 10000,
+                  });
+                  throw new Error(`Email scoring failed: ${progress.error}`);
+                }
+              })
+              .catch((error) => {
+                console.error('[EMAIL SCORING] Error polling progress:', error);
+              });
+          };
+
+          // Poll every 300ms
+          progressPollIntervalRef.current = setInterval(pollProgress, 300);
+          pollProgress(); // Initial poll
+
           // Call scoring function with reply content and thread context
           const scoringResult = await scoreEmail({
             replyContent: data.message,
             threadEmails: threadEmails.length > 0 ? threadEmails : undefined,
+            requestId,
           });
+
+          // Stop polling
+          if (progressPollIntervalRef.current) {
+            clearInterval(progressPollIntervalRef.current);
+            progressPollIntervalRef.current = null;
+          }
 
           emailScore = scoringResult.score;
           escrowDecision = scoringResult.decision as 'RELEASE' | 'WITHHOLD';
+
+          // Update modal with final result
+          setScoringProgress('completed');
+          setScoringResult({
+            score: scoringResult.score,
+            recommendations: scoringResult.recommendations || [],
+          });
 
           // If decision is WITHHOLD, block escrow release and email sending
           if (escrowDecision === 'WITHHOLD') {
@@ -278,16 +348,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
               threshold: 70,
               decision: escrowDecision,
             });
-            toast.error(
-              `Email quality score (${emailScore}/100) is below the threshold (70). Escrow release blocked. Please improve your reply quality.`,
-              {
-                id: 'email-scoring-blocked',
-                duration: 10000,
-              }
-            );
-            throw new Error(
-              `Email quality score (${emailScore}/100) is below the threshold (70). Escrow release blocked.`
-            );
+            // Modal will show recommendations - don't throw error here, let modal show
+            // Return early to prevent email send, but keep modal open
+            return;
           }
 
           console.log('[EMAIL SCORING] ✅ Email score meets threshold - proceeding with escrow release:', {
@@ -295,16 +358,24 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             decision: escrowDecision,
           });
         } catch (error) {
+          // Stop polling if still active
+          if (progressPollIntervalRef.current) {
+            clearInterval(progressPollIntervalRef.current);
+            progressPollIntervalRef.current = null;
+          }
+
           // If scoring fails, we should block escrow release for safety
           console.error('[EMAIL SCORING] Error scoring email:', error);
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          // If it's our intentional block (WITHHOLD), re-throw it
+          // If it's our intentional block (WITHHOLD), keep modal open to show recommendations
           if (errorMessage.includes('below the threshold')) {
-            throw error;
+            // Modal is already showing recommendations - just return to prevent email send
+            return;
           }
 
-          // For other errors, block escrow release as a safety measure
+          // For other errors, close modal and show error
+          setScoringModalOpen(false);
           toast.error(
             `Failed to score email: ${errorMessage}. Escrow release blocked for safety.`,
             {
@@ -1359,28 +1430,54 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
     return [];
   };
 
+  // Handle modal close - if score was below threshold, we've already blocked email send
+  const handleModalClose = (open: boolean) => {
+    setScoringModalOpen(open);
+    // If closing and we have a result with score < 70, the email send was already blocked
+    // No need to do anything else here
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (progressPollIntervalRef.current) {
+        clearInterval(progressPollIntervalRef.current);
+      }
+    };
+  }, []);
+
   if (!mode || !emailData) return null;
 
   return (
-    <div className="w-full rounded-2xl overflow-visible border">
-      <EmailComposer
-        editorClassName="min-h-[50px]"
-        className="w-full max-w-none! pb-1 overflow-visible"
-        onSendEmail={handleSendEmail}
-        onClose={async () => {
-          setMode(null);
-          setDraftId(null);
-          setActiveReplyId(null);
-        }}
-        initialMessage={draft?.content ?? latestDraft?.decodedBody}
-        initialTo={ensureEmailArray(draft?.to)}
-        initialCc={ensureEmailArray(draft?.cc)}
-        initialBcc={ensureEmailArray(draft?.bcc)}
-        initialSubject={draft?.subject}
-        autofocus={true}
-        settingsLoading={settingsLoading}
-        replyingTo={replyToMessage?.sender.email}
+    <>
+      <EmailScoringModal
+        open={scoringModalOpen}
+        onOpenChange={handleModalClose}
+        progressStep={scoringProgress}
+        score={scoringResult?.score}
+        recommendations={scoringResult?.recommendations}
+        onOk={() => handleModalClose(false)}
       />
-    </div>
+      <div className="w-full rounded-2xl overflow-visible border">
+        <EmailComposer
+          editorClassName="min-h-[50px]"
+          className="w-full max-w-none! pb-1 overflow-visible"
+          onSendEmail={handleSendEmail}
+          onClose={async () => {
+            setMode(null);
+            setDraftId(null);
+            setActiveReplyId(null);
+          }}
+          initialMessage={draft?.content ?? latestDraft?.decodedBody}
+          initialTo={ensureEmailArray(draft?.to)}
+          initialCc={ensureEmailArray(draft?.cc)}
+          initialBcc={ensureEmailArray(draft?.bcc)}
+          initialSubject={draft?.subject}
+          autofocus={true}
+          settingsLoading={settingsLoading}
+          replyingTo={replyToMessage?.sender.email}
+        />
+      </div>
+    </>
   );
 }
