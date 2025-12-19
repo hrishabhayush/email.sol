@@ -10,19 +10,19 @@ const steps = [
     video: '/solmail-logo.png',
   },
   {
-    title: 'Send micropayments with your emails',
-    description: 'SolMail lets you send micropayments with your emails to encourage responses',
-    video: '/onboarding/coinenvelope.png',
+    title: 'Attach micropayments',
+    description: 'Connect a wallet to send Solana payments with emails',
+    video: '/wallet2.png',
   },
   {
     title: 'AI-validated responses',
     description: 'An AI agent will evaluate the response quality and refund you if the response is not meaningful',
-    video: '/onboarding/check4.png',
+    video: '/evaluate2.PNG',
   },
   {
     title: 'Incentivize correspondence ',
     description: 'SolMail incentivizes meaningful responses and facilitate better correspondence',
-    video: '/onboarding/handshake4.png',
+    video: '/coffeechatemail.png',
   },
 ];
 
@@ -69,8 +69,10 @@ export function OnboardingDialog({
         <div className="flex flex-col gap-4 p-4">
           {steps[currentStep] && steps[currentStep].video && (
             <div className="relative flex items-center justify-center">
-              {/* Image Container */}
-              <div className="bg-muted flex min-h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:min-h-[400px]">
+              {/* Image Container - Fixed height to prevent resizing */}
+              <div className={`flex h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:h-[400px] ${
+                currentStep === 0 || currentStep === 1 || currentStep === 2 ? 'bg-black' : 'bg-muted'
+              }`}>
                 {steps.map(
                   (step, index) =>
                     step.video && (
@@ -82,11 +84,17 @@ export function OnboardingDialog({
                       >
                         <img
                           loading="eager"
-                          width={500}
-                          height={500}
+                          width={400}
+                          height={400}
                           src={step.video}
                           alt={step.title}
-                          className="max-h-full max-w-full rounded-lg object-contain p-4"
+                          className={`rounded-lg ${
+                            step.video === '/evaluate2.PNG' 
+                              ? 'w-full h-auto max-h-full object-contain p-0' 
+                              : step.video === '/coffeechatemail.png'
+                              ? 'h-full w-full object-cover p-0'
+                              : 'h-full w-full object-contain p-4'
+                          }`}
                         />
                       </div>
                     ),
@@ -95,46 +103,49 @@ export function OnboardingDialog({
             </div>
           )}
 
-          {/* Text Content */}
-          <div className="space-y-0 text-center">
+          {/* Text Content - Fixed min-height to prevent popup resizing */}
+          <div className="space-y-3 text-center min-h-[100px]">
             <h2 className="text-4xl font-semibold">{steps[currentStep]?.title}</h2>
             <div className="text-muted-foreground mx-auto max-w-xl text-sm">
               {steps[currentStep]?.description}
             </div>
           </div>
 
-          {/* Rectangle Indicators */}
-          <div className="flex justify-center gap-2">
-            {steps.map((_, index) => (
-              <div
-                key={index}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentStep
-                    ? 'w-8 bg-primary'
-                    : 'w-2 bg-muted-foreground/30'
-                }`}
-              />
-            ))}
-          </div>
+          {/* Bottom Navigation with Indicators and Buttons */}
+          <div className="flex flex-col items-center gap-4">
+            {/* Rectangle Indicators */}
+            <div className="flex justify-center gap-2">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    index === currentStep
+                      ? 'w-8 bg-primary'
+                      : 'w-2 bg-muted-foreground/30'
+                  }`}
+                />
+              ))}
+            </div>
 
-          {/* Bottom Navigation Buttons */}
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline"
-              size="default"
-              onClick={handlePrevious}
-              disabled={currentStep === 0}
-              className="cursor-pointer"
-            >
-              Back
-            </Button>
-            <Button
-              size="default"
-              onClick={handleNext}
-              className="cursor-pointer"
-            >
-              {currentStep === steps.length - 1 ? 'Start' : 'Next'}
-            </Button>
+            {/* Navigation Buttons */}
+            <div className="flex w-full items-center justify-between">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={handlePrevious}
+                disabled={currentStep === 0}
+                className="w-20 cursor-pointer"
+              >
+                Back
+              </Button>
+              <Button
+                size="default"
+                onClick={handleNext}
+                className="w-20 cursor-pointer"
+              >
+                {currentStep === steps.length - 1 ? 'Start' : 'Next'}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
