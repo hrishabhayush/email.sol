@@ -1,0 +1,13 @@
+---
+alwaysApply: true
+---
+
+Decision logic is pure: decide(score): "RELEASE" | "WITHHOLD"
+No LLM calls, randomness, or side-effects inside decision logic.
+
+Escrow transactions must be idempotent (use msg_id as key).
+Agent only consumes score + metadata, never plaintext.
+
+You should follow the conventions/example as specified here: https://resources.sendai.fun/sendai-agent-kit/getting-started
+
+primarily, update pacakge.json with the dependencies, update .env variables, use the solana-agent-kit, etc.
