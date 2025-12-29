@@ -37,7 +37,6 @@ import { useHotkeysContext } from 'react-hotkeys-hook';
 import { useNavigate, useParams } from 'react-router';
 import { useMail } from '@/components/mail/use-mail';
 import { SidebarToggle } from '../ui/sidebar-toggle';
-import { PricingDialog } from '../ui/pricing-dialog';
 // import { Textarea } from '@/components/ui/textarea';
 // import { useBrainState } from '@/hooks/use-summary';
 import { clearBulkSelectionAtom } from './use-mail';
@@ -388,9 +387,15 @@ export function MailLayout() {
   const { data: session, isPending } = useSession();
   const prevFolderRef = useRef(folder);
   const { enableScope, disableScope } = useHotkeysContext();
-  const { data: activeConnection } = useActiveConnection();
+  const { data: activeConnection, refetch: refetchActiveConnection } = useActiveConnection();
   const { activeFilters, clearAllFilters } = useCommandPalette();
   const [, setIsCommandPaletteOpen] = useQueryState('isCommandPaletteOpen');
+
+  // Refetch active connection on mount to ensure we have the latest one after OAuth redirects
+  useEffect(() => {
+    refetchActiveConnection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   useEffect(() => {
     if (prevFolderRef.current !== folder && mail.bulkSelected.length > 0) {
@@ -460,7 +465,6 @@ export function MailLayout() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <PricingDialog />
       <div className="rounded-inherit relative z-5 flex p-0 md:mr-0.5 md:mt-1">
         <ResizablePanelGroup
           direction="horizontal"

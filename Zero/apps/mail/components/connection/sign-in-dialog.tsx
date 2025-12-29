@@ -8,15 +8,13 @@ import {
   DialogClose,
 } from '../ui/dialog';
 import { emailProviders } from '@/lib/constants';
-import { authClient } from '@/lib/auth-client';
-import { UserPlus, X } from 'lucide-react';
-import { useLocation } from 'react-router';
-import { m } from '@/paraglide/messages';
+import { signIn } from '@/lib/auth-client';
+import { X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';
-import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
-export const AddConnectionDialog = ({
+export const SignInDialog = ({
   children,
   className,
   onOpenChange,
@@ -25,21 +23,10 @@ export const AddConnectionDialog = ({
   className?: string;
   onOpenChange?: (open: boolean) => void;
 }) => {
-  const pathname = useLocation().pathname;
-
   return (
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        {children || (
-          <Button
-            size={'dropdownItem'}
-            variant={'dropdownItem'}
-            className={cn('w-full justify-start gap-2', className)}
-          >
-            <UserPlus size={16} strokeWidth={2} className="opacity-60" aria-hidden="true" />
-            <p className="text-[13px] opacity-60">{m['pages.settings.connections.addEmail']()}</p>
-          </Button>
-        )}
+        {children}
       </DialogTrigger>
       <DialogContent showOverlay={true}>
         <DialogClose asChild>
@@ -51,9 +38,9 @@ export const AddConnectionDialog = ({
           </button>
         </DialogClose>
         <DialogHeader className="text-center sm:!text-center">
-          <DialogTitle>{m['pages.settings.connections.connectEmail']()}</DialogTitle>
+          <DialogTitle>Sign in to continue</DialogTitle>
           <DialogDescription>
-            {m['pages.settings.connections.connectEmailDescription']()}
+            Select an email provider to sign in
           </DialogDescription>
         </DialogHeader>
         <motion.div
@@ -76,12 +63,17 @@ export const AddConnectionDialog = ({
                 <Button
                   variant="outline"
                   className="h-24 w-full flex-col items-center justify-center gap-2 cursor-pointer"
-                  onClick={async () =>
-                    await authClient.linkSocial({
-                      provider: provider.providerId,
-                      callbackURL: `${window.location.origin}${pathname}`,
-                    })
-                  }
+                  onClick={async () => {
+                    toast.promise(
+                      signIn.social({
+                        provider: provider.providerId as any,
+                        callbackURL: `${window.location.origin}/mail`,
+                      }),
+                      {
+                        error: 'Login redirect failed',
+                      },
+                    );
+                  }}
                 >
                   <Icon className="size-6!" />
                   <span className="text-xs">{provider.name}</span>

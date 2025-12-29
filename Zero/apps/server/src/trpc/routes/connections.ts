@@ -52,10 +52,18 @@ export const connectionsRouter = router({
       const { connectionId } = input;
       const user = ctx.sessionUser;
       const db = await getZeroDB(user.id);
+      
+      // Get the active connection before deletion to check if we're deleting it
+      const activeConnection = await getActiveConnection();
+      const isDeletingActive = connectionId === activeConnection.id;
+      
       await db.deleteConnection(connectionId);
 
-      const activeConnection = await getActiveConnection();
-      if (connectionId === activeConnection.id) await db.updateUser({ defaultConnectionId: null });
+      // If we deleted the active connection, set defaultConnectionId to null
+      // so getActiveConnection will fall back to the first remaining connection
+      if (isDeletingActive) {
+        await db.updateUser({ defaultConnectionId: null });
+      }
     }),
   getDefault: publicProcedure.query(async ({ ctx }) => {
     if (!ctx.sessionUser) return null;
