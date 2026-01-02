@@ -11,6 +11,7 @@ import { useParams } from 'react-router';
 import { useTheme } from 'next-themes';
 import { useQueryState } from 'nuqs';
 import { useMemo } from 'react';
+import type { EmailStatus } from '@/lib/email-status';
 
 export const useThreads = () => {
   const { folder } = useParams<{ folder: string }>();
@@ -20,12 +21,22 @@ export const useThreads = () => {
   const trpc = useTRPC();
   const { labels } = useSearchLabels();
 
+  const [statusFilter] = useQueryState<EmailStatus | 'all'>('status', {
+    defaultValue: 'all',
+    parse: (value) => {
+      if (value === 'all' || !value) return 'all';
+      return value as EmailStatus;
+    },
+    serialize: (value) => value === 'all' ? '' : value || '',
+  });
+
   const threadsQuery = useInfiniteQuery(
     trpc.mail.listThreads.infiniteQueryOptions(
       {
         q: searchValue.value,
         folder,
         labelIds: labels,
+        status: statusFilter && statusFilter !== 'all' ? statusFilter : undefined,
       },
       {
         initialCursor: '',

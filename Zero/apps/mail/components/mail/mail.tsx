@@ -32,6 +32,7 @@ import useSearchLabels from '@/hooks/use-labels-search';
 import * as CustomIcons from '@/components/icons/icons';
 import { isMac } from '@/lib/hotkeys/use-hotkey-utils';
 import { MailList } from '@/components/mail/mail-list';
+import { StatusFilter } from '@/components/mail/status-filter';
 import { useHotkeysContext } from 'react-hotkeys-hook';
 // import SelectAllCheckbox from './select-all-checkbox';
 import { useNavigate, useParams } from 'react-router';
@@ -537,6 +538,7 @@ export function MailLayout() {
                         {activeConnection?.providerId === 'google' && folder === 'inbox' && (
                           <CategoryDropdown isMultiSelectMode={mail.bulkSelected.length > 0} />
                         )}
+                        <StatusFilter folder={folder} />
                       </div>
                     ) : null}
                     <Button

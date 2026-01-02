@@ -15,6 +15,7 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+import { getEmailStatus } from '../../lib/email-status';
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -67,13 +68,27 @@ export const mailRouter = router({
         maxResults: z.number().optional().default(defaultPageSize),
         cursor: z.string().optional().default(''),
         labelIds: z.array(z.string()).optional().default([]),
+        status: z
+          .enum([
+            'good_response_received',
+            'bad_response_received',
+            'no_response_received',
+            'awaiting_response',
+            'good_response_sent',
+            'bad_response_sent_retry_available',
+            'bad_response_sent_no_retries',
+            'awaiting_ai_evaluation',
+            'no_response_yet',
+          ])
+          .optional(),
       }),
     )
     .output(IGetThreadsResponseSchema)
     .query(async ({ ctx, input }) => {
-      const { folder, maxResults, cursor, q, labelIds } = input;
+      const { folder, maxResults, cursor, q, labelIds, status } = input;
       const { activeConnection } = ctx;
       const agent = await getZeroAgent(activeConnection.id);
+      const userEmail = activeConnection.email;
 
       console.debug('[listThreads] input:', { folder, maxResults, cursor, q, labelIds });
 
@@ -243,6 +258,52 @@ export const mailRouter = router({
         threadsResponse.threads = filtered;
         console.debug('[listThreads] Snoozed threads after filtering:', filtered);
       }
+
+      // Filter by status if status filter is provided
+      if (status && (folder === FOLDERS.SENT || folder === FOLDERS.INBOX || !folder)) {
+        console.debug('[listThreads] Filtering by status:', status);
+        const filtered: ThreadItem[] = [];
+
+        // Fetch thread data for each thread to calculate status
+        // This is done in parallel for better performance
+        await Promise.all(
+          threadsResponse.threads.map(async (t: ThreadItem) => {
+            try {
+              // Get thread data to calculate status
+              const threadData = await agent.getThread(t.id, false);
+              if (!threadData?.messages) {
+                // If we can't get thread data, exclude it from status filtering
+                return;
+              }
+
+              // Calculate status for this thread
+              const threadStatus = getEmailStatus(
+                threadData.messages,
+                folder || 'inbox',
+                userEmail,
+                undefined, // escrowStatus - would come from blockchain/evaluation service
+                undefined, // aiEvaluationResult - would come from evaluation service
+              );
+
+              // Include thread if status matches filter
+              if (threadStatus === status) {
+                filtered.push(t);
+              }
+            } catch (error) {
+              // If we can't get thread data, exclude it from results
+              console.debug('[listThreads] Failed to get thread data for status filtering:', t.id, error);
+            }
+          }),
+        );
+
+        threadsResponse.threads = filtered;
+        console.debug('[listThreads] Status filtered threads:', {
+          originalCount: threadsResponse.threads.length,
+          filteredCount: filtered.length,
+          status,
+        });
+      }
+
       console.debug('[listThreads] Returning threadsResponse:', threadsResponse);
       return threadsResponse;
     }),
