@@ -308,6 +308,8 @@ export class ZeroDriver extends Agent<ZeroEnv> {
   transfer = new Transfer(this);
   private foldersInSync: Map<string, boolean> = new Map();
   private syncThreadsInProgress: Map<string, boolean> = new Map();
+  private lastSyncTime: Map<string, number> = new Map(); // Track last sync time to prevent infinite re-syncing
+  private readonly RESYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes cooldown between re-syncs
   private driver: MailManager | null = null;
   private agent: DurableObjectStub<ZeroAgent> | null = null;
   constructor(ctx: DurableObjectState, env: ZeroEnv) {
@@ -671,7 +673,7 @@ export class ZeroDriver extends Agent<ZeroEnv> {
     if (!this.driver) {
       throw new Error('No driver available');
     }
-    
+
     // If forceFresh is true, fetch directly from Gmail API (bypass cache)
     // This is critical for escrow settlement - we need the latest headers
     if (forceFresh) {
@@ -692,7 +694,7 @@ export class ZeroDriver extends Agent<ZeroEnv> {
         return await this.getThreadFromDB(threadId, includeDrafts);
       }
     }
-    
+
     return await this.getThreadFromDB(threadId, includeDrafts);
   }
 
@@ -975,8 +977,8 @@ export class ZeroDriver extends Agent<ZeroEnv> {
         if (threadData.messages && threadData.messages.length > 0) {
           const messagesWithHeaders = threadData.messages.filter((msg: any) => {
             const headers = msg.headers || {};
-            return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
-                     headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+            return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] ||
+              headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
           });
           if (messagesWithHeaders.length > 0) {
             console.log('[ESCROW LOG] Storing thread with escrow headers (CRITICAL for cross-account sync):', {
@@ -986,7 +988,7 @@ export class ZeroDriver extends Agent<ZeroEnv> {
               messageIds: messagesWithHeaders.map((m: any) => m.id),
               connectionId: this.name, // Log which account/connection this is for
             });
-            
+
             // Ensure headers are preserved in all messages
             // Sometimes headers might be missing due to parsing issues
             for (const msg of threadData.messages) {
@@ -1085,6 +1087,8 @@ export class ZeroDriver extends Agent<ZeroEnv> {
         }
 
         this.syncThreadsInProgress.delete(threadId);
+        // Update last sync time to prevent immediate re-syncing
+        this.lastSyncTime.set(threadId, Date.now());
 
         result.success = true;
         result.threadData = threadData;
@@ -1782,7 +1786,7 @@ export class ZeroDriver extends Agent<ZeroEnv> {
           labels: [],
         } satisfies IGetThreadResponse;
       }
-      const row = result[0] as { 
+      const row = result[0] as {
         latest_label_ids: string;
         latest_received_on: string;
         updated_at: string;
@@ -1802,11 +1806,11 @@ export class ZeroDriver extends Agent<ZeroEnv> {
       const now = Date.now();
       const oneDayAgo = now - (24 * 60 * 60 * 1000);
       const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
-      
+
       const hasEscrowHeaders = messages.some((msg) => {
         const headers = (msg as any).headers || {};
-        return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
-                 headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+        return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] ||
+          headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
       });
 
       // Determine if we should re-sync this thread to pick up escrow headers
@@ -1815,11 +1819,16 @@ export class ZeroDriver extends Agent<ZeroEnv> {
       // 2. Thread was updated in last 24 hours (might have new messages with escrow headers)
       // 3. Thread has messages but no headers and is recent (might have missed headers on first sync)
       const isRecent = updatedAt > oneDayAgo || receivedOn > sevenDaysAgo;
-      const shouldReSync = 
+      const shouldReSync =
         (!hasEscrowHeaders && isRecent) ||
         (updatedAt > oneDayAgo && messages.length > 0); // Re-sync recent threads to catch new messages
 
-      if (shouldReSync && !this.syncThreadsInProgress.has(id)) {
+      // Check cooldown to prevent infinite re-syncing
+      const lastSync = this.lastSyncTime.get(id) || 0;
+      const timeSinceLastSync = Date.now() - lastSync;
+      const canReSync = timeSinceLastSync > this.RESYNC_COOLDOWN_MS;
+
+      if (shouldReSync && !this.syncThreadsInProgress.has(id) && canReSync) {
         console.log('[ESCROW LOG] Triggering re-sync for thread (may have escrow headers):', {
           threadId: id,
           hasEscrowHeaders,
@@ -1829,7 +1838,7 @@ export class ZeroDriver extends Agent<ZeroEnv> {
           reason: !hasEscrowHeaders && isRecent ? 'No headers but recent' : 'Recently updated',
           connectionId: this.name, // Log which account this is for (cross-account sync)
         });
-        
+
         // For very recent threads without headers, try immediate sync first
         // This is critical for cross-account escrow settlement
         if (!hasEscrowHeaders && updatedAt > oneDayAgo) {
@@ -1852,18 +1861,18 @@ export class ZeroDriver extends Agent<ZeroEnv> {
           });
         }
       } else if (shouldReSync && this.syncThreadsInProgress.has(id)) {
-        console.log('[ESCROW LOG] Re-sync already in progress for thread:', {
-          threadId: id,
-          connectionId: this.name,
-        });
+        // Re-sync already in progress - skip
+      } else if (shouldReSync && !canReSync) {
+        // Re-sync skipped due to cooldown - thread was recently synced
+        // This prevents infinite re-syncing loops
       }
 
       // Log headers presence for debugging escrow issues
       if (messages.length > 0) {
         const messagesWithHeaders = messages.filter((msg) => {
           const headers = (msg as any).headers || {};
-          return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || 
-                   headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
+          return !!(headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] ||
+            headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey']);
         });
         if (messagesWithHeaders.length > 0) {
           console.log('[ESCROW LOG] Retrieved thread with escrow headers:', {

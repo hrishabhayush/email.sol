@@ -45,6 +45,7 @@ next-env.d.ts
 # ide
 .idea
 .vscode
+.cursor
 .turbo
 i18n.cache
 apps/mail/scripts.ts

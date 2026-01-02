@@ -774,15 +774,17 @@ export function EmailComposer({
           }
           
           if (shouldBlockSend) {
-            toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
+            //toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
             return; // Don't send email if escrow creation fails due to wallet issues
           } else {
             // For other errors (network issues, etc.), allow email to send but warn user
             console.warn('⚠️ Escrow creation failed but allowing email to send:', errorMessage);
+            /*
             toast.warning(`Escrow creation failed: ${errorMessage}. Email will still be sent without escrow.`, { 
               id: 'payment',
               duration: 8000,
             });
+            */
             // Continue with email sending (don't return)
           }
         }

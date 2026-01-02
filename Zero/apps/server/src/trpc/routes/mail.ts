@@ -15,7 +15,22 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
+<<<<<<< HEAD
 import { getEmailStatus } from '../../lib/email-status';
+=======
+import { scoreEmail, type ScoringProgressCallback } from '../../routes/agent/email-scoring-tool';
+import { decide } from '../../routes/agent/escrow-decision';
+
+// In-memory progress cache for email scoring
+// Key: requestId, Value: { step: string, data?: any, completed?: boolean, result?: any }
+const scoringProgressCache = new Map<string, {
+  step: 'reading_input' | 'calculating_score' | 'creating_recommendations' | 'completed';
+  data?: any;
+  completed?: boolean;
+  result?: { score: number; recommendations: string[]; decision: 'RELEASE' | 'WITHHOLD' };
+  error?: string;
+}>();
+>>>>>>> d7df138278febc846574cae0046e73df1162b309
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -122,7 +137,7 @@ export const mailRouter = router({
         // For inbox, prioritize fetching from Gmail directly to avoid database sync issues
         // For other folders, try database first, then fall back to Gmail
         const shouldUseRawList = folder === 'inbox';
-        
+
         if (shouldUseRawList) {
           // For inbox, always fetch directly from Gmail to ensure we get all emails
           console.debug('[listThreads] Using rawListThreads for inbox folder');
@@ -133,7 +148,7 @@ export const mailRouter = router({
               labelIds: effectiveLabelIds,
               pageToken: cursor,
             });
-            
+
             console.debug('[listThreads] rawListThreads result (inbox):', {
               folder,
               threadCount: threadsResponse.threads?.length ?? 0,
@@ -170,7 +185,7 @@ export const mailRouter = router({
               labelIds: effectiveLabelIds,
               pageToken: cursor,
             });
-            
+
             console.debug('[listThreads] Database query result:', {
               folder,
               threadCount: threadsResponse.threads?.length ?? 0,
@@ -178,7 +193,7 @@ export const mailRouter = router({
               connectionId: activeConnection.id,
               email: activeConnection.email,
             });
-            
+
             // If database is empty, fall back to fetching directly from the provider
             // This handles cases where the database hasn't been synced yet
             if (!threadsResponse.threads || threadsResponse.threads.length === 0) {
@@ -189,7 +204,7 @@ export const mailRouter = router({
                 labelIds: effectiveLabelIds,
                 pageToken: cursor,
               });
-              
+
               console.debug('[listThreads] rawListThreads result:', {
                 folder,
                 threadCount: threadsResponse.threads?.length ?? 0,
@@ -207,7 +222,7 @@ export const mailRouter = router({
               labelIds: effectiveLabelIds,
               pageToken: cursor,
             });
-            
+
             console.debug('[listThreads] rawListThreads result (after error):', {
               folder,
               threadCount: threadsResponse.threads?.length ?? 0,
@@ -552,11 +567,11 @@ export const mailRouter = router({
       };
 
       // Check if this is a reply with escrow headers (for tracking)
-      const escrowThreadId = input.headers?.['X-Solmail-Thread-Id'] || 
-                            input.headers?.['x-solmail-thread-id'];
-      const escrowSenderPubkey = input.headers?.['X-Solmail-Sender-Pubkey'] || 
-                                input.headers?.['x-solmail-sender-pubkey'];
-      
+      const escrowThreadId = input.headers?.['X-Solmail-Thread-Id'] ||
+        input.headers?.['x-solmail-thread-id'];
+      const escrowSenderPubkey = input.headers?.['X-Solmail-Sender-Pubkey'] ||
+        input.headers?.['x-solmail-sender-pubkey'];
+
       if (escrowThreadId && escrowSenderPubkey && !input.isForward) {
         console.log('[ESCROW MONITOR] Reply detected with escrow headers:', {
           threadId: escrowThreadId,
@@ -574,6 +589,45 @@ export const mailRouter = router({
       }
 
       ctx.c.executionCtx.waitUntil(afterTask());
+
+      // Trigger escrow agent for email replies (async, non-blocking)
+      // Note: This processes the sent email. For recipient replies, see workflow integration.
+      ctx.c.executionCtx.waitUntil(
+        (async () => {
+          try {
+            // Only process if this is a reply (has threadId and is not a forward)
+            if (input.threadId && !input.isForward) {
+              const { processEmailReply } = await import('../agent/escrow-agent');
+              const msgId = input.threadId || crypto.randomUUID();
+
+              // Get the full thread to access the original email
+              const executionCtx = getContext<HonoContext>().executionCtx;
+              const agent = await getZeroClient(activeConnection.id, executionCtx);
+              const thread = await agent.getThread(input.threadId, true);
+
+              // Find the original email (first message without inReplyTo, or first in array)
+              const originalEmail = thread.messages.find(msg => !msg.inReplyTo)
+                || thread.messages[0];
+
+              const originalEmailContent = originalEmail?.decodedBody || originalEmail?.body || '';
+
+              // Process email reply with streaming callbacks
+              await processEmailReply({
+                emailContent: input.message,
+                originalEmailContent: originalEmailContent,
+                msgId,
+                streamCallback: (step: string, data?: any) => {
+                  console.log(`[EscrowAgent] ${step}`, data || '');
+                },
+              });
+            }
+          } catch (error) {
+            console.error('[EscrowAgent] Error processing email reply:', error);
+            // Don't block email sending if agent fails
+          }
+        })()
+      );
+
       return { success: true };
     }),
   delete: activeDriverProcedure
@@ -725,6 +779,124 @@ export const mailRouter = router({
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'Failed to process email content',
+        });
+      }
+    }),
+  scoreEmailProgress: activeDriverProcedure
+    .input(
+      z.object({
+        requestId: z.string(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const progress = scoringProgressCache.get(input.requestId);
+      if (!progress) {
+        return {
+          step: 'reading_input' as const,
+          data: null,
+          completed: false,
+        };
+      }
+      return progress;
+    }),
+  scoreEmail: activeDriverProcedure
+    .input(
+      z.object({
+        replyContent: z.string().describe('The plaintext reply email content to score'),
+        threadEmails: z
+          .array(
+            z.object({
+              decodedBody: z.string().optional(),
+              subject: z.string().optional(),
+            }),
+          )
+          .optional()
+          .describe('Array of emails in the thread for context'),
+        requestId: z.string().optional().describe('Optional request ID for progress tracking'),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      // Generate requestId if not provided
+      const requestId = input.requestId || `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+      try {
+        // Initialize progress
+        scoringProgressCache.set(requestId, {
+          step: 'reading_input',
+          completed: false,
+        });
+
+        // Combine thread emails into a single context string
+        const originalEmailContent = input.threadEmails
+          ?.map((email) => {
+            const body = email.decodedBody || '';
+            const subject = email.subject || '';
+            return subject ? `Subject: ${subject}\n\n${body}` : body;
+          })
+          .join('\n\n---\n\n') || undefined;
+
+        // Progress callback
+        const progressCallback: ScoringProgressCallback = (step, data) => {
+          scoringProgressCache.set(requestId, {
+            step,
+            data,
+            completed: false,
+          });
+        };
+
+        // Score the email with progress tracking
+        const scoringResult = await scoreEmail(
+          input.replyContent,
+          originalEmailContent,
+          progressCallback
+        );
+        const score = scoringResult.score;
+        const recommendations = scoringResult.recommendations || [];
+
+        // Make decision based on score
+        const decision = decide(score);
+
+        // Mark as completed
+        scoringProgressCache.set(requestId, {
+          step: 'completed',
+          completed: true,
+          result: {
+            score,
+            recommendations,
+            decision,
+          },
+        });
+
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          scoringProgressCache.delete(requestId);
+        }, 30 * 1000);
+
+        return {
+          requestId,
+          score,
+          recommendations,
+          decision,
+          success: true,
+        };
+      } catch (error) {
+        console.error('[scoreEmail] Error scoring email:', error);
+
+        // Store error in progress cache
+        scoringProgressCache.set(requestId, {
+          step: 'completed',
+          completed: true,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        // Clean up after 30 seconds
+        setTimeout(() => {
+          scoringProgressCache.delete(requestId);
+        }, 30 * 1000);
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Failed to score email: ${error instanceof Error ? error.message : 'Unknown error'}`,
         });
       }
     }),
