@@ -1,7 +1,12 @@
+# Rust/Anchor build artifacts
 target/
+**/target/
+**/sbpf-solana-solana/
+.anchor/test-ledger/
 test-ledger/
+
+# OS files
 .DS_Store
 
-target
-
-node_modules
+# Node modules
+node_modules/

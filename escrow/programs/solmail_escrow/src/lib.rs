@@ -84,14 +84,25 @@ pub mod solmail_escrow {
         escrow.status = EscrowStatus::Completed;
 
         // Transfer all lamports from escrow PDA to receiver.
+        // IMPORTANT: Use system_instruction::transfer for accounts not owned by this program.
+        // Direct lamport manipulation (try_borrow_mut_lamports) only works on accounts owned by this program.
+        // The receiver is owned by System Program, so we must use system_instruction::transfer.
         let escrow_lamports = ctx.accounts.escrow.to_account_info().lamports();
         let rent_exempt_minimum = Rent::get()?.minimum_balance(8 + Escrow::LEN);
         let transfer_amount = escrow_lamports
             .checked_sub(rent_exempt_minimum)
             .ok_or(EscrowError::InsufficientFunds)?;
 
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
-        **ctx.accounts.receiver.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
+        // Use system instruction to transfer - this works for accounts owned by System Program
+        let ix = system_instruction::transfer(&ctx.accounts.escrow.key(), &ctx.accounts.receiver.key(), transfer_amount);
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                ctx.accounts.escrow.to_account_info(),
+                ctx.accounts.receiver.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
 
         // Close the escrow account (return rent to receiver).
         **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? = 0;
