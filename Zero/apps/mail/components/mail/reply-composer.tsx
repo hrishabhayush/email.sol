@@ -950,6 +950,13 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   transaction.recentBlockhash = blockhash;
                   transaction.feePayer = publicKey;
 
+                  // ✅ Step 3: Log exactly once per click (detect double-invocation)
+                  console.log('📤 [SETTLEMENT] Sending tx - check console for duplicate logs', {
+                    timestamp: Date.now(),
+                    escrowAccount: escrowPda.toBase58(),
+                    replierWallet: publicKey.toBase58(),
+                  });
+
                   // CRITICAL: Verify transaction structure before sending
                   console.log('🔍 [SETTLEMENT] Transaction structure verification:', {
                     instructionCount: transaction.instructions.length,
@@ -996,14 +1003,79 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                     { id: 'claim' }
                   );
 
-                  let signature: string;
+                  // Verify wallet is connected and ready
+                  if (!wallet?.adapter?.connected) {
+                    throw new Error('Wallet is not connected');
+                  }
+
+                  // Check wallet has balance for fees
+                  const balance = await connection.getBalance(publicKey);
+                  const minBalanceForFees = 5000; // ~0.000005 SOL for fees
+                  if (balance < minBalanceForFees) {
+                    throw new Error(`Insufficient balance for transaction fees. Need at least ${minBalanceForFees / 1_000_000_000} SOL`);
+                  }
+
+                  console.log('💰 [SETTLEMENT] Wallet balance check:', {
+                    balance: `${balance / 1_000_000_000} SOL`,
+                    hasEnoughForFees: balance >= minBalanceForFees,
+                    minRequired: `${minBalanceForFees / 1_000_000_000} SOL`,
+                  });
+
+                  // Validate transaction before sending
                   try {
-                    console.log('[SETTLEMENT] Calling wallet.adapter.sendTransaction...', {
-                      replierWallet: publicKey.toBase58(),
-                      escrowAccount: escrowPda.toBase58(),
+                    // Try to serialize the transaction to catch any structural issues
+                    const serialized = transaction.serialize({ requireAllSignatures: false });
+                    console.log('✅ [SETTLEMENT] Transaction serialization successful:', {
+                      size: serialized.length,
+                      maxSize: 1232, // Solana transaction size limit
+                      isValid: serialized.length <= 1232,
                     });
 
-                    signature = await wallet.adapter.sendTransaction(transaction, connection, {
+                    if (serialized.length > 1232) {
+                      throw new Error(`Transaction too large: ${serialized.length} bytes (max 1232)`);
+                    }
+                  } catch (validationError: any) {
+                    console.error('❌ [SETTLEMENT] Transaction validation failed:', validationError);
+                    throw new Error(`Transaction validation failed: ${validationError.message}`);
+                  }
+
+                  // Connection endpoint check
+                  console.log('🌐 [SETTLEMENT] Connection check:', {
+                    endpoint: connection.rpcEndpoint,
+                    commitment: 'confirmed',
+                    walletAdapter: wallet.adapter.name,
+                    walletConnected: wallet.adapter.connected,
+                  });
+
+                  // ✅ Step 1: Simulate before sending
+                  console.log('🔍 [SETTLEMENT] Simulating transaction...');
+                  const sim = await connection.simulateTransaction(transaction);
+                  console.log('📊 [SETTLEMENT] Simulation result:', sim.value.err, sim.value.logs);
+
+                  if (sim.value.err) {
+                    console.error('❌ [SETTLEMENT] Transaction simulation FAILED - Phantom would have failed too:', {
+                      error: sim.value.err,
+                      logs: sim.value.logs,
+                    });
+                    const errorMessage = typeof sim.value.err === 'object'
+                      ? JSON.stringify(sim.value.err, null, 2)
+                      : String(sim.value.err);
+                    throw new Error(
+                      `Transaction simulation failed: ${errorMessage}. ` +
+                      `Check logs: ${sim.value.logs?.join('\n') || 'No logs'}`
+                    );
+                  }
+
+                  console.log('✅ [SETTLEMENT] Simulation passed - safe to send');
+
+                  // ✅ Step 2: Split signing and sending (avoid sendTransaction black box)
+                  let signature: string;
+                  try {
+                    // Sign the transaction
+                    const signed = await wallet.adapter.signTransaction(transaction);
+
+                    // Send the raw transaction
+                    signature = await connection.sendRawTransaction(signed.serialize(), {
                       skipPreflight: false,
                       maxRetries: 3,
                     });
@@ -1016,10 +1088,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   } catch (sendError: any) {
                     console.error('❌ [SETTLEMENT] Transaction send failed:', {
                       error: sendError,
-                      message: sendError.message,
-                      stack: sendError.stack,
+                      name: sendError?.name,
+                      message: sendError?.message,
+                      code: sendError?.code,
+                      logs: sendError?.logs,
+                      cause: sendError?.cause,
+                      stringified: JSON.stringify(sendError, Object.getOwnPropertyNames(sendError)),
+                      walletConnected: wallet?.adapter?.connected,
+                      walletName: wallet?.adapter?.name,
+                      publicKey: publicKey?.toBase58(),
+                      transactionSize: transaction.serialize({ requireAllSignatures: false }).length,
                       escrowAccount: escrowPda.toBase58(),
-                      replierWallet: publicKey.toBase58(),
+                      replierWallet: publicKey?.toBase58(),
                     });
                     throw new Error(`Failed to send settlement transaction: ${sendError.message || 'Unknown error'}`);
                   }
