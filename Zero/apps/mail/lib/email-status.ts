@@ -4,20 +4,20 @@ import { FOLDERS } from './utils';
 
 /**
  * Email status types based on folder context
+ * Badge states for the refined tagging/filtering system
  */
-export type SentFolderStatus = 
-  | 'good_response_received'
-  | 'bad_response_received'
-  | 'no_response_received'
-  | 'awaiting_response'
+export type SentFolderStatus =
+  | 'on_hold'
+  | 'paid'
+  | 'refunded'
   | null;
 
 export type InboxFolderStatus =
-  | 'good_response_sent'
-  | 'bad_response_sent_retry_available'
-  | 'bad_response_sent_no_retries'
-  | 'awaiting_ai_evaluation'
-  | 'no_response_yet'
+  | 'awaiting_evaluation'
+  | 'approved'
+  | 'attempts_remaining_2'
+  | 'attempts_remaining_1'
+  | 'attempts_remaining_0'
   | null;
 
 export type EmailStatus = SentFolderStatus | InboxFolderStatus;
@@ -32,106 +32,158 @@ export interface StatusConfig {
   bgColor: string;
   icon?: string;
   description?: string;
+  badgeIcon?: string; // Emoji icon for badge display
+  attemptsCount?: number; // For attempts remaining badges
 }
 
 /**
- * Status configurations for Sent folder
+ * Status configurations for Sent folder (Sender Mode - Micropayment-Centric)
  */
 export const SENT_STATUS_CONFIGS: Record<NonNullable<SentFolderStatus>, StatusConfig> = {
-  good_response_received: {
-    id: 'good_response_received',
-    label: 'Good Response',
-    color: 'text-green-700 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
-    icon: '✓',
-    description: 'Recipient sent a good response, payment sent',
-  },
-  bad_response_received: {
-    id: 'bad_response_received',
-    label: 'Bad Response',
-    color: 'text-orange-700 dark:text-orange-400',
-    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-    icon: '⚠',
-    description: 'Recipient sent a bad response, payment refunded',
-  },
-  no_response_received: {
-    id: 'no_response_received',
-    label: 'No Response',
-    color: 'text-gray-700 dark:text-gray-400',
-    bgColor: 'bg-gray-100 dark:bg-gray-900/30',
-    icon: '⏳',
-    description: 'No response received, payment refunded',
-  },
-  awaiting_response: {
-    id: 'awaiting_response',
-    label: 'Awaiting Response',
+  on_hold: {
+    id: 'on_hold',
+    label: 'On Hold',
     color: 'text-blue-700 dark:text-blue-400',
     bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     icon: '⏳',
-    description: 'Waiting for recipient to respond',
+    badgeIcon: '🕒',
+    description: 'Escrow pending, awaiting response',
+  },
+  paid: {
+    id: 'paid',
+    label: 'Paid',
+    color: 'text-green-700 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    icon: '✓',
+    badgeIcon: '✅',
+    description: 'Micropayment released',
+  },
+  refunded: {
+    id: 'refunded',
+    label: 'Refunded',
+    color: 'text-orange-700 dark:text-orange-400',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
+    icon: '↩',
+    badgeIcon: '↩️',
+    description: 'Micropayment returned',
   },
 };
 
 /**
- * Status configurations for Inbox folder
+ * Status configurations for Inbox folder (Receiver Mode - Quality-Centric, Attempts-Based)
  */
 export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, StatusConfig> = {
-  good_response_sent: {
-    id: 'good_response_sent',
-    label: 'Good Response',
-    color: 'text-green-700 dark:text-green-400',
-    bgColor: 'bg-green-100 dark:bg-green-900/30',
-    icon: '✓',
-    description: 'Your response was good, payment received',
-  },
-  bad_response_sent_retry_available: {
-    id: 'bad_response_sent_retry_available',
-    label: 'Bad Response - Retry Available',
-    color: 'text-orange-700 dark:text-orange-400',
-    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
-    icon: '🔄',
-    description: 'Your response was bad, you can send one follow-up to improve',
-  },
-  bad_response_sent_no_retries: {
-    id: 'bad_response_sent_no_retries',
-    label: 'Bad Response - No Retries',
-    color: 'text-red-700 dark:text-red-400',
-    bgColor: 'bg-red-100 dark:bg-red-900/30',
-    icon: '✗',
-    description: 'Your response was bad and retry already used, payment refunded',
-  },
-  awaiting_ai_evaluation: {
-    id: 'awaiting_ai_evaluation',
+  awaiting_evaluation: {
+    id: 'awaiting_evaluation',
     label: 'Awaiting Evaluation',
     color: 'text-blue-700 dark:text-blue-400',
     bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     icon: '⏳',
-    description: 'Your response is being evaluated by AI',
+    badgeIcon: '🕒',
+    description: 'Response sent, being evaluated by AI',
   },
-  no_response_yet: {
-    id: 'no_response_yet',
-    label: 'No Response Yet',
-    color: 'text-gray-700 dark:text-gray-400',
-    bgColor: 'bg-gray-100 dark:bg-gray-900/30',
-    icon: '📧',
-    description: 'You haven\'t responded to this email yet',
+  approved: {
+    id: 'approved',
+    label: 'Approved',
+    color: 'text-green-700 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
+    icon: '✓',
+    badgeIcon: '✅',
+    description: 'Response approved, payment received',
+  },
+  attempts_remaining_2: {
+    id: 'attempts_remaining_2',
+    label: 'Attempts Remaining: 2',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    icon: '❌',
+    badgeIcon: '❌',
+    attemptsCount: 2,
+    description: '2 attempts remaining',
+  },
+  attempts_remaining_1: {
+    id: 'attempts_remaining_1',
+    label: 'Attempts Remaining: 1',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    icon: '❌',
+    badgeIcon: '❌',
+    attemptsCount: 1,
+    description: '1 attempt remaining',
+  },
+  attempts_remaining_0: {
+    id: 'attempts_remaining_0',
+    label: 'Attempts Remaining: 0',
+    color: 'text-red-700 dark:text-red-400',
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    icon: '❌',
+    badgeIcon: '❌',
+    attemptsCount: 0,
+    description: 'No attempts remaining',
   },
 };
 
 /**
  * Get status filter options for a folder
+ * For inbox, combines all "attempts_remaining" states into a single filter
  */
 export function getStatusFilters(folder: string): StatusConfig[] {
   // Normalize folder - handle undefined/empty as inbox
   const normalizedFolder = folder || FOLDERS.INBOX;
-  
+
   if (normalizedFolder === FOLDERS.SENT) {
     return Object.values(SENT_STATUS_CONFIGS);
   }
   if (normalizedFolder === FOLDERS.INBOX) {
-    return Object.values(INBOX_STATUS_CONFIGS);
+    // Combine all attempts_remaining states into a single filter option
+    const filters: StatusConfig[] = [];
+
+    // Add non-attempts filters
+    filters.push(INBOX_STATUS_CONFIGS.awaiting_evaluation);
+    filters.push(INBOX_STATUS_CONFIGS.approved);
+
+    // Add combined attempts remaining filter
+    filters.push({
+      id: 'attempts_remaining',
+      label: 'Attempts Remaining',
+      color: 'text-red-700 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
+      icon: '❌',
+      badgeIcon: '❌',
+      description: 'Has attempts remaining (2, 1, or 0)',
+    });
+
+    return filters;
   }
   return [];
+}
+
+/**
+ * Get badge status for display (returns the badge icon and label)
+ */
+export function getBadgeStatus(
+  status: EmailStatus,
+  folder: string,
+): { icon: string; label: string; attemptsCount?: number } | null {
+  if (!status) return null;
+
+  const config = getStatusConfig(status, folder);
+  if (!config) return null;
+
+  return {
+    icon: config.badgeIcon || config.icon || '',
+    label: config.label,
+    attemptsCount: config.attemptsCount,
+  };
+}
+
+/**
+ * Check if a status is an "attempts remaining" status
+ */
+export function isAttemptsRemainingStatus(status: EmailStatus): boolean {
+  return status === 'attempts_remaining_2' ||
+    status === 'attempts_remaining_1' ||
+    status === 'attempts_remaining_0';
 }
 
 /**
@@ -157,11 +209,11 @@ function isMessageToUser(message: ParsedMessage, userEmail: string): boolean {
  */
 function getLatestResponse(messages: ParsedMessage[], userEmail: string, isSentFolder: boolean): ParsedMessage | null {
   if (messages.length <= 1) return null;
-  
+
   // For sent folder, find the latest message that's NOT from the user
   // For inbox folder, find the latest message that IS from the user
   const relevantMessages = messages.slice(1).reverse(); // Skip first message, check from latest
-  
+
   if (isSentFolder) {
     return relevantMessages.find((msg) => !isMessageFromUser(msg, userEmail)) || null;
   } else {
@@ -170,61 +222,114 @@ function getLatestResponse(messages: ParsedMessage[], userEmail: string, isSentF
 }
 
 /**
- * Check if user has already used their retry for a thread
+ * Calculate attempts remaining based on user responses and their scores
  * 
- * Retry logic:
- * - User gets ONE chance to send a follow-up after a bad response
- * - If user sends a bad response, they can send one follow-up
- * - After follow-up is evaluated, if it's still bad, no more retries
+ * Logic:
+ * - Start with 2 attempts for emails with escrows
+ * - Decrease by 1 for each bad response (score < 70)
+ * - If score >= 70, show "Approved" instead of attempts remaining
  * 
- * This would ideally be tracked in the database with a field like:
- * - retryUsed: boolean
- * - retryMessageId: string | null
- * 
- * For now, we check if there are multiple responses from the user after the first bad response
+ * @param messages - All messages in the thread
+ * @param userEmail - Current user's email
+ * @param aiEvaluationResults - Map of message IDs to their evaluation results (score or 'good'/'bad')
+ * @returns Number of attempts remaining (2, 1, or 0)
  */
-function hasUsedRetry(messages: ParsedMessage[], userEmail: string): boolean {
-  if (messages.length <= 1) return false;
-  
-  // Find all user responses (excluding the first message if it's from the user)
+function calculateAttemptsRemaining(
+  messages: ParsedMessage[],
+  userEmail: string,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>,
+): number {
+  // Start with 2 attempts for emails with escrows
+  let attemptsRemaining = 2;
+
+  // Find all user responses (excluding the first message)
   const userResponses = messages.filter((msg, index) => {
-    // Skip the first message (original email)
-    if (index === 0) return false;
+    if (index === 0) return false; // Skip first message (original email)
     return isMessageFromUser(msg, userEmail);
   });
-  
-  // If user has sent more than 1 response, retry was likely used
-  // More accurate: check if there's a response after a bad evaluation
-  // For now, simple heuristic: if user sent 2+ responses, retry was used
-  return userResponses.length > 1;
+
+  // Count bad responses (score < 70)
+  for (const response of userResponses) {
+    if (aiEvaluationResults) {
+      const result = aiEvaluationResults.get(response.id);
+      if (result !== undefined) {
+        // If we have a numeric score, check if it's < 70
+        if (typeof result === 'number') {
+          if (result < 70) {
+            attemptsRemaining = Math.max(0, attemptsRemaining - 1);
+          } else {
+            // Good response - return early, will show "Approved" instead
+            return attemptsRemaining;
+          }
+        } else if (result === 'bad') {
+          attemptsRemaining = Math.max(0, attemptsRemaining - 1);
+        } else if (result === 'good') {
+          // Good response - return early, will show "Approved" instead
+          return attemptsRemaining;
+        }
+      }
+    }
+  }
+
+  return attemptsRemaining;
 }
 
 /**
- * Check if user can still retry (hasn't used their retry yet)
+ * Get badge status for inbox folder based on attempts and evaluation results
  */
-export function canRetry(messages: ParsedMessage[], userEmail: string, currentStatus: InboxFolderStatus): boolean {
-  if (currentStatus !== 'bad_response_sent_retry_available') {
-    return false;
+function getInboxBadgeStatus(
+  messages: ParsedMessage[],
+  userEmail: string,
+  hasEscrow: boolean,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>,
+  latestUserResponse?: ParsedMessage | null,
+): InboxFolderStatus | null {
+  if (!hasEscrow) return null;
+
+  // If user hasn't responded yet, show default "Attempts Remaining: 2"
+  if (!latestUserResponse) {
+    return 'attempts_remaining_2';
   }
-  return !hasUsedRetry(messages, userEmail);
+
+  // Check if latest response has been evaluated
+  if (latestUserResponse && aiEvaluationResults) {
+    const result = aiEvaluationResults.get(latestUserResponse.id);
+
+    if (result !== undefined) {
+      // Check if response is good (score >= 70 or 'good')
+      const isGood = typeof result === 'number' ? result >= 70 : result === 'good';
+
+      if (isGood) {
+        return 'approved';
+      } else {
+        // Bad response - calculate attempts remaining
+        const attempts = calculateAttemptsRemaining(messages, userEmail, aiEvaluationResults);
+        if (attempts === 2) return 'attempts_remaining_2';
+        if (attempts === 1) return 'attempts_remaining_1';
+        return 'attempts_remaining_0';
+      }
+    }
+  }
+
+  // If response exists but not yet evaluated, show awaiting evaluation
+  // (though in practice this won't occur since scoring happens immediately)
+  return 'awaiting_evaluation';
 }
 
 /**
  * Determine email status based on folder context
+ * Returns badge states for the refined tagging/filtering system
  * 
- * This is a placeholder implementation. In production, you would:
- * 1. Check escrow status from blockchain or cached data
- * 2. Check AI evaluation results from your evaluation service
- * 3. Track retry usage in database
- * 
- * For now, this provides the structure and logic flow.
+ * Sender Mode (Sent folder): on_hold, paid, refunded
+ * Receiver Mode (Inbox folder): awaiting_evaluation, approved, attempts_remaining_N
  */
 export function getEmailStatus(
   messages: ParsedMessage[],
   folder: string,
   userEmail: string,
   escrowStatus?: 'pending' | 'claimed' | 'refunded' | null,
-  aiEvaluationResult?: 'good' | 'bad' | 'pending' | null,
+  aiEvaluationResult?: 'good' | 'bad' | 'pending' | number | null,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>, // Map of message IDs to scores
 ): EmailStatus {
   if (!messages || messages.length === 0) return null;
 
@@ -235,89 +340,56 @@ export function getEmailStatus(
   const firstMessage = messages[0];
   const hasEscrow = hasEscrowHeaders(firstMessage);
 
-  // For now, show status even without escrow headers for testing/demo purposes
-  // In production, you might want to only show status for emails with escrow
-  // if (!hasEscrow) return null;
+  // Only show badges for emails with escrow
+  if (!hasEscrow) return null;
 
-  // For Sent folder: check if recipient responded and quality
+  // For Sent folder (Sender Mode - Micropayment-Centric)
   if (isSentFolder) {
     const latestResponse = getLatestResponse(messages, userEmail, true);
-    
+
     if (!latestResponse) {
-      // No response yet
-      if (escrowStatus === 'pending') {
-        return 'awaiting_response';
-      }
-      if (escrowStatus === 'refunded') {
-        return 'no_response_received';
-      }
-      // Default: show awaiting response if we have escrow, otherwise null
-      return hasEscrow ? 'awaiting_response' : null;
+      // No response yet - escrow is on hold
+      return 'on_hold';
     }
 
-    // Response received - check quality
-    if (aiEvaluationResult === 'good') {
-      return 'good_response_received';
-    }
-    if (aiEvaluationResult === 'bad') {
-      return 'bad_response_received';
+    // Response received - check escrow status
+    if (escrowStatus === 'claimed') {
+      return 'paid';
     }
     if (escrowStatus === 'refunded') {
-      // If refunded and we have a response, it was likely bad
-      return 'bad_response_received';
+      return 'refunded';
     }
-    if (escrowStatus === 'claimed') {
-      // If claimed, response was likely good
-      return 'good_response_received';
+
+    // Fallback: check evaluation result if escrow status not available
+    if (aiEvaluationResult === 'good' || (typeof aiEvaluationResult === 'number' && aiEvaluationResult >= 70)) {
+      return 'paid';
     }
-    
-    // Still evaluating - default to awaiting if we have escrow
-    return hasEscrow ? 'awaiting_response' : null;
+    if (aiEvaluationResult === 'bad' || (typeof aiEvaluationResult === 'number' && aiEvaluationResult < 70)) {
+      return 'refunded';
+    }
+
+    // Still pending - on hold
+    return 'on_hold';
   }
 
-  // For Inbox folder: check if user responded and quality
+  // For Inbox folder (Receiver Mode - Quality-Centric, Attempts-Based)
   if (isInboxFolder) {
     const latestUserResponse = getLatestResponse(messages, userEmail, false);
-    
-    if (!latestUserResponse) {
-      // User hasn't responded yet - show "no response yet" status
-      // Only show if email has escrow (otherwise it's just a regular email)
-      return hasEscrow ? 'no_response_yet' : null;
-    }
 
-    // Check if retry was used
-    const retryUsed = hasUsedRetry(messages, userEmail);
+    // Build evaluation results map if provided
+    const evaluationMap = aiEvaluationResults || new Map<string, number | 'good' | 'bad'>();
 
-    // Check evaluation result
-    if (aiEvaluationResult === 'good') {
-      return 'good_response_sent';
-    }
-    if (aiEvaluationResult === 'bad') {
-      if (retryUsed) {
-        return 'bad_response_sent_no_retries';
+    // If we have a single evaluation result, add it to the map for the latest response
+    if (latestUserResponse && aiEvaluationResult !== undefined && aiEvaluationResult !== null) {
+      if (typeof aiEvaluationResult === 'number') {
+        evaluationMap.set(latestUserResponse.id, aiEvaluationResult);
+      } else if (aiEvaluationResult === 'good' || aiEvaluationResult === 'bad') {
+        // Only add 'good' or 'bad', skip 'pending'
+        evaluationMap.set(latestUserResponse.id, aiEvaluationResult);
       }
-      return 'bad_response_sent_retry_available';
-    }
-    
-    // If no evaluation result yet, show awaiting evaluation
-    // This will show for emails that have responses but haven't been evaluated yet
-    if (!aiEvaluationResult || aiEvaluationResult === 'pending') {
-      return 'awaiting_ai_evaluation';
     }
 
-    // Fallback: check escrow status
-    if (escrowStatus === 'claimed') {
-      return 'good_response_sent';
-    }
-    if (escrowStatus === 'refunded' && retryUsed) {
-      return 'bad_response_sent_no_retries';
-    }
-    if (escrowStatus === 'refunded') {
-      return 'bad_response_sent_retry_available';
-    }
-
-    // Default: if we have a response but no evaluation/escrow info, show awaiting
-    return hasEscrow ? 'awaiting_ai_evaluation' : null;
+    return getInboxBadgeStatus(messages, userEmail, hasEscrow, evaluationMap, latestUserResponse);
   }
 
   return null;

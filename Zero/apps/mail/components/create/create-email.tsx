@@ -86,6 +86,7 @@ export function CreateEmail({
     message: string;
     attachments: File[];
     fromEmail?: string;
+    headers?: Record<string, string>;  
   }) => {
     const fromEmail = data.fromEmail || aliases?.[0]?.email || userEmail;
 
@@ -102,6 +103,7 @@ export function CreateEmail({
       attachments: await serializeFiles(data.attachments),
       fromEmail: userName.trim() ? `${userName.replace(/[<>]/g, '')} <${fromEmail}>` : fromEmail,
       draftId: draftId ?? undefined,
+      headers: data.headers ?? {},  
     });
 
     // Clear draft ID from URL

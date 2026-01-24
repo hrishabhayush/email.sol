@@ -15,11 +15,9 @@ import { type HonoContext } from '../../ctx';
 import { env } from 'cloudflare:workers';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-<<<<<<< HEAD
-import { getEmailStatus } from '../../lib/email-status';
-=======
 import { scoreEmail, type ScoringProgressCallback } from '../../routes/agent/email-scoring-tool';
 import { decide } from '../../routes/agent/escrow-decision';
+import { getEmailStatus } from '../../lib/email-status';
 
 // In-memory progress cache for email scoring
 // Key: requestId, Value: { step: string, data?: any, completed?: boolean, result?: any }
@@ -30,7 +28,6 @@ const scoringProgressCache = new Map<string, {
   result?: { score: number; recommendations: string[]; decision: 'RELEASE' | 'WITHHOLD' };
   error?: string;
 }>();
->>>>>>> d7df138278febc846574cae0046e73df1162b309
 
 const senderSchema = z.object({
   name: z.string().optional(),
@@ -59,7 +56,32 @@ export const mailRouter = router({
       const { activeConnection } = ctx;
       const executionCtx = getContext<HonoContext>().executionCtx;
       const agent = await getZeroClient(activeConnection.id, executionCtx);
-      return await agent.getThread(input.id, true, input.forceFresh);
+      const threadData = await agent.getThread(input.id, true, input.forceFresh);
+
+      // HEADER DEBUG: Log headers being sent to frontend via TRPC
+      if (threadData.messages && threadData.messages.length > 0) {
+        threadData.messages.forEach((msg: any, index: number) => {
+          const headers = msg.headers || {};
+          const headerKeys = Object.keys(headers);
+          const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
+          const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
+
+          console.log(`[HEADER DEBUG - TRPC Response] Message ${index}`, {
+            '📍 Location': 'mail.ts get() - Sending to frontend via TRPC',
+            '📧 Message ID': msg.id,
+            '📌 Subject': msg.subject,
+            '📊 Header Count': headerKeys.length,
+            '🔑 Header Keys': headerKeys,
+            '✅ Has Escrow Thread ID': !!escrowThreadId,
+            '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
+            '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
+            '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
+            '🔄 Force Fresh': input.forceFresh,
+          });
+        });
+      }
+
+      return threadData;
     }),
   count: activeDriverProcedure
     .output(
@@ -85,15 +107,17 @@ export const mailRouter = router({
         labelIds: z.array(z.string()).optional().default([]),
         status: z
           .enum([
-            'good_response_received',
-            'bad_response_received',
-            'no_response_received',
-            'awaiting_response',
-            'good_response_sent',
-            'bad_response_sent_retry_available',
-            'bad_response_sent_no_retries',
-            'awaiting_ai_evaluation',
-            'no_response_yet',
+            // Sender Mode (Sent folder)
+            'on_hold',
+            'paid',
+            'refunded',
+            // Receiver Mode (Inbox folder)
+            'awaiting_evaluation',
+            'approved',
+            'attempts_remaining_2',
+            'attempts_remaining_1',
+            'attempts_remaining_0',
+            'attempts_remaining', // Combined filter for all attempts remaining states
           ])
           .optional(),
       }),
@@ -301,7 +325,14 @@ export const mailRouter = router({
               );
 
               // Include thread if status matches filter
-              if (threadStatus === status) {
+              // Handle combined "attempts_remaining" filter
+              if (status === 'attempts_remaining') {
+                if (threadStatus === 'attempts_remaining_2' ||
+                  threadStatus === 'attempts_remaining_1' ||
+                  threadStatus === 'attempts_remaining_0') {
+                  filtered.push(t);
+                }
+              } else if (threadStatus === status) {
                 filtered.push(t);
               }
             } catch (error) {

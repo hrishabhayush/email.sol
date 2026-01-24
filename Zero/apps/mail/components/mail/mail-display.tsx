@@ -48,6 +48,7 @@ import { useThread } from '@/hooks/use-threads';
 import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
 import { MailContent } from './mail-content';
+import { BadgeIcon } from './badge-icon';
 import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 import { FileText } from 'lucide-react';
@@ -55,6 +56,8 @@ import { useQueryState } from 'nuqs';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { getEmailStatus } from '@/lib/email-status';
+import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 
 // HTML escaping function to prevent XSS attacks
 function escapeHtml(text: string): string {
@@ -405,57 +408,57 @@ const downloadAttachment = async (attachment: {
 
 const handleDownloadAllAttachments =
   (subject: string, attachments: { body: string; mimeType: string; filename: string }[]) =>
-  async () => {
-    if (!attachments.length) return;
+    async () => {
+      if (!attachments.length) return;
 
-    const JSZip = (await import('jszip')).default;
-    const zip = new JSZip();
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
 
-    console.log('attachments', attachments);
-    attachments.forEach((attachment) => {
-      try {
-        const byteCharacters = atob(attachment.body);
-        const byteNumbers: number[] = Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+      console.log('attachments', attachments);
+      attachments.forEach((attachment) => {
+        try {
+          const byteCharacters = atob(attachment.body);
+          const byteNumbers: number[] = Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+
+          zip.file(attachment.filename, byteArray, {
+            binary: true,
+            date: new Date(),
+            unixPermissions: 0o644,
+          });
+        } catch (error) {
+          console.error(`Error adding ${attachment.filename} to zip:`, error);
         }
-        const byteArray = new Uint8Array(byteNumbers);
-
-        zip.file(attachment.filename, byteArray, {
-          binary: true,
-          date: new Date(),
-          unixPermissions: 0o644,
-        });
-      } catch (error) {
-        console.error(`Error adding ${attachment.filename} to zip:`, error);
-      }
-    });
-
-    // Generate and download the zip file
-    zip
-      .generateAsync({
-        type: 'blob',
-        compression: 'DEFLATE',
-        compressionOptions: {
-          level: 9,
-        },
-      })
-      .then((content) => {
-        const url = window.URL.createObjectURL(content);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `attachments-${subject || 'email'}.zip`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      })
-      .catch((error) => {
-        console.error('Error generating zip file:', error);
       });
 
-    console.log('downloaded', subject, attachments);
-  };
+      // Generate and download the zip file
+      zip
+        .generateAsync({
+          type: 'blob',
+          compression: 'DEFLATE',
+          compressionOptions: {
+            level: 9,
+          },
+        })
+        .then((content) => {
+          const url = window.URL.createObjectURL(content);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `attachments-${subject || 'email'}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        })
+        .catch((error) => {
+          console.error('Error generating zip file:', error);
+        });
+
+      console.log('downloaded', subject, attachments);
+    };
 
 const openAttachment = async (attachment: {
   body: string;
@@ -680,6 +683,74 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
     () => emailData.id === threadData?.latest?.id,
     [emailData.id, threadData?.latest?.id],
   );
+
+  // Calculate email status for badge display
+  const emailStatus = useMemo(() => {
+    if (!threadData?.messages || !activeConnection?.email) return null;
+
+    // HEADER DEBUG: Log headers at frontend before status calculation
+    if (process.env.NODE_ENV === 'development') {
+      threadData.messages.forEach((msg, index) => {
+        const headers = msg.headers || {};
+        const headerKeys = Object.keys(headers);
+        const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
+        const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
+
+        console.log(`[HEADER DEBUG - Frontend Email View] Message ${index}`, {
+          '📍 Location': 'mail-display.tsx - Frontend received data',
+          '📧 Message ID': msg.id,
+          '📌 Subject': msg.subject,
+          '📊 Header Count': headerKeys.length,
+          '🔑 Header Keys': headerKeys,
+          '✅ Has Escrow Thread ID': !!escrowThreadId,
+          '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
+          '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
+          '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
+          '📋 All Headers': headers,
+        });
+      });
+    }
+
+    const status = getEmailStatus(
+      threadData.messages,
+      folder || 'inbox',
+      activeConnection.email,
+      undefined, // escrowStatus - would come from blockchain/evaluation service
+      undefined, // aiEvaluationResult - would come from evaluation service
+    );
+
+    // Human-readable debug logging
+    if (process.env.NODE_ENV === 'development') {
+      const firstMessage = threadData.messages[0];
+      const latestMessage = threadData.latest || firstMessage;
+      const hasEscrow = firstMessage ? hasEscrowHeaders(firstMessage) : false;
+      const subject = emailData?.subject || latestMessage?.subject || 'No Subject';
+      const timeSent = emailData?.receivedOn || latestMessage?.receivedOn || 'Unknown';
+
+      // Check headers in detail
+      const headers = firstMessage?.headers || {};
+      const headerKeys = Object.keys(headers);
+      const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
+      const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
+
+      console.log('📧 [BADGE DEBUG - Email View]', {
+        '📌 Email': subject,
+        '🕒 Time Sent': timeSent,
+        '📁 Folder': folder || 'inbox',
+        '✅ Has Escrow': hasEscrow,
+        '🏷️ Badge Status': status || 'null (no badge)',
+        '📊 Message Count': threadData.messages.length,
+        '🔑 Email ID': emailData.id,
+        '📋 Header Keys': headerKeys,
+        '🔍 Escrow Thread ID Found': !!escrowThreadId,
+        '🔍 Escrow Sender Pubkey Found': !!escrowSenderPubkey,
+        '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
+        '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
+      });
+    }
+
+    return status;
+  }, [threadData?.messages, folder, activeConnection?.email, emailData?.subject, emailData?.receivedOn, emailData?.id, threadData?.latest]);
 
   const [, setMode] = useQueryState('mode');
 
@@ -999,17 +1070,16 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             <div class="email-header">
               <h1 class="email-title">${emailData.subject || 'No Subject'}</h1>
 
-              ${
-                emailData?.tags && emailData.tags.length > 0
-                  ? `
+              ${emailData?.tags && emailData.tags.length > 0
+          ? `
                 <div class="labels-section">
                   ${emailData.tags
-                    .map((tag) => `<span class="label-badge">${tag.name}</span>`)
-                    .join('')}
+            .map((tag) => `<span class="label-badge">${tag.name}</span>`)
+            .join('')}
                 </div>
               `
-                  : ''
-              }
+          : ''
+        }
 
               <div class="email-meta">
                 <div class="meta-row">
@@ -1020,59 +1090,56 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                   </span>
                 </div>
 
-                ${
-                  emailData.to && emailData.to.length > 0
-                    ? `
+                ${emailData.to && emailData.to.length > 0
+          ? `
                   <div class="meta-row">
                     <span class="meta-label">To:</span>
                     <span class="meta-value">
                       ${emailData.to
-                        .map(
-                          (recipient) =>
-                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-                        )
-                        .join(', ')}
+            .map(
+              (recipient) =>
+                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+            )
+            .join(', ')}
                     </span>
                   </div>
                 `
-                    : ''
-                }
+          : ''
+        }
 
-                ${
-                  emailData.cc && emailData.cc.length > 0
-                    ? `
+                ${emailData.cc && emailData.cc.length > 0
+          ? `
                   <div class="meta-row">
                     <span class="meta-label">CC:</span>
                     <span class="meta-value">
                       ${emailData.cc
-                        .map(
-                          (recipient) =>
-                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-                        )
-                        .join(', ')}
+            .map(
+              (recipient) =>
+                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+            )
+            .join(', ')}
                     </span>
                   </div>
                 `
-                    : ''
-                }
+          : ''
+        }
 
-                ${
-                  emailData.bcc && emailData.bcc.length > 0
-                    ? `
+                ${emailData.bcc && emailData.bcc.length > 0
+          ? `
                   <div class="meta-row">
                     <span class="meta-label">BCC:</span>
                     <span class="meta-value">
                       ${emailData.bcc
-                        .map(
-                          (recipient) =>
-                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-                        )
-                        .join(', ')}
+            .map(
+              (recipient) =>
+                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+            )
+            .join(', ')}
                     </span>
                   </div>
                 `
-                    : ''
-                }
+          : ''
+        }
 
                 <div class="meta-row">
                   <span class="meta-label">Date:</span>
@@ -1091,25 +1158,24 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             </div>
 
             <!-- Attachments -->
-            ${
-              messageAttachments && messageAttachments.length > 0
-                ? `
+            ${messageAttachments && messageAttachments.length > 0
+          ? `
               <div class="attachments-section">
                 <h2 class="attachments-title">Attachments (${messageAttachments.length})</h2>
                 ${messageAttachments
-                  .map(
-                    (attachment) => `
+            .map(
+              (attachment) => `
                   <div class="attachment-item">
                     <span class="attachment-name">${attachment.filename}</span>
                     ${formatFileSize(attachment.size) ? ` - <span class="attachment-size">${formatFileSize(attachment.size)}</span>` : ''}
                   </div>
                 `,
-                  )
-                  .join('')}
+            )
+            .join('')}
               </div>
             `
-                : ''
-            }
+          : ''
+        }
           </div>
         </body>
       </html>
@@ -1433,7 +1499,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {emailData?.receivedOn &&
-                                    !isNaN(new Date(emailData.receivedOn).getTime())
+                                      !isNaN(new Date(emailData.receivedOn).getTime())
                                       ? format(new Date(emailData.receivedOn), 'PPpp')
                                       : ''}
                                   </span>
@@ -1470,7 +1536,10 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                           </Popover>
                         </div>
 
-                        <div className="flex items-center justify-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {emailStatus && (
+                            <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
+                          )}
                           <div className="text-muted-foreground mr-2 flex flex-col flex-nowrap! items-end text-sm font-medium dark:text-[#8C8C8C]">
                             <time className="whitespace-nowrap">
                               {emailData?.receivedOn ? formatDate(emailData.receivedOn) : ''}

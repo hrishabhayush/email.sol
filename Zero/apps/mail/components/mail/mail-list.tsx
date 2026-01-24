@@ -46,9 +46,11 @@ import { useQueryState } from 'nuqs';
 import { Categories } from './mail';
 import { useAtom } from 'jotai';
 import { StatusTag } from './status-tag';
+import { BadgeIcon } from './badge-icon';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { getEmailStatus } from '@/lib/email-status';
 import type { EmailStatus } from '@/lib/email-status';
+import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 
 const Thread = memo(
   function Thread({
@@ -79,6 +81,29 @@ const Thread = memo(
       let emailStatus: EmailStatus = null;
       if (getThreadData?.messages && userEmail) {
         try {
+          // HEADER DEBUG: Log headers at frontend before status calculation
+          if (process.env.NODE_ENV === 'development') {
+            getThreadData.messages.forEach((msg, index) => {
+              const headers = msg.headers || {};
+              const headerKeys = Object.keys(headers);
+              const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
+              const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
+
+              console.log(`[HEADER DEBUG - Frontend Sidebar] Message ${index}`, {
+                '📍 Location': 'mail-list.tsx - Frontend received data',
+                '📧 Message ID': msg.id,
+                '📌 Subject': msg.subject,
+                '📊 Header Count': headerKeys.length,
+                '🔑 Header Keys': headerKeys,
+                '✅ Has Escrow Thread ID': !!escrowThreadId,
+                '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
+                '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
+                '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
+                '📋 All Headers': headers,
+              });
+            });
+          }
+
           emailStatus = getEmailStatus(
             getThreadData.messages,
             folder || '',
@@ -86,13 +111,33 @@ const Thread = memo(
             undefined, // escrowStatus - would come from blockchain/evaluation service
             undefined, // aiEvaluationResult - would come from evaluation service
           );
-          // Debug logging
-          if (process.env.NODE_ENV === 'development' && emailStatus) {
-            console.log('[Thread] Calculated status:', {
-              threadId: idToUse,
-              emailStatus,
-              folder,
-              messageCount: getThreadData.messages.length,
+
+          // Human-readable debug logging
+          if (process.env.NODE_ENV === 'development') {
+            const firstMessage = getThreadData.messages[0];
+            const hasEscrow = firstMessage ? hasEscrowHeaders(firstMessage) : false;
+            const subject = latestMessage?.subject || firstMessage?.subject || 'No Subject';
+            const timeSent = latestMessage?.receivedOn || firstMessage?.receivedOn || 'Unknown';
+
+            // Check headers in detail
+            const headers = firstMessage?.headers || {};
+            const headerKeys = Object.keys(headers);
+            const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
+            const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
+
+            console.log('📧 [BADGE DEBUG - Sidebar]', {
+              '📌 Email': subject,
+              '🕒 Time Sent': timeSent,
+              '📁 Folder': folder || 'inbox',
+              '✅ Has Escrow': hasEscrow,
+              '🏷️ Badge Status': emailStatus || 'null (no badge)',
+              '📊 Message Count': getThreadData.messages.length,
+              '🔑 Thread ID': idToUse,
+              '📋 Header Keys': headerKeys,
+              '🔍 Escrow Thread ID Found': !!escrowThreadId,
+              '🔍 Escrow Sender Pubkey Found': !!escrowSenderPubkey,
+              '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
+              '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
             });
           }
         } catch (error) {
@@ -263,7 +308,7 @@ const Thread = memo(
             className={cn(
               'hover:bg-offsetLight hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
               (isMailSelected || isMailBulkSelected || isKeyboardFocused) &&
-                'border-border bg-primary/5 opacity-100',
+              'border-border bg-primary/5 opacity-100',
               isKeyboardFocused && 'ring-primary/50',
               'relative',
               'group',
@@ -496,14 +541,19 @@ const Thread = memo(
                       )}
                     </div>
                     {latestMessage.receivedOn ? (
-                      <p
-                        className={cn(
-                          'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
-                          isMailSelected && 'opacity-100',
+                      <div className="flex items-center gap-2">
+                        {emailStatus && (
+                          <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
                         )}
-                      >
-                        {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
-                      </p>
+                        <p
+                          className={cn(
+                            'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
+                            isMailSelected && 'opacity-100',
+                          )}
+                        >
+                          {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
+                        </p>
+                      </div>
                     ) : null}
                   </div>
                   <div className="flex justify-between">

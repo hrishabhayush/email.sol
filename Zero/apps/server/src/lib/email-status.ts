@@ -3,20 +3,20 @@ import { FOLDERS } from './utils';
 
 /**
  * Email status types (shared with client)
+ * Badge states for the refined tagging/filtering system
  */
-export type SentFolderStatus = 
-  | 'good_response_received'
-  | 'bad_response_received'
-  | 'no_response_received'
-  | 'awaiting_response'
+export type SentFolderStatus =
+  | 'on_hold'
+  | 'paid'
+  | 'refunded'
   | null;
 
 export type InboxFolderStatus =
-  | 'good_response_sent'
-  | 'bad_response_sent_retry_available'
-  | 'bad_response_sent_no_retries'
-  | 'awaiting_ai_evaluation'
-  | 'no_response_yet'
+  | 'awaiting_evaluation'
+  | 'approved'
+  | 'attempts_remaining_2'
+  | 'attempts_remaining_1'
+  | 'attempts_remaining_0'
   | null;
 
 export type EmailStatus = SentFolderStatus | InboxFolderStatus;
@@ -55,9 +55,9 @@ function isMessageToUser(message: ParsedMessage, userEmail: string): boolean {
  */
 function getLatestResponse(messages: ParsedMessage[], userEmail: string, isSentFolder: boolean): ParsedMessage | null {
   if (messages.length <= 1) return null;
-  
+
   const relevantMessages = messages.slice(1).reverse();
-  
+
   if (isSentFolder) {
     return relevantMessages.find((msg) => !isMessageFromUser(msg, userEmail)) || null;
   } else {
@@ -66,28 +66,92 @@ function getLatestResponse(messages: ParsedMessage[], userEmail: string, isSentF
 }
 
 /**
- * Check if user has already used their retry for a thread
+ * Calculate attempts remaining based on user responses and their scores
  */
-function hasUsedRetry(messages: ParsedMessage[], userEmail: string): boolean {
-  if (messages.length <= 1) return false;
-  
+function calculateAttemptsRemaining(
+  messages: ParsedMessage[],
+  userEmail: string,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>,
+): number {
+  let attemptsRemaining = 2;
+
   const userResponses = messages.filter((msg, index) => {
     if (index === 0) return false;
     return isMessageFromUser(msg, userEmail);
   });
-  
-  return userResponses.length > 1;
+
+  for (const response of userResponses) {
+    if (aiEvaluationResults) {
+      const result = aiEvaluationResults.get(response.id);
+      if (result !== undefined) {
+        if (typeof result === 'number') {
+          if (result < 70) {
+            attemptsRemaining = Math.max(0, attemptsRemaining - 1);
+          } else {
+            return attemptsRemaining;
+          }
+        } else if (result === 'bad') {
+          attemptsRemaining = Math.max(0, attemptsRemaining - 1);
+        } else if (result === 'good') {
+          return attemptsRemaining;
+        }
+      }
+    }
+  }
+
+  return attemptsRemaining;
+}
+
+/**
+ * Get badge status for inbox folder based on attempts and evaluation results
+ */
+function getInboxBadgeStatus(
+  messages: ParsedMessage[],
+  userEmail: string,
+  hasEscrow: boolean,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>,
+  latestUserResponse?: ParsedMessage | null,
+): InboxFolderStatus | null {
+  if (!hasEscrow) return null;
+
+  if (!latestUserResponse) {
+    return 'attempts_remaining_2';
+  }
+
+  if (latestUserResponse && aiEvaluationResults) {
+    const result = aiEvaluationResults.get(latestUserResponse.id);
+
+    if (result !== undefined) {
+      const isGood = typeof result === 'number' ? result >= 70 : result === 'good';
+
+      if (isGood) {
+        return 'approved';
+      } else {
+        const attempts = calculateAttemptsRemaining(messages, userEmail, aiEvaluationResults);
+        if (attempts === 2) return 'attempts_remaining_2';
+        if (attempts === 1) return 'attempts_remaining_1';
+        return 'attempts_remaining_0';
+      }
+    }
+  }
+
+  return 'awaiting_evaluation';
 }
 
 /**
  * Determine email status based on folder context (server-side version)
+ * Returns badge states for the refined tagging/filtering system
+ * 
+ * Sender Mode (Sent folder): on_hold, paid, refunded
+ * Receiver Mode (Inbox folder): awaiting_evaluation, approved, attempts_remaining_N
  */
 export function getEmailStatus(
   messages: ParsedMessage[],
   folder: string,
   userEmail: string,
   escrowStatus?: 'pending' | 'claimed' | 'refunded' | null,
-  aiEvaluationResult?: 'good' | 'bad' | 'pending' | null,
+  aiEvaluationResult?: 'good' | 'bad' | 'pending' | number | null,
+  aiEvaluationResults?: Map<string, number | 'good' | 'bad'>, // Map of message IDs to scores
 ): EmailStatus {
   if (!messages || messages.length === 0) return null;
 
@@ -97,73 +161,52 @@ export function getEmailStatus(
   const firstMessage = messages[0];
   const hasEscrow = hasEscrowHeaders(firstMessage);
 
-  // For now, show status even without escrow headers for testing/demo purposes
-  // if (!hasEscrow) return null;
+  // Only show badges for emails with escrow
+  if (!hasEscrow) return null;
 
-  // For Sent folder: check if recipient responded and quality
+  // For Sent folder (Sender Mode - Micropayment-Centric)
   if (isSentFolder) {
     const latestResponse = getLatestResponse(messages, userEmail, true);
-    
+
     if (!latestResponse) {
-      if (escrowStatus === 'pending') {
-        return 'awaiting_response';
-      }
-      if (escrowStatus === 'refunded') {
-        return 'no_response_received';
-      }
-      return hasEscrow ? 'awaiting_response' : null;
+      return 'on_hold';
     }
 
-    if (aiEvaluationResult === 'good') {
-      return 'good_response_received';
-    }
-    if (aiEvaluationResult === 'bad') {
-      return 'bad_response_received';
+    if (escrowStatus === 'claimed') {
+      return 'paid';
     }
     if (escrowStatus === 'refunded') {
-      return 'bad_response_received';
+      return 'refunded';
     }
-    if (escrowStatus === 'claimed') {
-      return 'good_response_received';
+
+    // Fallback: check evaluation result if escrow status not available
+    if (aiEvaluationResult === 'good' || (typeof aiEvaluationResult === 'number' && aiEvaluationResult >= 70)) {
+      return 'paid';
     }
-    
-    return hasEscrow ? 'awaiting_response' : null;
+    if (aiEvaluationResult === 'bad' || (typeof aiEvaluationResult === 'number' && aiEvaluationResult < 70)) {
+      return 'refunded';
+    }
+
+    return 'on_hold';
   }
 
-  // For Inbox folder: check if user responded and quality
+  // For Inbox folder (Receiver Mode - Quality-Centric, Attempts-Based)
   if (isInboxFolder) {
     const latestUserResponse = getLatestResponse(messages, userEmail, false);
-    
-    if (!latestUserResponse) {
-      return hasEscrow ? 'no_response_yet' : null;
-    }
 
-    const retryUsed = hasUsedRetry(messages, userEmail);
+    // Build evaluation results map if provided
+    const evaluationMap = aiEvaluationResults || new Map<string, number | 'good' | 'bad'>();
 
-    if (aiEvaluationResult === 'good') {
-      return 'good_response_sent';
-    }
-    if (aiEvaluationResult === 'bad') {
-      if (retryUsed) {
-        return 'bad_response_sent_no_retries';
+    // If we have a single evaluation result, add it to the map for the latest response
+    if (latestUserResponse && aiEvaluationResult !== undefined && aiEvaluationResult !== null) {
+      if (typeof aiEvaluationResult === 'number') {
+        evaluationMap.set(latestUserResponse.id, aiEvaluationResult);
+      } else {
+        evaluationMap.set(latestUserResponse.id, aiEvaluationResult);
       }
-      return 'bad_response_sent_retry_available';
-    }
-    if (!aiEvaluationResult || aiEvaluationResult === 'pending') {
-      return 'awaiting_ai_evaluation';
     }
 
-    if (escrowStatus === 'claimed') {
-      return 'good_response_sent';
-    }
-    if (escrowStatus === 'refunded' && retryUsed) {
-      return 'bad_response_sent_no_retries';
-    }
-    if (escrowStatus === 'refunded') {
-      return 'bad_response_sent_retry_available';
-    }
-
-    return hasEscrow ? 'awaiting_ai_evaluation' : null;
+    return getInboxBadgeStatus(messages, userEmail, hasEscrow, evaluationMap, latestUserResponse);
   }
 
   return null;
