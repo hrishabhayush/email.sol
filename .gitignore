@@ -1,14 +1,12 @@
+.cursor/
+.DS_Store
+
 # Rust/Anchor build artifacts
 target/
 **/target/
 **/sbpf-solana-solana/
-.anchor/test-ledger/
 test-ledger/
-
-# OS files
-.DS_Store
+.anchor/test-ledger/
 
 # Node modules
 node_modules/
-
-programs/solmail_escrow/src/README.md
