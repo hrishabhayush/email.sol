@@ -9,7 +9,7 @@
 import { Connection, PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import { env } from '../env';
 
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 const REGISTER_AND_CLAIM_DISCRIMINATOR = Uint8Array.from([127, 144, 210, 98, 66, 165, 255, 139]);
 
 interface EscrowInfo {
@@ -37,8 +37,8 @@ export class EscrowMonitor {
   constructor() {
     // Use mainnet RPC endpoint
     // Default to Alchemy mainnet endpoint (same as client)
-    const rpcUrl = process.env.SOLANA_RPC_URL || 
-                   'https://solana-mainnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
+    const rpcUrl = process.env.SOLANA_RPC_URL ||
+      'https://solana-mainnet.g.alchemy.com/v2/3GHuEu4-cXEuE8jDAZW3EFgTedkyJ0K3';
     this.connection = new Connection(rpcUrl, 'confirmed');
     console.log('[ESCROW MONITOR] Initialized with RPC:', rpcUrl);
   }
@@ -72,7 +72,7 @@ export class EscrowMonitor {
     }
 
     console.log('[ESCROW MONITOR] Starting escrow monitoring service...');
-    
+
     // Check pending claims every 30 seconds
     this.monitoringInterval = setInterval(() => {
       this.processPendingClaims().catch((error) => {

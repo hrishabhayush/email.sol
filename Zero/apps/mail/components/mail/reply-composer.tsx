@@ -23,7 +23,7 @@ import { useEscrowTracker } from '@/hooks/use-escrow-tracker';
 import { EmailScoringModal } from './email-scoring-modal';
 
 // SolMail Escrow program configuration
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 const REGISTER_AND_CLAIM_DISCRIMINATOR = Uint8Array.from([127, 144, 210, 98, 66, 165, 255, 139]);
 
 interface ReplyComposeProps {

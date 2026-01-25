@@ -59,7 +59,7 @@ const shortcodeRegex = /:([a-zA-Z0-9_+-]+):/g;
 import { TemplateButton } from './template-button';
 
 // SolMail Escrow program configuration
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 
 // Anchor discriminators for escrow instructions
 // Taken from `escrow/target/idl/solmail_escrow.json`.
@@ -163,7 +163,7 @@ export function EmailComposer({
   const ccWrapperRef = useRef<HTMLDivElement>(null);
   const bccWrapperRef = useRef<HTMLDivElement>(null);
   const { data: activeConnection } = useActiveConnection();
-  
+
   // Solana wallet hooks
   const { wallet, publicKey } = useWallet();
   const { connection } = useConnection();
@@ -489,9 +489,9 @@ export function EmailComposer({
       // Check wallet connection and create escrow before sending email
       // BUT: Skip escrow creation for replies - those should only claim existing escrow
       const isReply = mode === 'reply' || mode === 'replyAll';
-      
+
       let hashArray: Uint8Array | undefined;
-      
+
       if (!isReply) {
         // Only check wallet for new emails (replies handle wallet in reply-composer.tsx)
         console.log('🔍 Wallet check for new email:', {
@@ -503,7 +503,7 @@ export function EmailComposer({
           walletName: wallet?.adapter?.name,
           connected: wallet?.adapter?.connected,
         });
-        
+
         if (!wallet || !publicKey || !connection || !wallet.adapter) {
           console.error('❌ Wallet not properly connected:', {
             wallet: !!wallet,
@@ -514,7 +514,7 @@ export function EmailComposer({
           toast.error('Please connect your Solana wallet to send emails');
           return;
         }
-        
+
         if (!wallet.adapter.connected) {
           console.error('❌ Wallet adapter not connected');
           toast.error('Please connect your Solana wallet (click Connect Wallet button)');
@@ -537,7 +537,7 @@ export function EmailComposer({
           // For now we use a tiny fixed amount; you can wire this to UI later.
           const amountInSol = 0.0000001;
           const lamports = BigInt(Math.floor(amountInSol * LAMPORTS_PER_SOL));
-          
+
           console.log('📧 Creating escrow for new email:', {
             subject: values.subject,
             to: values.to.join(','),
@@ -586,7 +586,7 @@ export function EmailComposer({
 
             // Send and sign transaction using wallet adapter (handles both signing and sending)
             toast.loading('Please sign the escrow transaction in your wallet...', { id: 'payment' });
-            
+
             console.log('📤 Sending escrow transaction:', {
               escrowPda: escrowPda.toBase58(),
               sender: publicKey.toBase58(),
@@ -595,7 +595,7 @@ export function EmailComposer({
               walletAdapter: wallet.adapter.name,
               walletConnected: wallet.adapter.connected,
             });
-            
+
             // Check balance before sending
             try {
               const balance = await connection.getBalance(publicKey);
@@ -605,7 +605,7 @@ export function EmailComposer({
                 required: lamports.toString(),
                 hasEnough: balance >= lamports,
               });
-              
+
               if (balance < lamports) {
                 throw new Error(`Insufficient balance. Need ${amountInSol} SOL but have ${balance / LAMPORTS_PER_SOL} SOL`);
               }
@@ -613,7 +613,7 @@ export function EmailComposer({
               console.error('Balance check error:', balanceError);
               throw balanceError;
             }
-            
+
             let signature: string;
             try {
               signature = await wallet.adapter.sendTransaction(transaction, connection, {
@@ -654,12 +654,12 @@ export function EmailComposer({
             let confirmed = false;
             let attempts = 0;
             const maxAttempts = 90; // 90 seconds max wait time
-            
+
             console.log('⏳ Waiting for escrow confirmation...', {
               signature,
               escrowPda: escrowPda.toBase58(),
             });
-            
+
             while (!confirmed && attempts < maxAttempts) {
               try {
                 // Method 1: Check signature status
@@ -674,7 +674,7 @@ export function EmailComposer({
                   console.error('❌ Transaction failed:', status.value.err);
                   throw new Error(`Transaction failed: ${JSON.stringify(status.value.err)}`);
                 }
-                
+
                 // Method 2: Check if escrow account exists (more reliable for localnet)
                 // This catches cases where transaction succeeds but signature status is slow
                 if (attempts >= 3) { // Start checking after 3 seconds
@@ -685,11 +685,11 @@ export function EmailComposer({
                     break;
                   }
                 }
-                
+
                 // Wait 1 second before checking again
                 await new Promise((resolve) => setTimeout(resolve, 1000));
                 attempts++;
-                
+
                 // Log progress every 10 seconds
                 if (attempts % 10 === 0) {
                   console.log(`⏳ Still waiting... (${attempts}s elapsed)`);
@@ -737,14 +737,14 @@ export function EmailComposer({
           }
         } catch (error) {
           console.error('Escrow error:', error);
-          
+
           // Try to extract more detailed error information
           let errorMessage = 'Unknown error';
           let shouldBlockSend = false;
-          
+
           if (error instanceof Error) {
             errorMessage = error.message;
-            
+
             // Check if it's a wallet error with more details
             if ((error as any).logs) {
               console.error('Transaction logs:', (error as any).logs);
@@ -754,15 +754,15 @@ export function EmailComposer({
               console.error('Error cause:', (error as any).cause);
               errorMessage += ` (cause: ${JSON.stringify((error as any).cause)})`;
             }
-            
+
             // Check for specific error types that should block sending
             // If wallet is not connected or user rejected, block send
-            if (errorMessage.includes('User rejected') || 
-                errorMessage.includes('not connected') ||
-                errorMessage.includes('Wallet not connected')) {
+            if (errorMessage.includes('User rejected') ||
+              errorMessage.includes('not connected') ||
+              errorMessage.includes('Wallet not connected')) {
               shouldBlockSend = true;
             }
-            
+
             // Log full error object for debugging
             console.error('Full error object:', {
               name: error.name,
@@ -772,7 +772,7 @@ export function EmailComposer({
               stringified: JSON.stringify(error, Object.getOwnPropertyNames(error)),
             });
           }
-          
+
           if (shouldBlockSend) {
             //toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
             return; // Don't send email if escrow creation fails due to wallet issues
@@ -802,7 +802,7 @@ export function EmailComposer({
         const threadIdHex = Array.from(hashArray).map(b => b.toString(16).padStart(2, '0')).join('');
         headers['X-Solmail-Sender-Pubkey'] = publicKey.toBase58();
         headers['X-Solmail-Thread-Id'] = threadIdHex;
-        
+
         console.log('[ESCROW LOG] Adding escrow headers to email:', {
           timestamp: new Date().toISOString(),
           subject: values.subject,
@@ -1736,10 +1736,10 @@ export function EmailComposer({
                                     {file.type.includes('pdf')
                                       ? '📄'
                                       : file.type.includes('excel') ||
-                                          file.type.includes('spreadsheetml')
+                                        file.type.includes('spreadsheetml')
                                         ? '📊'
                                         : file.type.includes('word') ||
-                                            file.type.includes('wordprocessingml')
+                                          file.type.includes('wordprocessingml')
                                           ? '📝'
                                           : '📎'}
                                   </span>
