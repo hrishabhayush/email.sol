@@ -26,7 +26,7 @@ The runtime doesn't throw an error - it just **ignores** the lamport change on a
 In Solana, every account has an **owner** (a program ID):
 
 - **User wallets** → Owned by `System Program` (`11111111111111111111111111111111`)
-- **Your PDAs** → Owned by **your program** (e.g., `Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb`)
+- **Your PDAs** → Owned by **your program** (e.g., `DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd`)
 
 **Rule:** You can only directly modify lamports (`+=`, `-=`) on accounts where:
 ```rust

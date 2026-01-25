@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 
-declare_id!("Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb");
+declare_id!("DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd");
 
 /// 15 days in seconds.
 const FIFTEEN_DAYS: i64 = 15 * 24 * 60 * 60;
