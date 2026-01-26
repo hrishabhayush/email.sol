@@ -3,7 +3,6 @@ import {
   IGetThreadsResponseSchema,
   type IGetThreadsResponse,
 } from '../../lib/driver/types';
-import { updateWritingStyleMatrix } from '../../services/writing-style-service';
 import { activeDriverProcedure, router, privateProcedure } from '../trpc';
 import { getZeroAgent, getZeroClient } from '../../lib/server-utils';
 import { processEmailHtml } from '../../lib/email-processor';
@@ -568,16 +567,6 @@ export const mailRouter = router({
       const agent = await getZeroAgent(activeConnection.id);
       const { draftId, ...mail } = input;
 
-      const afterTask = async () => {
-        try {
-          console.warn('Saving writing style matrix...');
-          await updateWritingStyleMatrix(activeConnection.id, input.message);
-          console.warn('Saved writing style matrix.');
-        } catch (error) {
-          console.error('Failed to save writing style matrix', error);
-        }
-      };
-
       // Check if this is a reply with escrow headers (for tracking)
       const escrowThreadId = input.headers?.['X-Solmail-Thread-Id'] ||
         input.headers?.['x-solmail-thread-id'];
@@ -599,8 +588,6 @@ export const mailRouter = router({
       } else {
         await agent.create(input);
       }
-
-      ctx.c.executionCtx.waitUntil(afterTask());
 
       // Trigger escrow agent for email replies (async, non-blocking)
       // Note: This processes the sent email. For recipient replies, see workflow integration.

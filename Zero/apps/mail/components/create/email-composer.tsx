@@ -494,6 +494,7 @@ export function EmailComposer({
 
       if (!isReply) {
         // Only check wallet for new emails (replies handle wallet in reply-composer.tsx)
+        /*
         console.log('🔍 Wallet check for new email:', {
           hasWallet: !!wallet,
           hasPublicKey: !!publicKey,
@@ -503,6 +504,7 @@ export function EmailComposer({
           walletName: wallet?.adapter?.name,
           connected: wallet?.adapter?.connected,
         });
+        */
 
         if (!wallet || !publicKey || !connection || !wallet.adapter) {
           console.error('❌ Wallet not properly connected:', {
@@ -531,19 +533,10 @@ export function EmailComposer({
         hashArray = new Uint8Array(hashBuffer).slice(0, 32);
 
         try {
-          // Show loading state for escrow creation
-          toast.loading('Creating escrow for this email...', { id: 'payment' });
 
           // For now we use a tiny fixed amount; you can wire this to UI later.
           const amountInSol = 0.0000001;
           const lamports = BigInt(Math.floor(amountInSol * LAMPORTS_PER_SOL));
-
-          console.log('📧 Creating escrow for new email:', {
-            subject: values.subject,
-            to: values.to.join(','),
-            uniqueId,
-            threadId: Array.from(hashArray).map(b => b.toString(16).padStart(2, '0')).join(''),
-          });
 
           // Derive escrow PDA (must match on-chain seeds)
           const [escrowPda] = PublicKey.findProgramAddressSync([
@@ -557,7 +550,6 @@ export function EmailComposer({
           const existingEscrow = await connection.getAccountInfo(escrowPda);
           if (existingEscrow && existingEscrow.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
             console.warn('⚠️ Escrow already exists for this unique ID - this should be rare');
-            toast.info('Escrow already exists, skipping creation', { id: 'payment' });
             // Skip escrow creation but continue with email sending
           } else {
             // Build Anchor-compatible instruction data:
@@ -587,24 +579,9 @@ export function EmailComposer({
             // Send and sign transaction using wallet adapter (handles both signing and sending)
             toast.loading('Please sign the escrow transaction in your wallet...', { id: 'payment' });
 
-            console.log('📤 Sending escrow transaction:', {
-              escrowPda: escrowPda.toBase58(),
-              sender: publicKey.toBase58(),
-              amount: `${amountInSol} SOL (${lamports} lamports)`,
-              transactionSize: transaction.serialize({ requireAllSignatures: false }).length,
-              walletAdapter: wallet.adapter.name,
-              walletConnected: wallet.adapter.connected,
-            });
-
             // Check balance before sending
             try {
               const balance = await connection.getBalance(publicKey);
-              console.log('💰 Sender balance:', {
-                balance: `${balance / LAMPORTS_PER_SOL} SOL`,
-                lamports: balance,
-                required: lamports.toString(),
-                hasEnough: balance >= lamports,
-              });
 
               if (balance < lamports) {
                 throw new Error(`Insufficient balance. Need ${amountInSol} SOL but have ${balance / LAMPORTS_PER_SOL} SOL`);
@@ -636,29 +613,12 @@ export function EmailComposer({
             // Log transaction details for block explorer
             const explorerUrl = `https://solscan.io/tx/${signature}`;
             const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
-            console.log('📧 Escrow Initialize Transaction:', {
-              signature,
-              amount: `${amountInSol} SOL`,
-              escrowPda: escrowPda.toBase58(),
-              explorer: explorerUrl,
-              solanaExplorer: solanaExplorerUrl,
-            });
-            console.log(`🔗 View on Solscan: ${explorerUrl}`);
-            console.log(`🔗 View on Solana Explorer: ${solanaExplorerUrl}`);
-
-            toast.success('Escrow transaction sent!', { id: 'payment' });
-            toast.loading('Waiting for confirmation...', { id: 'confirmation' });
 
             // Use a hybrid approach: check both signature status AND escrow account creation
             // This is more reliable than just polling signature status
             let confirmed = false;
             let attempts = 0;
             const maxAttempts = 90; // 90 seconds max wait time
-
-            console.log('⏳ Waiting for escrow confirmation...', {
-              signature,
-              escrowPda: escrowPda.toBase58(),
-            });
 
             while (!confirmed && attempts < maxAttempts) {
               try {
@@ -708,14 +668,14 @@ export function EmailComposer({
                 const escrowCheck = await connection.getAccountInfo(escrowPda);
                 if (escrowCheck && escrowCheck.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                   console.log('✅ Escrow account exists - transaction succeeded despite timeout!');
-                  toast.success('Escrow created (verified on-chain)! Sending email...', { id: 'confirmation' });
+                  toast.success('Escrow created! Sending email...', { id: 'payment' });
                   confirmed = true;
                 } else {
                   // One last signature status check
                   const finalStatus = await connection.getSignatureStatus(signature);
                   if (finalStatus?.value?.confirmationStatus === 'confirmed' || finalStatus?.value?.confirmationStatus === 'finalized') {
                     confirmed = true;
-                    toast.success('Escrow confirmed! Sending email...', { id: 'confirmation' });
+                    toast.success('Escrow confirmed! Sending email...', { id: 'payment' });
                   } else {
                     throw new Error('Transaction confirmation timeout. Check transaction explorer or try again.');
                   }
@@ -732,7 +692,7 @@ export function EmailComposer({
                 throw new Error('Escrow account not found after confirmation. Transaction may have failed.');
               }
               console.log('✅ Escrow verified on-chain, proceeding with email send');
-              toast.success('Escrow confirmed! Sending email...', { id: 'confirmation' });
+              toast.success('Escrow confirmed! Sending email...', { id: 'payment' });
             }
           }
         } catch (error) {
@@ -803,23 +763,8 @@ export function EmailComposer({
         headers['X-Solmail-Sender-Pubkey'] = publicKey.toBase58();
         headers['X-Solmail-Thread-Id'] = threadIdHex;
 
-        console.log('[ESCROW LOG] Adding escrow headers to email:', {
-          timestamp: new Date().toISOString(),
-          subject: values.subject,
-          to: values.to.join(', '),
-          senderPubkey: publicKey.toBase58(),
-          threadIdHex,
-          headers,
-        });
-      } else {
-        console.log('[ESCROW LOG] Skipping escrow headers:', {
-          timestamp: new Date().toISOString(),
-          isReply,
-          hasPublicKey: !!publicKey,
-          hasHashArray: !!hashArray,
-          reason: isReply ? 'This is a reply' : !publicKey ? 'No wallet connected' : 'No hashArray',
-        });
-      }
+        //console.log('[ESCROW LOG] Adding escrow headers to email:');
+      } 
 
       await onSendEmail({
         to: values.to,

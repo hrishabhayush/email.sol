@@ -209,12 +209,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
       // CRITICAL: Force fresh fetch of thread data to get latest escrow headers
       // This bypasses cache and gets data directly from Gmail API
+      // Purpose: Get the latest thread data, including escrow headers (X-Solmail-Thread-Id), from all messages in the thread.
       let freshEmailData = emailData;
       if (isReplyMode && threadId) {
-        console.log('[ESCROW LOG] Force fetching fresh thread data from Gmail API (bypassing cache):', {
-          threadId,
-          mode,
-        });
         try {
           // Fetch directly with forceFresh=true to bypass cache
           // Use try-catch to handle TRPC errors gracefully
@@ -226,14 +223,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           });
           if (freshData) {
             freshEmailData = freshData;
-            console.log('[ESCROW LOG] Fresh thread data fetched:', {
-              threadId,
-              messageCount: freshData?.messages?.length || 0,
-              hasHeaders: freshData?.messages?.some((m: any) => {
-                const h = m.headers || {};
-                return !!(h['X-Solmail-Thread-Id'] || h['x-solmail-thread-id']);
-              }),
-            });
+            console.log('[ESCROW LOG] Fresh thread data fetched:');
           } else {
             console.log('[ESCROW LOG] Using cached email data for escrow header search');
           }
@@ -243,18 +233,14 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         }
       }
 
-      // STEP 1: Score the email reply BEFORE escrow release
+      // Score the email reply BEFORE escrow release
       // This ensures we validate the reply quality before releasing escrow
       let emailScore: number | undefined;
       let escrowDecision: 'RELEASE' | 'WITHHOLD' | undefined;
 
       if (isReplyMode) {
         try {
-          console.log('[EMAIL SCORING] Starting email scoring before escrow release:', {
-            threadId,
-            mode,
-            replyLength: data.message.length,
-          });
+          console.log('[EMAIL SCORING] Starting email scoring before escrow release:');
 
           // Get all thread emails for context
           const messagesToScore = freshEmailData?.messages || emailData?.messages || [];
@@ -262,17 +248,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             decodedBody: msg.decodedBody || '',
             subject: msg.subject || '',
           }));
-
-          console.log('[EMAIL SCORING] Thread emails result:', {
-            count: threadEmails.length,
-            emails: threadEmails.map((email, index) => ({
-              index,
-              subject: email.subject,
-              bodyLength: email.decodedBody?.length || 0,
-              bodyPreview: email.decodedBody?.substring(0, 100) || '',
-            })),
-            fullData: threadEmails,
-          });
 
           // Generate request ID for progress tracking
           const requestId = `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -349,7 +324,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
           // If decision is WITHHOLD, block escrow release and email sending
           if (escrowDecision === 'WITHHOLD') {
-            console.error('[EMAIL SCORING] ❌ Email score too low - blocking escrow release:', {
+            console.log('[EMAIL SCORING] ❌ Email score too low - blocking escrow release:', {
               score: emailScore,
               threshold: 70,
               decision: escrowDecision,
@@ -393,37 +368,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         }
       }
 
-      console.log('🔍 Reply escrow claim check:', {
-        mode,
-        isReplyMode,
-        hasWallet: !!wallet,
-        hasPublicKey: !!publicKey,
-        hasConnection: !!connection,
-        hasAdapter: !!wallet?.adapter,
-        hasReplyToMessage: !!replyToMessage,
-        replyToMessageKeys: replyToMessage ? Object.keys(replyToMessage) : [],
-      });
-
+      // purpose: find the escrow account
       if (isReplyMode && replyToMessage) {
         // NEW APPROACH: Get escrow account from program by checking sender's recent transactions
         // Then initiate transaction directly to receiver
 
-        console.log('🔍 [SETTLEMENT] Finding escrow account from program:', {
-          timestamp: new Date().toISOString(),
-          subject: replyToMessage.subject,
-          originalSender: replyToMessage.sender?.email,
-          threadId: threadId,
-        });
-
         // Known sender pubkey
         const KNOWN_SENDER_PUBKEY = '7DUw1493Y2xS9TDvos11sfoPmEwo3UjqryGPdqE44nWW';
-        const encoder = new TextEncoder();
 
         // Get the original email (first message in thread)
         const messagesToSearch = freshEmailData?.messages || emailData?.messages || [];
-        const originalMessage = messagesToSearch.length > 0 ? messagesToSearch[0] : replyToMessage;
 
-        // FIRST: Try to get thread_id and sender pubkey from headers
+        // 1) Try to get thread_id and sender pubkey from headers
         let threadIdFromHeaders: string | undefined;
         let senderPubkeyFromHeaders: string | undefined;
 
@@ -442,12 +398,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           if (foundThreadId && foundSenderPubkey) {
             threadIdFromHeaders = foundThreadId;
             senderPubkeyFromHeaders = foundSenderPubkey;
-            console.log('✅✅✅ [SETTLEMENT] Found escrow headers in message:', {
-              messageId: msg.id,
-              subject: msg.subject,
-              threadIdHex: foundThreadId,
-              senderPubkey: foundSenderPubkey,
-            });
+            console.log('✅ [SETTLEMENT] Found escrow headers in message:');
             break;
           }
         }
@@ -455,29 +406,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         // Use sender pubkey from headers if found, otherwise use known sender pubkey
         const SENDER_PUBKEY_TO_USE = senderPubkeyFromHeaders || KNOWN_SENDER_PUBKEY;
 
-        if (senderPubkeyFromHeaders) {
-          console.log('✅ [SETTLEMENT] Using sender pubkey from headers:', senderPubkeyFromHeaders);
-        } else {
-          console.log('✅ [SETTLEMENT] Using known sender pubkey:', KNOWN_SENDER_PUBKEY);
-        }
-
-        // NEW APPROACH: Get the LATEST transaction from sender and extract escrow account address
         // The escrow account is the account that received funds in the latest transaction
         const senderPubkey = new PublicKey(SENDER_PUBKEY_TO_USE);
 
-        console.log('[SETTLEMENT] Fetching LATEST transaction from sender to find escrow account:', {
-          senderPubkey: SENDER_PUBKEY_TO_USE,
-        });
-
         try {
-          // Get the LATEST transaction from the sender (limit: 1)
+          // 2) Get the LATEST transaction from the sender (limit: 1) using the sender pubkey to find escrow account
+          //TODO: logic may break
           const signatures = await connection.getSignaturesForAddress(senderPubkey, { limit: 1 });
 
           if (signatures.length === 0) {
             console.log('[SETTLEMENT] No transactions found from sender');
           } else {
             const latestSig = signatures[0];
-            console.log(`[SETTLEMENT] Found latest transaction: ${latestSig.signature}`);
 
             try {
               const tx = await connection.getTransaction(latestSig.signature, {
@@ -502,7 +442,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                 }
 
                 if (accountKeys && accountKeys.length > 0) {
-                  console.log(`[SETTLEMENT] Extracted ${accountKeys.length} account keys from transaction`);
                   const hasEscrowProgram = accountKeys.some((key: any) => {
                     if (!key) return false;
                     const pubkey = typeof key === 'string' ? new PublicKey(key) : (key.pubkey || key);
@@ -513,10 +452,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   if (!hasEscrowProgram) {
                     console.log('[SETTLEMENT] Latest transaction does not involve escrow program');
                   } else {
-                    console.log('[SETTLEMENT] Latest transaction involves escrow program, extracting escrow account...');
-                    console.log(`[SETTLEMENT] Looking for escrow with sender: ${senderPubkey.toBase58()}, threadId from headers: ${threadIdFromHeaders || 'NOT FOUND'}`);
-
-                    // Look at account balance changes to find which account received funds
+                    // 3) Look at account balance changes to find which account received funds
                     // The escrow account will have a positive balance change (received funds from sender)
                     if (tx.meta.preBalances && tx.meta.postBalances && accountKeys.length === tx.meta.preBalances.length) {
                       for (let i = 0; i < accountKeys.length; i++) {
