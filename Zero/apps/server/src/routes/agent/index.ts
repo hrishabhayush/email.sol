@@ -1010,29 +1010,6 @@ export class ZeroDriver extends Agent<ZeroEnv> {
           }
         }
 
-        // HEADER DEBUG: Log headers before storing to cache
-        if (threadData.messages && threadData.messages.length > 0) {
-          threadData.messages.forEach((msg: any, index: number) => {
-            const headers = msg.headers || {};
-            const headerKeys = Object.keys(headers);
-            const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-            const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-            
-            console.log(`[HEADER DEBUG - Before Storage] Message ${index}`, {
-              '📍 Location': 'index.ts syncThread() - Before storing to cache',
-              '📧 Message ID': msg.id,
-              '📌 Subject': msg.subject,
-              '📊 Header Count': headerKeys.length,
-              '🔑 Header Keys': headerKeys,
-              '✅ Has Escrow Thread ID': !!escrowThreadId,
-              '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-              '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-              '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-              '🔑 Thread ID': threadId,
-            });
-          });
-        }
-
         // Store thread data in bucket
         yield* Effect.tryPromise(() =>
           this.env.THREADS_BUCKET.put(this.getThreadKey(threadId), JSON.stringify(threadData), {
@@ -1819,29 +1796,6 @@ export class ZeroDriver extends Agent<ZeroEnv> {
       let messages: ParsedMessage[] = storedThread
         ? (JSON.parse(await storedThread.text()) as IGetThreadResponse).messages
         : [];
-
-      // HEADER DEBUG: Log headers retrieved from database/cache
-      if (messages.length > 0) {
-        messages.forEach((msg, index) => {
-          const headers = (msg as any).headers || {};
-          const headerKeys = Object.keys(headers);
-          const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-          const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-          
-          console.log(`[HEADER DEBUG - Database Retrieval] Message ${index}`, {
-            '📍 Location': 'index.ts getThreadFromDB() - Retrieved from cache/DB',
-            '📧 Message ID': msg.id,
-            '📌 Subject': msg.subject,
-            '📊 Header Count': headerKeys.length,
-            '🔑 Header Keys': headerKeys,
-            '✅ Has Escrow Thread ID': !!escrowThreadId,
-            '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-            '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-            '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-            '💾 Source': storedThread ? 'Cache/DB' : 'Not in cache',
-          });
-        });
-      }
 
       // Check if thread needs re-syncing for escrow headers
       // Re-sync if:

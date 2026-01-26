@@ -58,27 +58,8 @@ export const mailRouter = router({
       const agent = await getZeroClient(activeConnection.id, executionCtx);
       const threadData = await agent.getThread(input.id, true, input.forceFresh);
 
-      // HEADER DEBUG: Log headers being sent to frontend via TRPC
-      if (threadData.messages && threadData.messages.length > 0) {
-        threadData.messages.forEach((msg: any, index: number) => {
-          const headers = msg.headers || {};
-          const headerKeys = Object.keys(headers);
-          const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-          const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-
-          console.log(`[HEADER DEBUG - TRPC Response] Message ${index}`, {
-            '📍 Location': 'mail.ts get() - Sending to frontend via TRPC',
-            '📧 Message ID': msg.id,
-            '📌 Subject': msg.subject,
-            '📊 Header Count': headerKeys.length,
-            '🔑 Header Keys': headerKeys,
-            '✅ Has Escrow Thread ID': !!escrowThreadId,
-            '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-            '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-            '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-            '🔄 Force Fresh': input.forceFresh,
-          });
-        });
+      if(!threadData) {
+        console.error('[THREAD DEBUG - No thread data found]');
       }
 
       return threadData;

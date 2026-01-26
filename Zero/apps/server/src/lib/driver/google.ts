@@ -1115,55 +1115,23 @@ export class GoogleMailManager implements MailManager {
         name?.toLowerCase().includes('x-solmail')
       );
 
-      console.log('[HEADER DEBUG - Gmail API Parse]', {
-        '📍 Location': 'google.ts parse() - Raw Gmail API response',
-        '📧 Message ID': id,
-        '📌 Subject': subject,
-        '📊 Total Headers': payload.headers.length,
-        '🔑 Header Names': rawHeaderNames,
-        '✅ Has X-Solmail Headers': hasEscrowHeaders,
-        '🔍 X-Solmail-Thread-Id': rawHeaderNames.find(name =>
-          name?.toLowerCase().includes('x-solmail-thread-id')
-        ) || 'NOT FOUND',
-        '🔍 X-Solmail-Sender-Pubkey': rawHeaderNames.find(name =>
-          name?.toLowerCase().includes('x-solmail-sender-pubkey')
-        ) || 'NOT FOUND',
-        '📋 All Raw Headers': payload.headers.map(h => ({
-          name: h.name,
-          value: h.value?.substring(0, 100) // First 100 chars
-        })),
-      });
-
       for (const header of payload.headers) {
         if (header.name && header.value) {
           headers[header.name] = header.value;
         }
       }
     } else {
-      console.log('[HEADER DEBUG - Gmail API Parse]', {
-        '📍 Location': 'google.ts parse() - No headers in payload',
-        '📧 Message ID': id,
-        '📌 Subject': subject,
-        '⚠️ Has Payload': !!payload,
-      });
+      console.error('[HEADER DEBUG - No headers in payload]');
     }
 
     // Log escrow-related headers after parsing
     const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'];
     const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'];
 
-    console.log('[HEADER DEBUG - After Parsing]', {
-      '📍 Location': 'google.ts parse() - After header extraction',
-      '📧 Message ID': id,
-      '📌 Subject': subject,
-      '📊 Parsed Header Count': Object.keys(headers).length,
-      '🔑 Parsed Header Keys': Object.keys(headers),
-      '✅ Has Escrow Thread ID': !!escrowThreadId,
-      '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-      '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-      '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-    });
-
+    if(!escrowThreadId || !escrowSenderPubkey) {
+      console.error('[HEADER DEBUG - No escrow headers in payload]');
+    }
+    
     return {
       id: id || 'ERROR',
       bcc: [],

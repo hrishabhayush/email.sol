@@ -688,29 +688,6 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
   const emailStatus = useMemo(() => {
     if (!threadData?.messages || !activeConnection?.email) return null;
 
-    // HEADER DEBUG: Log headers at frontend before status calculation
-    if (process.env.NODE_ENV === 'development') {
-      threadData.messages.forEach((msg, index) => {
-        const headers = msg.headers || {};
-        const headerKeys = Object.keys(headers);
-        const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-        const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-
-        console.log(`[HEADER DEBUG - Frontend Email View] Message ${index}`, {
-          '📍 Location': 'mail-display.tsx - Frontend received data',
-          '📧 Message ID': msg.id,
-          '📌 Subject': msg.subject,
-          '📊 Header Count': headerKeys.length,
-          '🔑 Header Keys': headerKeys,
-          '✅ Has Escrow Thread ID': !!escrowThreadId,
-          '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-          '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-          '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-          '📋 All Headers': headers,
-        });
-      });
-    }
-
     const status = getEmailStatus(
       threadData.messages,
       folder || 'inbox',
@@ -719,35 +696,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
       undefined, // aiEvaluationResult - would come from evaluation service
     );
 
-    // Human-readable debug logging
-    if (process.env.NODE_ENV === 'development') {
-      const firstMessage = threadData.messages[0];
-      const latestMessage = threadData.latest || firstMessage;
-      const hasEscrow = firstMessage ? hasEscrowHeaders(firstMessage) : false;
-      const subject = emailData?.subject || latestMessage?.subject || 'No Subject';
-      const timeSent = emailData?.receivedOn || latestMessage?.receivedOn || 'Unknown';
-
-      // Check headers in detail
-      const headers = firstMessage?.headers || {};
-      const headerKeys = Object.keys(headers);
-      const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-      const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-
-      console.log('📧 [BADGE DEBUG - Email View]', {
-        '📌 Email': subject,
-        '🕒 Time Sent': timeSent,
-        '📁 Folder': folder || 'inbox',
-        '✅ Has Escrow': hasEscrow,
-        '🏷️ Badge Status': status || 'null (no badge)',
-        '📊 Message Count': threadData.messages.length,
-        '🔑 Email ID': emailData.id,
-        '📋 Header Keys': headerKeys,
-        '🔍 Escrow Thread ID Found': !!escrowThreadId,
-        '🔍 Escrow Sender Pubkey Found': !!escrowSenderPubkey,
-        '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-        '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-      });
-    }
+    //no status means no escrow attached
 
     return status;
   }, [threadData?.messages, folder, activeConnection?.email, emailData?.subject, emailData?.receivedOn, emailData?.id, threadData?.latest]);
@@ -776,31 +725,6 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
       }
     }
   }, [demo, emailData.id, isLastEmail, activeReplyId]);
-
-  //   const listUnsubscribeAction = useMemo(
-  //     () =>
-  //       emailData.listUnsubscribe
-  //         ? getListUnsubscribeAction({
-  //             listUnsubscribe: emailData.listUnsubscribe,
-  //             listUnsubscribePost: emailData.listUnsubscribePost,
-  //           })
-  //         : undefined,
-  //     [emailData.listUnsubscribe, emailData.listUnsubscribePost],
-  //   );
-
-  //   const _handleUnsubscribe = async () => {
-  //     setIsUnsubscribing(true);
-  //     try {
-  //       await handleUnsubscribe({
-  //         emailData,
-  //       });
-  //       setIsUnsubscribing(false);
-  //       setUnsubscribed(true);
-  //     } catch (e) {
-  //       setIsUnsubscribing(false);
-  //       setUnsubscribed(false);
-  //     }
-  //   };
 
   // Clear any pending timeouts when component unmounts
   useEffect(() => {

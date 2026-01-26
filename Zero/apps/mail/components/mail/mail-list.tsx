@@ -81,28 +81,6 @@ const Thread = memo(
       let emailStatus: EmailStatus = null;
       if (getThreadData?.messages && userEmail) {
         try {
-          // HEADER DEBUG: Log headers at frontend before status calculation
-          if (process.env.NODE_ENV === 'development') {
-            getThreadData.messages.forEach((msg, index) => {
-              const headers = msg.headers || {};
-              const headerKeys = Object.keys(headers);
-              const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-              const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-
-              console.log(`[HEADER DEBUG - Frontend Sidebar] Message ${index}`, {
-                '📍 Location': 'mail-list.tsx - Frontend received data',
-                '📧 Message ID': msg.id,
-                '📌 Subject': msg.subject,
-                '📊 Header Count': headerKeys.length,
-                '🔑 Header Keys': headerKeys,
-                '✅ Has Escrow Thread ID': !!escrowThreadId,
-                '✅ Has Escrow Sender Pubkey': !!escrowSenderPubkey,
-                '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-                '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-                '📋 All Headers': headers,
-              });
-            });
-          }
 
           emailStatus = getEmailStatus(
             getThreadData.messages,
@@ -112,34 +90,8 @@ const Thread = memo(
             undefined, // aiEvaluationResult - would come from evaluation service
           );
 
-          // Human-readable debug logging
-          if (process.env.NODE_ENV === 'development') {
-            const firstMessage = getThreadData.messages[0];
-            const hasEscrow = firstMessage ? hasEscrowHeaders(firstMessage) : false;
-            const subject = latestMessage?.subject || firstMessage?.subject || 'No Subject';
-            const timeSent = latestMessage?.receivedOn || firstMessage?.receivedOn || 'Unknown';
+          //no status means no escrow attached
 
-            // Check headers in detail
-            const headers = firstMessage?.headers || {};
-            const headerKeys = Object.keys(headers);
-            const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'] || headers['X-SOLMAIL-THREAD-ID'];
-            const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'] || headers['X-SOLMAIL-SENDER-PUBKEY'];
-
-            console.log('📧 [BADGE DEBUG - Sidebar]', {
-              '📌 Email': subject,
-              '🕒 Time Sent': timeSent,
-              '📁 Folder': folder || 'inbox',
-              '✅ Has Escrow': hasEscrow,
-              '🏷️ Badge Status': emailStatus || 'null (no badge)',
-              '📊 Message Count': getThreadData.messages.length,
-              '🔑 Thread ID': idToUse,
-              '📋 Header Keys': headerKeys,
-              '🔍 Escrow Thread ID Found': !!escrowThreadId,
-              '🔍 Escrow Sender Pubkey Found': !!escrowSenderPubkey,
-              '📝 Escrow Thread ID': escrowThreadId || 'NOT FOUND',
-              '📝 Escrow Sender Pubkey': escrowSenderPubkey ? `${escrowSenderPubkey.substring(0, 20)}...` : 'NOT FOUND',
-            });
-          }
         } catch (error) {
           console.error('Error calculating email status:', error);
         }
@@ -536,15 +488,15 @@ const Thread = memo(
                         </span>
                       ) : null} */}
                       <MailLabels labels={optimisticLabels} />
-                      {emailStatus && (
+                      {/* {emailStatus && (
                         <StatusTag status={emailStatus} folder={folder || 'inbox'} />
-                      )}
+                      )} */}
                     </div>
                     {latestMessage.receivedOn ? (
                       <div className="flex items-center gap-2">
-                        {emailStatus && (
+                        {/* {emailStatus && (
                           <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
-                        )}
+                        )} */}
                         <p
                           className={cn(
                             'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
