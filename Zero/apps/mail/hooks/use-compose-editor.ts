@@ -6,7 +6,6 @@ import { FileHandler } from '@tiptap/extension-file-handler';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { TextSelection } from 'prosemirror-state';
-import { Image } from '@tiptap/extension-image';
 import { Markdown } from 'tiptap-markdown';
 import { isObjectType } from 'remeda';
 import { cn } from '@/lib/utils';
@@ -149,7 +148,6 @@ const useComposeEditor = ({
   const extensions = [
     ...defaultExtensions,
     Markdown,
-    Image,
     FileHandler.configure({
       allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'],
       onDrop: (currentEditor, files, pos) => {

@@ -35,21 +35,65 @@ export const brainRouter = router({
       }),
     )
     .query(async ({ input, ctx }) => {
-      const { threadId } = input;
-      const response = await env.VECTORIZE.getByIds([threadId]);
-      if (response.length && response?.[0]?.metadata?.['summary']) {
-        const result = response[0].metadata as { summary: string; connection: string };
-        if (result.connection !== ctx.activeConnection.id) return null;
-        const shortResponse = await env.AI.run('@cf/facebook/bart-large-cnn', {
-          input_text: result.summary,
-        });
-        return {
-          data: {
-            short: shortResponse.summary,
-          },
-        };
+      try {
+        const { threadId } = input;
+        
+        // Check if VECTORIZE is available
+        if (!env.VECTORIZE) {
+          console.warn('[generateSummary] VECTORIZE not available');
+          return null;
+        }
+
+        const response = await env.VECTORIZE.getByIds([threadId]);
+        
+        if (response.length && response?.[0]?.metadata?.['summary']) {
+          const result = response[0].metadata as { summary: string; connection: string };
+          
+          // Verify connection matches
+          if (result.connection !== ctx.activeConnection.id) {
+            return null;
+          }
+
+          // Check if AI is available
+          if (!env.AI) {
+            console.warn('[generateSummary] AI not available');
+            return null;
+          }
+
+          try {
+            const shortResponse = await env.AI.run('@cf/facebook/bart-large-cnn', {
+              input_text: result.summary,
+            });
+            
+            // Handle different response formats
+            const summary = 'summary' in shortResponse 
+              ? shortResponse.summary 
+              : typeof shortResponse === 'string' 
+                ? shortResponse 
+                : null;
+
+            if (!summary) {
+              console.warn('[generateSummary] AI response missing summary');
+              return null;
+            }
+
+            return {
+              data: {
+                short: summary,
+              },
+            };
+          } catch (aiError) {
+            console.error('[generateSummary] AI.run failed:', aiError);
+            return null;
+          }
+        }
+        
+        return null;
+      } catch (error) {
+        console.error('[generateSummary] Error generating summary:', error);
+        // Return null instead of throwing to prevent 500 errors
+        return null;
       }
-      return null;
     }),
   getState: activeConnectionProcedure.query(async ({ ctx }) => {
     const connection = ctx.activeConnection;
