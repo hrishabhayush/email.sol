@@ -1461,9 +1461,9 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                         </div>
 
                         <div className="flex items-center justify-center gap-2">
-                          {emailStatus && (
+                          {/* {emailStatus && (
                             <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
-                          )}
+                          )} */}
                           <div className="text-muted-foreground mr-2 flex flex-col flex-nowrap! items-end text-sm font-medium dark:text-[#8C8C8C]">
                             <time className="whitespace-nowrap">
                               {emailData?.receivedOn ? formatDate(emailData.receivedOn) : ''}

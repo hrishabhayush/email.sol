@@ -161,11 +161,13 @@ export function useEscrowTracker() {
         return false;
       }
     } catch (error) {
+      /* TODO: fix togic -- email status
       console.error('[ESCROW TRACKER] Error claiming escrow:', error);
       toast.error(`Failed to claim escrow: ${error instanceof Error ? error.message : 'Unknown error'}`, {
         id: `claim-${claimKey}`
       });
       return false;
+      */
     }
   }, [wallet, publicKey, connection]);
 
@@ -203,12 +205,14 @@ export function useEscrowTracker() {
       hashArray,
     ], SOLMAIL_ESCROW_PROGRAM_ID);
 
+    /*TODO: email status
     console.log('[ESCROW TRACKER] Checking escrow for reply:', {
       escrowPda: escrowPda.toBase58(),
       sender: senderPubkeyStr,
       threadId: threadIdHex,
       receiver: publicKey.toBase58(),
     });
+    */
 
     return await claimEscrow(senderPubkeyStr, threadIdHex, escrowPda);
   }, [publicKey, connection, claimEscrow]);
