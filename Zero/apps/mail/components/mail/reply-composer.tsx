@@ -299,7 +299,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           publicKey,
           connection,
         })) {
-          return;
+          return; // block email send if wallet not connected
         }
 
         /* REPLY-ESCROW LOGIC 4: Escrow settlement/claiming (a–g) */
@@ -374,11 +374,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           }
         }
 
-        if (hasEscrowToClaim) {
-          console.warn('[SETTLEMENT] Escrow found but wallet not connected - email send blocked');
-        } else {
-          console.log('[SETTLEMENT] No escrow to claim - proceeding with email send');
-        }
       }
 
 

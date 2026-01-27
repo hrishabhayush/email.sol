@@ -610,12 +610,11 @@ export function EmailComposer({
               throw sendError;
             }
 
-
             // Use a hybrid approach: check both signature status AND escrow account creation
             // This is more reliable than just polling signature status
             let confirmed = false;
             let attempts = 0;
-            const maxAttempts = 30; // 30 seconds max wait time
+            const maxAttempts = 30; // 90 seconds max wait time
 
             while (!confirmed && attempts < maxAttempts) {
               try {
@@ -715,10 +714,10 @@ export function EmailComposer({
             // Check for specific error types that should block sending
             // If wallet is not connected or user rejected, block send
             if (errorMessage.includes('User rejected') ||
-            errorMessage.includes('not connected') ||
-            errorMessage.includes('Wallet not connected') ||
-            errorMessage.includes('Transaction confirmation timeout') ||
-            errorMessage.includes('Escrow account not found')) {
+              errorMessage.includes('not connected') ||
+              errorMessage.includes('Wallet not connected') ||
+              errorMessage.includes('Transaction confirmation timeout') ||
+              errorMessage.includes('Escrow account not found')) {
               shouldBlockSend = true;
             }
 
@@ -733,17 +732,17 @@ export function EmailComposer({
           }
 
           if (shouldBlockSend) {
-            //toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
+            toast.error(`Escrow creation failed: ${errorMessage}. Email not sent.`, { id: 'payment' });
             return; // Don't send email if escrow creation fails due to wallet issues
           } else {
             // For other errors (network issues, etc.), allow email to send but warn user
             console.warn('⚠️ Escrow creation failed but allowing email to send:', errorMessage);
-            /*
+            
             toast.warning(`Escrow creation failed: ${errorMessage}. Email will still be sent without escrow.`, { 
               id: 'payment',
               duration: 8000,
             });
-            */
+            
             // Continue with email sending (don't return)
           }
         }
