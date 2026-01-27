@@ -610,15 +610,12 @@ export function EmailComposer({
               throw sendError;
             }
 
-            // Log transaction details for block explorer
-            const explorerUrl = `https://solscan.io/tx/${signature}`;
-            const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=mainnet-beta`;
 
             // Use a hybrid approach: check both signature status AND escrow account creation
             // This is more reliable than just polling signature status
             let confirmed = false;
             let attempts = 0;
-            const maxAttempts = 90; // 90 seconds max wait time
+            const maxAttempts = 30; // 30 seconds max wait time
 
             while (!confirmed && attempts < maxAttempts) {
               try {
@@ -718,8 +715,10 @@ export function EmailComposer({
             // Check for specific error types that should block sending
             // If wallet is not connected or user rejected, block send
             if (errorMessage.includes('User rejected') ||
-              errorMessage.includes('not connected') ||
-              errorMessage.includes('Wallet not connected')) {
+            errorMessage.includes('not connected') ||
+            errorMessage.includes('Wallet not connected') ||
+            errorMessage.includes('Transaction confirmation timeout') ||
+            errorMessage.includes('Escrow account not found')) {
               shouldBlockSend = true;
             }
 
