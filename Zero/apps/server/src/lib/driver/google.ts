@@ -366,7 +366,7 @@ export class GoogleMailManager implements MailManager {
         // This provides a more reliable way to get inbox results
         let finalQuery = normalizedQ;
         let finalLabelIds: string[] = [];
-        
+
         if (folder === 'inbox') {
           if (normalizedQ) {
             // If there's a query, use it with labelIds
@@ -456,9 +456,9 @@ export class GoogleMailManager implements MailManager {
 
             const decodedBody = bodyData
               ? he
-                  .decode(fromBinary(bodyData))
-                  .replace(/<[^>]*>/g, '')
-                  .trim() === fromBinary(bodyData).trim()
+                .decode(fromBinary(bodyData))
+                .replace(/<[^>]*>/g, '')
+                .trim() === fromBinary(bodyData).trim()
                 ? he.decode(fromBinary(bodyData).replace(/\n/g, '<br>'))
                 : he.decode(fromBinary(bodyData))
               : '';
@@ -496,7 +496,7 @@ export class GoogleMailManager implements MailManager {
                         `data:${part.mimeType};base64,${imageData}`,
                       );
                     }
-                  } catch {}
+                  } catch { }
                 }
               }
             }
@@ -856,9 +856,9 @@ export class GoogleMailManager implements MailManager {
         messageListVisibility: 'show',
         color: label.color
           ? mapToGoogleLabelColor({
-              backgroundColor: label.color.backgroundColor,
-              textColor: label.color.textColor,
-            })
+            backgroundColor: label.color.backgroundColor,
+            textColor: label.color.textColor,
+          })
           : undefined,
       },
     });
@@ -871,9 +871,9 @@ export class GoogleMailManager implements MailManager {
         name: label.name,
         color: label.color
           ? mapToGoogleLabelColor({
-              backgroundColor: label.color.backgroundColor,
-              textColor: label.color.textColor,
-            })
+            backgroundColor: label.color.backgroundColor,
+            textColor: label.color.textColor,
+          })
           : undefined,
       },
     });
@@ -1092,8 +1092,8 @@ export class GoogleMailManager implements MailManager {
     const cc =
       ccHeaders.length > 0
         ? ccHeaders
-            .filter((header) => header.trim().length > 0)
-            .flatMap((header) => parseAddressList(header))
+          .filter((header) => header.trim().length > 0)
+          .flatMap((header) => parseAddressList(header))
         : null;
 
     const receivedHeaders =
@@ -1107,30 +1107,31 @@ export class GoogleMailManager implements MailManager {
     // Extract all headers into a key-value object for easy access
     // This is especially important for custom headers like X-Solmail-Thread-Id and X-Solmail-Sender-Pubkey
     const headers: Record<string, string> = {};
+
+    // DEBUG: Log raw headers from Gmail API
     if (payload?.headers) {
+      const rawHeaderNames = payload.headers.map(h => h.name).filter(Boolean);
+      const hasEscrowHeaders = rawHeaderNames.some(name =>
+        name?.toLowerCase().includes('x-solmail')
+      );
+
       for (const header of payload.headers) {
         if (header.name && header.value) {
           headers[header.name] = header.value;
         }
       }
-    }
-    
-    // Log escrow-related headers for monitoring
-    const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'];
-    const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'];
-    if (escrowThreadId || escrowSenderPubkey) {
-      console.log('[ESCROW LOG] Parsed email with escrow headers:', {
-        timestamp: new Date().toISOString(),
-        messageId: id,
-        subject,
-        hasThreadId: !!escrowThreadId,
-        hasSenderPubkey: !!escrowSenderPubkey,
-        threadId: escrowThreadId || 'NOT FOUND',
-        senderPubkey: escrowSenderPubkey || 'NOT FOUND',
-        allHeaderKeys: Object.keys(headers),
-      });
+    } else {
+      console.error('[HEADER DEBUG - No headers in payload]');
     }
 
+    // Log escrow-related headers after parsing
+    const escrowThreadId = headers['X-Solmail-Thread-Id'] || headers['x-solmail-thread-id'];
+    const escrowSenderPubkey = headers['X-Solmail-Sender-Pubkey'] || headers['x-solmail-sender-pubkey'];
+
+    if(!escrowThreadId || !escrowSenderPubkey) {
+      console.error('[HEADER DEBUG - No escrow headers in payload]');
+    }
+    
     return {
       id: id || 'ERROR',
       bcc: [],

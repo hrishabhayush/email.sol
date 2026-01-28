@@ -3,7 +3,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
 import { toast } from 'sonner';
 
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 const REGISTER_AND_CLAIM_DISCRIMINATOR = Uint8Array.from([127, 144, 210, 98, 66, 165, 255, 139]);
 
 interface EscrowInfo {
@@ -39,7 +39,7 @@ export function useEscrowTracker() {
 
     const claimKey = `${senderPubkeyStr}-${threadIdHex}`;
     const attempts = claimAttemptsRef.current.get(claimKey) || 0;
-    
+
     // Prevent infinite retry loops
     if (attempts >= 3) {
       console.warn('[ESCROW TRACKER] Max claim attempts reached, skipping:', claimKey);
@@ -147,11 +147,11 @@ export function useEscrowTracker() {
       if (confirmed) {
         console.log('[ESCROW TRACKER] ✅ Escrow claimed successfully!');
         toast.success('Escrow reward claimed!', { id: `claim-${claimKey}` });
-        
+
         // Verify balance increased
         const newBalance = await connection.getBalance(publicKey);
         console.log('[ESCROW TRACKER] New balance:', newBalance / 1_000_000_000, 'SOL');
-        
+
         // Clear claim attempts on success
         claimAttemptsRef.current.delete(claimKey);
         return true;
@@ -161,11 +161,13 @@ export function useEscrowTracker() {
         return false;
       }
     } catch (error) {
+      /* TODO: fix togic -- email status
       console.error('[ESCROW TRACKER] Error claiming escrow:', error);
-      toast.error(`Failed to claim escrow: ${error instanceof Error ? error.message : 'Unknown error'}`, { 
-        id: `claim-${claimKey}` 
+      toast.error(`Failed to claim escrow: ${error instanceof Error ? error.message : 'Unknown error'}`, {
+        id: `claim-${claimKey}`
       });
       return false;
+      */
     }
   }, [wallet, publicKey, connection]);
 
@@ -189,7 +191,7 @@ export function useEscrowTracker() {
 
     const encoder = new TextEncoder();
     const senderPubkey = new PublicKey(senderPubkeyStr);
-    
+
     // Convert hex to Uint8Array
     const hashArray = new Uint8Array(32);
     for (let i = 0; i < 32; i++) {
@@ -203,12 +205,14 @@ export function useEscrowTracker() {
       hashArray,
     ], SOLMAIL_ESCROW_PROGRAM_ID);
 
+    /*TODO: email status
     console.log('[ESCROW TRACKER] Checking escrow for reply:', {
       escrowPda: escrowPda.toBase58(),
       sender: senderPubkeyStr,
       threadId: threadIdHex,
       receiver: publicKey.toBase58(),
     });
+    */
 
     return await claimEscrow(senderPubkeyStr, threadIdHex, escrowPda);
   }, [publicKey, connection, claimEscrow]);

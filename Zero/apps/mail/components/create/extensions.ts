@@ -11,7 +11,6 @@ import {
   TaskItem,
   TaskList,
   TextStyle,
-  TiptapImage,
   TiptapLink,
   TiptapUnderline,
   UpdatedImage,
@@ -61,7 +60,9 @@ const tiptapLink = TiptapLink.configure({
   protocols: ['http', 'https', 'mailto', 'tel'],
 });
 
-const tiptapImage = TiptapImage.extend({
+// Using UpdatedImage instead of TiptapImage to avoid duplicate extension name
+// UpdatedImage already includes the functionality we need
+const updatedImage = UpdatedImage.extend({
   addProseMirrorPlugins() {
     return [
       UploadImagesPlugin({
@@ -71,12 +72,6 @@ const tiptapImage = TiptapImage.extend({
   },
 }).configure({
   allowBase64: true,
-  HTMLAttributes: {
-    class: cx('rounded-lg border border-muted'),
-  },
-});
-
-const updatedImage = UpdatedImage.configure({
   HTMLAttributes: {
     class: cx('rounded-lg border border-muted'),
   },
@@ -151,10 +146,8 @@ const characterCount = CharacterCount.configure();
 
 export const defaultExtensions = [
   starterKit,
-  placeholder,
   tiptapLink,
   ExitLinkOnSpace, // Add our custom extension to exit links on space
-  tiptapImage,
   updatedImage,
   taskList,
   taskItem,

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useState } from 'react';
 
 // SolMail Escrow program configuration
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 const REFUND_ESCROW_DISCRIMINATOR = Uint8Array.from([107, 186, 89, 99, 26, 194, 23, 204]);
 
 interface RefundEscrowButtonProps {
@@ -43,7 +43,7 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
 
       // Get thread_id and sender pubkey from email headers (now stored directly in ParsedMessage.headers)
       const headers = (emailMessage as any)?.headers || {};
-      
+
       console.log('[ESCROW LOG] Refund attempt started:', {
         timestamp: new Date().toISOString(),
         subject,
@@ -53,16 +53,16 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         allHeaders: headers,
         currentUser: publicKey.toBase58(),
       });
-      
+
       // Try multiple header name variations (case-insensitive)
-      const threadIdHex = headers['X-Solmail-Thread-Id'] || 
-                         headers['x-solmail-thread-id'] ||
-                         headers['X-SOLMAIL-THREAD-ID'] ||
-                         headers['X-Solmail-Thread-ID'];
-      const senderPubkeyStr = headers['X-Solmail-Sender-Pubkey'] || 
-                              headers['x-solmail-sender-pubkey'] ||
-                              headers['X-SOLMAIL-SENDER-PUBKEY'] ||
-                              headers['X-Solmail-Sender-PUBKEY'];
+      const threadIdHex = headers['X-Solmail-Thread-Id'] ||
+        headers['x-solmail-thread-id'] ||
+        headers['X-SOLMAIL-THREAD-ID'] ||
+        headers['X-Solmail-Thread-ID'];
+      const senderPubkeyStr = headers['X-Solmail-Sender-Pubkey'] ||
+        headers['x-solmail-sender-pubkey'] ||
+        headers['X-SOLMAIL-SENDER-PUBKEY'] ||
+        headers['X-Solmail-Sender-PUBKEY'];
 
       if (!threadIdHex || !senderPubkeyStr) {
         console.warn('[ESCROW LOG] Missing escrow headers:', {
@@ -82,10 +82,10 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       for (let i = 0; i < 32; i++) {
         hashArray[i] = parseInt(threadIdHex.substring(i * 2, i * 2 + 2), 16);
       }
-      
+
       // Get sender's pubkey (the one who created the escrow)
       const senderPubkey = new PublicKey(senderPubkeyStr);
-      
+
       // Verify that the current user is the sender (only sender can refund)
       if (!publicKey.equals(senderPubkey)) {
         toast.error('Only the sender can refund their escrow', { id: 'refund' });
@@ -132,7 +132,7 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         setIsRefunding(false);
         return;
       }
-      
+
       // Try to deserialize escrow account data to check status and expiration
       // Escrow account structure: [8-byte discriminator][32-byte sender][32-byte receiver][32-byte thread_id][8-byte amount][8-byte created_at][8-byte expires_at][1-byte status][1-byte bump]
       const accountData = escrowAccount.data;
@@ -140,35 +140,35 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       let expiresAt = 0;
       let createdAt = 0;
       let escrowAmount = 0;
-      
+
       if (accountData.length >= 8 + 32 + 32 + 32 + 8 + 8 + 8 + 1 + 1) {
         // Skip 8-byte discriminator, 32-byte sender, 32-byte receiver, 32-byte thread_id
         const amountOffset = 8 + 32 + 32 + 32;
         const createdAtOffset = amountOffset + 8;
         const expiresAtOffset = createdAtOffset + 8;
         const statusOffset = expiresAtOffset + 8;
-        
+
         // Use DataView for reading binary data
         const dataView = new DataView(accountData.buffer, accountData.byteOffset, accountData.byteLength);
-        
+
         // Read amount (u64, little-endian)
         escrowAmount = Number(dataView.getBigUint64(amountOffset, true));
-        
+
         // Read created_at (i64, little-endian)
         createdAt = Number(dataView.getBigInt64(createdAtOffset, true));
-        
+
         // Read expires_at (i64, little-endian)
         expiresAt = Number(dataView.getBigInt64(expiresAtOffset, true));
-        
+
         // Read status (u8)
         const statusByte = accountData[statusOffset];
         escrowStatus = statusByte === 0 ? 'Pending' : statusByte === 1 ? 'Completed' : statusByte === 2 ? 'Refunded' : 'Unknown';
       }
-      
+
       const now = Math.floor(Date.now() / 1000);
       const daysUntilExpiry = Math.max(0, expiresAt - now) / (24 * 60 * 60);
       const canRefund = expiresAt > 0 && now >= expiresAt;
-      
+
       console.log('[ESCROW LOG] Escrow account found:', {
         timestamp: new Date().toISOString(),
         escrowPda: escrowPda.toBase58(),
@@ -183,19 +183,19 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         canRefund,
         isExpired: now >= expiresAt,
       });
-      
+
       if (escrowStatus === 'Completed') {
         toast.error('Escrow has already been claimed by the receiver', { id: 'refund' });
         setIsRefunding(false);
         return;
       }
-      
+
       if (escrowStatus === 'Refunded') {
         toast.error('Escrow has already been refunded', { id: 'refund' });
         setIsRefunding(false);
         return;
       }
-      
+
       if (!canRefund) {
         toast.error(`Escrow cannot be refunded yet. ${daysUntilExpiry.toFixed(1)} days remaining.`, { id: 'refund' });
         setIsRefunding(false);
@@ -231,13 +231,13 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         dataLength: data.length,
         dataHex: Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(''),
       });
-      
+
       toast.loading('Please sign the refund transaction in your wallet...', { id: 'refund' });
       const signature = await wallet.adapter.sendTransaction(transaction, connection, {
         skipPreflight: false,
         maxRetries: 3,
       });
-      
+
       console.log('[ESCROW LOG] Refund transaction sent:', {
         timestamp: new Date().toISOString(),
         signature,
@@ -248,7 +248,7 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       let confirmed = false;
       let attempts = 0;
       const maxAttempts = 30;
-      
+
       while (!confirmed && attempts < maxAttempts) {
         try {
           const status = await connection.getSignatureStatus(signature);

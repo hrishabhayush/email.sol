@@ -45,6 +45,12 @@ import { Button } from '../ui/button';
 import { useQueryState } from 'nuqs';
 import { Categories } from './mail';
 import { useAtom } from 'jotai';
+import { StatusTag } from './status-tag';
+import { BadgeIcon } from './badge-icon';
+import { useActiveConnection } from '@/hooks/use-connections';
+import { getEmailStatus } from '@/lib/email-status';
+import type { EmailStatus } from '@/lib/email-status';
+import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 
 const Thread = memo(
   function Thread({
@@ -61,15 +67,38 @@ const Thread = memo(
     const [id, setThreadId] = useQueryState('threadId');
     const [focusedIndex, setFocusedIndex] = useAtom(focusedIndexAtom);
 
-    const { latestMessage, idToUse, cleanName } = useMemo(() => {
+    const { data: activeConnection } = useActiveConnection();
+    const userEmail = activeConnection?.email || '';
+
+    const { latestMessage, idToUse, cleanName, emailStatus } = useMemo(() => {
       const latestMessage = getThreadData?.latest;
       const idToUse = latestMessage?.threadId ?? latestMessage?.id;
       const cleanName = latestMessage?.sender?.name
         ? latestMessage.sender.name.trim().replace(/^['"]|['"]$/g, '')
         : '';
 
-      return { latestMessage, idToUse, cleanName };
-    }, [getThreadData?.latest]);
+      // Calculate email status
+      let emailStatus: EmailStatus = null;
+      if (getThreadData?.messages && userEmail) {
+        try {
+
+          emailStatus = getEmailStatus(
+            getThreadData.messages,
+            folder || '',
+            userEmail,
+            undefined, // escrowStatus - would come from blockchain/evaluation service
+            undefined, // aiEvaluationResult - would come from evaluation service
+          );
+
+          //no status means no escrow attached
+
+        } catch (error) {
+          console.error('Error calculating email status:', error);
+        }
+      }
+
+      return { latestMessage, idToUse, cleanName, emailStatus };
+    }, [getThreadData?.latest, getThreadData?.messages, folder, userEmail]);
 
     const optimisticState = useOptimisticThreadState(idToUse ?? '');
 
@@ -231,7 +260,7 @@ const Thread = memo(
             className={cn(
               'hover:bg-offsetLight hover:bg-primary/5 group relative mx-1 flex cursor-pointer flex-col items-start rounded-lg py-2 text-left text-sm transition-all hover:opacity-100',
               (isMailSelected || isMailBulkSelected || isKeyboardFocused) &&
-                'border-border bg-primary/5 opacity-100',
+              'border-border bg-primary/5 opacity-100',
               isKeyboardFocused && 'ring-primary/50',
               'relative',
               'group',
@@ -459,16 +488,24 @@ const Thread = memo(
                         </span>
                       ) : null} */}
                       <MailLabels labels={optimisticLabels} />
+                      {/* {emailStatus && (
+                        <StatusTag status={emailStatus} folder={folder || 'inbox'} />
+                      )} */}
                     </div>
                     {latestMessage.receivedOn ? (
-                      <p
-                        className={cn(
-                          'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
-                          isMailSelected && 'opacity-100',
-                        )}
-                      >
-                        {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {/* {emailStatus && (
+                          <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
+                        )} */}
+                        <p
+                          className={cn(
+                            'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
+                            isMailSelected && 'opacity-100',
+                          )}
+                        >
+                          {formatDate(latestMessage.receivedOn.split('.')[0] || '')}
+                        </p>
+                      </div>
                     ) : null}
                   </div>
                   <div className="flex justify-between">
@@ -535,8 +572,11 @@ const Thread = memo(
       threadLabels,
       optimisticLabels,
       emailContent,
+      emailStatus,
+      userEmail,
     ]);
 
+    // Status filtering is now done on the backend, so we don't need client-side filtering
     return latestMessage ? (
       !optimisticState.shouldHide && idToUse ? (
         <ThreadContextMenu
@@ -668,7 +708,10 @@ export const MailList = memo(
     const [, setThreadId] = useQueryState('threadId');
     const [, setDraftId] = useQueryState('draftId');
     const [category, setCategory] = useQueryState('category');
+    // Status filtering is now handled in useThreads hook and passed to backend
     const [searchValue, setSearchValue] = useSearchValue();
+    const { data: activeConnection } = useActiveConnection();
+    const userEmail = activeConnection?.email || '';
     const [{ refetch, isLoading, isFetching, isFetchingNextPage, hasNextPage }, items, , loadMore] =
       useThreads();
     const trpc = useTRPC();
@@ -859,7 +902,10 @@ export const MailList = memo(
       });
     };
 
-    const filteredItems = useMemo(() => items.filter((item) => item.id), [items]);
+    // Status filtering is now done on the backend via useThreads hook
+    const filteredItems = useMemo(() => {
+      return items.filter((item) => item.id);
+    }, [items]);
 
     const Comp = useMemo(() => (folder === FOLDERS.DRAFT ? Draft : Thread), [folder]);
 

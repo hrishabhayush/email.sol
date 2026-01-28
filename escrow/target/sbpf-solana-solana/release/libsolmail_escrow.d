@@ -1,1 +1,0 @@
-/Users/hrishabhayush/Developer/Hackathon/zero-test/email.sol/escrow/target/sbpf-solana-solana/release/libsolmail_escrow.rlib: /Users/hrishabhayush/Developer/Hackathon/zero-test/email.sol/escrow/programs/solmail_escrow/src/lib.rs

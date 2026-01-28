@@ -3,7 +3,6 @@ import {
   IGetThreadsResponseSchema,
   type IGetThreadsResponse,
 } from '../../lib/driver/types';
-import { updateWritingStyleMatrix } from '../../services/writing-style-service';
 import { activeDriverProcedure, router, privateProcedure } from '../trpc';
 import { getZeroAgent, getZeroClient } from '../../lib/server-utils';
 import { processEmailHtml } from '../../lib/email-processor';
@@ -17,6 +16,7 @@ import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { scoreEmail, type ScoringProgressCallback } from '../../routes/agent/email-scoring-tool';
 import { decide } from '../../routes/agent/escrow-decision';
+import { getEmailStatus } from '../../lib/email-status';
 
 // In-memory progress cache for email scoring
 // Key: requestId, Value: { step: string, data?: any, completed?: boolean, result?: any }
@@ -55,7 +55,13 @@ export const mailRouter = router({
       const { activeConnection } = ctx;
       const executionCtx = getContext<HonoContext>().executionCtx;
       const agent = await getZeroClient(activeConnection.id, executionCtx);
-      return await agent.getThread(input.id, true, input.forceFresh);
+      const threadData = await agent.getThread(input.id, true, input.forceFresh);
+
+      if(!threadData) {
+        console.error('[THREAD DEBUG - No thread data found]');
+      }
+
+      return threadData;
     }),
   count: activeDriverProcedure
     .output(
@@ -79,13 +85,29 @@ export const mailRouter = router({
         maxResults: z.number().optional().default(defaultPageSize),
         cursor: z.string().optional().default(''),
         labelIds: z.array(z.string()).optional().default([]),
+        status: z
+          .enum([
+            // Sender Mode (Sent folder)
+            'on_hold',
+            'paid',
+            'refunded',
+            // Receiver Mode (Inbox folder)
+            'awaiting_evaluation',
+            'approved',
+            'attempts_remaining_2',
+            'attempts_remaining_1',
+            'attempts_remaining_0',
+            'attempts_remaining', // Combined filter for all attempts remaining states
+          ])
+          .optional(),
       }),
     )
     .output(IGetThreadsResponseSchema)
     .query(async ({ ctx, input }) => {
-      const { folder, maxResults, cursor, q, labelIds } = input;
+      const { folder, maxResults, cursor, q, labelIds, status } = input;
       const { activeConnection } = ctx;
       const agent = await getZeroAgent(activeConnection.id);
+      const userEmail = activeConnection.email;
 
       console.debug('[listThreads] input:', { folder, maxResults, cursor, q, labelIds });
 
@@ -255,6 +277,59 @@ export const mailRouter = router({
         threadsResponse.threads = filtered;
         console.debug('[listThreads] Snoozed threads after filtering:', filtered);
       }
+
+      // Filter by status if status filter is provided
+      if (status && (folder === FOLDERS.SENT || folder === FOLDERS.INBOX || !folder)) {
+        console.debug('[listThreads] Filtering by status:', status);
+        const filtered: ThreadItem[] = [];
+
+        // Fetch thread data for each thread to calculate status
+        // This is done in parallel for better performance
+        await Promise.all(
+          threadsResponse.threads.map(async (t: ThreadItem) => {
+            try {
+              // Get thread data to calculate status
+              const threadData = await agent.getThread(t.id, false);
+              if (!threadData?.messages) {
+                // If we can't get thread data, exclude it from status filtering
+                return;
+              }
+
+              // Calculate status for this thread
+              const threadStatus = getEmailStatus(
+                threadData.messages,
+                folder || 'inbox',
+                userEmail,
+                undefined, // escrowStatus - would come from blockchain/evaluation service
+                undefined, // aiEvaluationResult - would come from evaluation service
+              );
+
+              // Include thread if status matches filter
+              // Handle combined "attempts_remaining" filter
+              if (status === 'attempts_remaining') {
+                if (threadStatus === 'attempts_remaining_2' ||
+                  threadStatus === 'attempts_remaining_1' ||
+                  threadStatus === 'attempts_remaining_0') {
+                  filtered.push(t);
+                }
+              } else if (threadStatus === status) {
+                filtered.push(t);
+              }
+            } catch (error) {
+              // If we can't get thread data, exclude it from results
+              console.debug('[listThreads] Failed to get thread data for status filtering:', t.id, error);
+            }
+          }),
+        );
+
+        threadsResponse.threads = filtered;
+        console.debug('[listThreads] Status filtered threads:', {
+          originalCount: threadsResponse.threads.length,
+          filteredCount: filtered.length,
+          status,
+        });
+      }
+
       console.debug('[listThreads] Returning threadsResponse:', threadsResponse);
       return threadsResponse;
     }),
@@ -492,16 +567,6 @@ export const mailRouter = router({
       const agent = await getZeroAgent(activeConnection.id);
       const { draftId, ...mail } = input;
 
-      const afterTask = async () => {
-        try {
-          console.warn('Saving writing style matrix...');
-          await updateWritingStyleMatrix(activeConnection.id, input.message);
-          console.warn('Saved writing style matrix.');
-        } catch (error) {
-          console.error('Failed to save writing style matrix', error);
-        }
-      };
-
       // Check if this is a reply with escrow headers (for tracking)
       const escrowThreadId = input.headers?.['X-Solmail-Thread-Id'] ||
         input.headers?.['x-solmail-thread-id'];
@@ -523,8 +588,6 @@ export const mailRouter = router({
       } else {
         await agent.create(input);
       }
-
-      ctx.c.executionCtx.waitUntil(afterTask());
 
       // Trigger escrow agent for email replies (async, non-blocking)
       // Note: This processes the sent email. For recipient replies, see workflow integration.

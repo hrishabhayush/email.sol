@@ -23,7 +23,7 @@ import { useEscrowTracker } from '@/hooks/use-escrow-tracker';
 import { EmailScoringModal } from './email-scoring-modal';
 
 // SolMail Escrow program configuration
-const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb');
+const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
 const REGISTER_AND_CLAIM_DISCRIMINATOR = Uint8Array.from([127, 144, 210, 98, 66, 165, 255, 139]);
 
 interface ReplyComposeProps {
@@ -209,12 +209,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
       // CRITICAL: Force fresh fetch of thread data to get latest escrow headers
       // This bypasses cache and gets data directly from Gmail API
+      // Purpose: Get the latest thread data, including escrow headers (X-Solmail-Thread-Id), from all messages in the thread.
       let freshEmailData = emailData;
       if (isReplyMode && threadId) {
-        console.log('[ESCROW LOG] Force fetching fresh thread data from Gmail API (bypassing cache):', {
-          threadId,
-          mode,
-        });
         try {
           // Fetch directly with forceFresh=true to bypass cache
           // Use try-catch to handle TRPC errors gracefully
@@ -226,14 +223,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           });
           if (freshData) {
             freshEmailData = freshData;
-            console.log('[ESCROW LOG] Fresh thread data fetched:', {
-              threadId,
-              messageCount: freshData?.messages?.length || 0,
-              hasHeaders: freshData?.messages?.some((m: any) => {
-                const h = m.headers || {};
-                return !!(h['X-Solmail-Thread-Id'] || h['x-solmail-thread-id']);
-              }),
-            });
+            console.log('[ESCROW LOG] Fresh thread data fetched:');
           } else {
             console.log('[ESCROW LOG] Using cached email data for escrow header search');
           }
@@ -243,18 +233,14 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         }
       }
 
-      // STEP 1: Score the email reply BEFORE escrow release
+      // Score the email reply BEFORE escrow release
       // This ensures we validate the reply quality before releasing escrow
       let emailScore: number | undefined;
       let escrowDecision: 'RELEASE' | 'WITHHOLD' | undefined;
 
       if (isReplyMode) {
         try {
-          console.log('[EMAIL SCORING] Starting email scoring before escrow release:', {
-            threadId,
-            mode,
-            replyLength: data.message.length,
-          });
+          console.log('[EMAIL SCORING] Starting email scoring before escrow release:');
 
           // Get all thread emails for context
           const messagesToScore = freshEmailData?.messages || emailData?.messages || [];
@@ -262,17 +248,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             decodedBody: msg.decodedBody || '',
             subject: msg.subject || '',
           }));
-
-          console.log('[EMAIL SCORING] Thread emails result:', {
-            count: threadEmails.length,
-            emails: threadEmails.map((email, index) => ({
-              index,
-              subject: email.subject,
-              bodyLength: email.decodedBody?.length || 0,
-              bodyPreview: email.decodedBody?.substring(0, 100) || '',
-            })),
-            fullData: threadEmails,
-          });
 
           // Generate request ID for progress tracking
           const requestId = `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -349,7 +324,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
           // If decision is WITHHOLD, block escrow release and email sending
           if (escrowDecision === 'WITHHOLD') {
-            console.error('[EMAIL SCORING] ❌ Email score too low - blocking escrow release:', {
+            console.log('[EMAIL SCORING] ❌ Email score too low - blocking escrow release:', {
               score: emailScore,
               threshold: 70,
               decision: escrowDecision,
@@ -393,37 +368,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         }
       }
 
-      console.log('🔍 Reply escrow claim check:', {
-        mode,
-        isReplyMode,
-        hasWallet: !!wallet,
-        hasPublicKey: !!publicKey,
-        hasConnection: !!connection,
-        hasAdapter: !!wallet?.adapter,
-        hasReplyToMessage: !!replyToMessage,
-        replyToMessageKeys: replyToMessage ? Object.keys(replyToMessage) : [],
-      });
-
+      // purpose: find the escrow account
       if (isReplyMode && replyToMessage) {
         // NEW APPROACH: Get escrow account from program by checking sender's recent transactions
         // Then initiate transaction directly to receiver
 
-        console.log('🔍 [SETTLEMENT] Finding escrow account from program:', {
-          timestamp: new Date().toISOString(),
-          subject: replyToMessage.subject,
-          originalSender: replyToMessage.sender?.email,
-          threadId: threadId,
-        });
-
         // Known sender pubkey
         const KNOWN_SENDER_PUBKEY = '7DUw1493Y2xS9TDvos11sfoPmEwo3UjqryGPdqE44nWW';
-        const encoder = new TextEncoder();
 
         // Get the original email (first message in thread)
         const messagesToSearch = freshEmailData?.messages || emailData?.messages || [];
-        const originalMessage = messagesToSearch.length > 0 ? messagesToSearch[0] : replyToMessage;
 
-        // FIRST: Try to get thread_id and sender pubkey from headers
+        // 1) Try to get thread_id and sender pubkey from headers
         let threadIdFromHeaders: string | undefined;
         let senderPubkeyFromHeaders: string | undefined;
 
@@ -442,12 +398,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           if (foundThreadId && foundSenderPubkey) {
             threadIdFromHeaders = foundThreadId;
             senderPubkeyFromHeaders = foundSenderPubkey;
-            console.log('✅✅✅ [SETTLEMENT] Found escrow headers in message:', {
-              messageId: msg.id,
-              subject: msg.subject,
-              threadIdHex: foundThreadId,
-              senderPubkey: foundSenderPubkey,
-            });
+            console.log('✅ [SETTLEMENT] Found escrow headers in message:');
             break;
           }
         }
@@ -455,29 +406,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         // Use sender pubkey from headers if found, otherwise use known sender pubkey
         const SENDER_PUBKEY_TO_USE = senderPubkeyFromHeaders || KNOWN_SENDER_PUBKEY;
 
-        if (senderPubkeyFromHeaders) {
-          console.log('✅ [SETTLEMENT] Using sender pubkey from headers:', senderPubkeyFromHeaders);
-        } else {
-          console.log('✅ [SETTLEMENT] Using known sender pubkey:', KNOWN_SENDER_PUBKEY);
-        }
-
-        // NEW APPROACH: Get the LATEST transaction from sender and extract escrow account address
         // The escrow account is the account that received funds in the latest transaction
         const senderPubkey = new PublicKey(SENDER_PUBKEY_TO_USE);
 
-        console.log('[SETTLEMENT] Fetching LATEST transaction from sender to find escrow account:', {
-          senderPubkey: SENDER_PUBKEY_TO_USE,
-        });
-
         try {
-          // Get the LATEST transaction from the sender (limit: 1)
+          // 2) Get the LATEST transaction from the sender (limit: 1) using the sender pubkey to find escrow account
+          //TODO: logic may break
           const signatures = await connection.getSignaturesForAddress(senderPubkey, { limit: 1 });
 
           if (signatures.length === 0) {
             console.log('[SETTLEMENT] No transactions found from sender');
           } else {
             const latestSig = signatures[0];
-            console.log(`[SETTLEMENT] Found latest transaction: ${latestSig.signature}`);
 
             try {
               const tx = await connection.getTransaction(latestSig.signature, {
@@ -502,7 +442,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                 }
 
                 if (accountKeys && accountKeys.length > 0) {
-                  console.log(`[SETTLEMENT] Extracted ${accountKeys.length} account keys from transaction`);
                   const hasEscrowProgram = accountKeys.some((key: any) => {
                     if (!key) return false;
                     const pubkey = typeof key === 'string' ? new PublicKey(key) : (key.pubkey || key);
@@ -513,10 +452,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   if (!hasEscrowProgram) {
                     console.log('[SETTLEMENT] Latest transaction does not involve escrow program');
                   } else {
-                    console.log('[SETTLEMENT] Latest transaction involves escrow program, extracting escrow account...');
-                    console.log(`[SETTLEMENT] Looking for escrow with sender: ${senderPubkey.toBase58()}, threadId from headers: ${threadIdFromHeaders || 'NOT FOUND'}`);
-
-                    // Look at account balance changes to find which account received funds
+                    // 3) Look at account balance changes to find which account received funds
                     // The escrow account will have a positive balance change (received funds from sender)
                     if (tx.meta.preBalances && tx.meta.postBalances && accountKeys.length === tx.meta.preBalances.length) {
                       for (let i = 0; i < accountKeys.length; i++) {
@@ -545,10 +481,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                           if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                             // This is an escrow account! Check if it's pending
                             const data = accountInfo.data;
-                            console.log(`[SETTLEMENT] Found escrow account (balance method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                            console.log(`[SETTLEMENT] Found escrow account.`);
                             if (data.length > 128) {
                               const statusByte = data[128];
-                              console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
 
                               if (statusByte === 0) { // Pending
                                 // Extract sender and thread_id from escrow data
@@ -557,14 +492,10 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                                 const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
                                 const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-                                console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
-                                console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId from headers: ${threadIdFromHeaders || 'NOT FOUND'}`);
-
                                 // Verify this escrow belongs to our sender
                                 if (escrowSenderPubkey.equals(senderPubkey)) {
-                                  console.log(`[SETTLEMENT] Sender matches! Checking thread ID...`);
                                   if (threadIdFromHeaders && threadIdHexFromEscrow === threadIdFromHeaders) {
-                                    console.log(`[SETTLEMENT] Thread ID matches!`);
+                                    console.log(`[SETTLEMENT] Sender pubkey & Thread ID matches!`);
                                   } else if (threadIdFromHeaders) {
                                     console.log(`[SETTLEMENT] Thread ID mismatch: expected ${threadIdFromHeaders}, got ${threadIdHexFromEscrow}`);
                                   } else {
@@ -583,15 +514,8 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                                   senderPubkeyStr = SENDER_PUBKEY_TO_USE;
                                   hasEscrowToClaim = true;
 
-                                  console.log('✅✅✅ [SETTLEMENT] Found escrow account from LATEST transaction!', {
-                                    escrowAccountAddress,
-                                    senderPubkey: SENDER_PUBKEY_TO_USE,
-                                    threadIdHex,
-                                    escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
-                                    balanceChange: `${balanceChange / 1_000_000_000} SOL`,
-                                    transactionSignature: latestSig.signature,
-                                    note: 'Will initiate transaction FROM this account TO receiver',
-                                  });
+                                  // TODO: clean up logic
+                                  console.log('✅✅✅ [SETTLEMENT] Found escrow account from LATEST transaction!');
                                   break; // Found it!
                                 }
                               }
@@ -623,10 +547,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                         if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                           // This is an escrow account! Check if it's pending
                           const data = accountInfo.data;
-                          console.log(`[SETTLEMENT] Found escrow account (alternative method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                          console.log(`[SETTLEMENT] Found escrow account (alternative method)`);
                           if (data.length > 128) {
                             const statusByte = data[128];
-                            console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
 
                             if (statusByte === 0) { // Pending
                               // Extract sender and thread_id from escrow data
@@ -634,9 +557,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                               const threadIdBytes = data.slice(72, 104);
                               const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
                               const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-
-                              console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
-                              console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId: ${threadIdHex}`);
 
                               // Verify this escrow belongs to our sender AND thread
                               if (escrowSenderPubkey.equals(senderPubkey) && threadIdHexFromEscrow === threadIdHex) {
@@ -646,14 +566,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                                 senderPubkeyStr = SENDER_PUBKEY_TO_USE;
                                 hasEscrowToClaim = true;
 
-                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!', {
-                                  escrowAccountAddress,
-                                  senderPubkey: SENDER_PUBKEY_TO_USE,
-                                  threadIdHex,
-                                  escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
-                                  transactionSignature: latestSig.signature,
-                                  note: 'Will initiate transaction FROM this account TO receiver',
-                                });
+                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!');
                                 break; // Found it!
                               } else {
                                 console.log(`[SETTLEMENT] Escrow found but doesn't match: sender=${escrowSenderPubkey.equals(senderPubkey)}, threadId=${threadIdHexFromEscrow === threadIdHex}`);
@@ -668,9 +581,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                           console.log(`[SETTLEMENT] Account ${accountPubkey.toBase58()} is not owned by escrow program`);
                         }
                       }
-                    } else {
-                      console.log(`[SETTLEMENT] Balance change method: accountKeys.length (${accountKeys.length}) != preBalances.length (${tx.meta.preBalances?.length || 0})`);
-                    }
+                    } 
 
                     // If we didn't find it via balance changes, try checking all accounts owned by escrow program
                     if (!hasEscrowToClaim) {
@@ -694,10 +605,9 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                         if (accountInfo && accountInfo.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                           // This is an escrow account! Check if it's pending
                           const data = accountInfo.data;
-                          console.log(`[SETTLEMENT] Found escrow account (alternative method): ${accountPubkey.toBase58()}, data length: ${data.length}`);
+                          console.log(`[SETTLEMENT] Found escrow account (alternative method)`);
                           if (data.length > 128) { //8 additional bytes: Anchor discriminator (0-8)
                             const statusByte = data[128];
-                            console.log(`[SETTLEMENT] Escrow status byte: ${statusByte} (0=pending, 1=claimed, 2=settled)`);
 
                             if (statusByte === 0) { // Pending
                               // Extract sender and thread_id from escrow data
@@ -705,9 +615,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                               const threadIdBytes = data.slice(72, 104);
                               const escrowSenderPubkey = new PublicKey(senderPubkeyBytes);
                               const threadIdHexFromEscrow = Array.from(threadIdBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-
-                              console.log(`[SETTLEMENT] Escrow sender: ${escrowSenderPubkey.toBase58()}, threadId: ${threadIdHexFromEscrow}`);
-                              console.log(`[SETTLEMENT] Expected sender: ${senderPubkey.toBase58()}, threadId: ${threadIdHex}`);
 
                               // Verify this escrow belongs to our sender AND thread
                               if (escrowSenderPubkey.equals(senderPubkey) && threadIdHexFromEscrow === threadIdHex) {
@@ -717,14 +624,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                                 senderPubkeyStr = SENDER_PUBKEY_TO_USE;
                                 hasEscrowToClaim = true;
 
-                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!', {
-                                  escrowAccountAddress,
-                                  senderPubkey: SENDER_PUBKEY_TO_USE,
-                                  threadIdHex,
-                                  escrowBalance: `${accountInfo.lamports / 1_000_000_000} SOL`,
-                                  transactionSignature: latestSig.signature,
-                                  note: 'Will initiate transaction FROM this account TO receiver',
-                                });
+                                console.log('✅✅✅ [SETTLEMENT] Found escrow account from transaction (alternative method)!');
                                 break; // Found it!
                               } else {
                                 console.log(`[SETTLEMENT] Escrow found but doesn't match: sender=${escrowSenderPubkey.equals(senderPubkey)}, threadId=${threadIdHexFromEscrow === threadIdHex}`);
@@ -763,26 +663,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           });
         }
 
-        console.log('[ESCROW LOG] Reply escrow check:', {
-          timestamp: new Date().toISOString(),
-          mode,
-          subject: replyToMessage.subject,
-          messageId: replyToMessage.id,
-          hasEscrowToClaim,
-          threadIdHex: threadIdHex || 'NOT FOUND',
-          senderPubkeyStr: senderPubkeyStr || 'NOT FOUND',
-          foundEscrow: hasEscrowToClaim,
-          searchedMessages: messagesToSearch.length,
-          usedFreshData: !!freshEmailData,
-          threadIdFromHeaders: threadIdFromHeaders ? 'found' : 'not found',
-          senderPubkeyFromHeaders: senderPubkeyFromHeaders ? 'found' : 'not found',
-          walletConnected: !!(wallet && publicKey),
-          hasWallet: !!wallet,
-          hasPublicKey: !!publicKey,
-          hasConnection: !!connection,
-          hasAdapter: !!wallet?.adapter,
-        });
-
         // CRITICAL: If escrow account found, wallet MUST be connected for settlement
         if (hasEscrowToClaim && (!wallet || !publicKey || !connection || !wallet.adapter)) {
           console.error('[SETTLEMENT] ❌ Wallet not connected but escrow account found - BLOCKING email send:', {
@@ -804,20 +684,8 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
         // Log result of escrow search
         if (!hasEscrowToClaim) {
-          console.log('[SETTLEMENT] No escrow account found for this thread - proceeding with email send', {
-            timestamp: new Date().toISOString(),
-            subject: replyToMessage.subject,
-            messageId: replyToMessage.id,
-            note: 'This thread may not have an escrow, or the escrow may have already been claimed',
-          });
-        } else {
-          console.log('✅✅✅ [SETTLEMENT] Escrow account found - settlement will be triggered:', {
-            threadIdHex,
-            senderPubkeyStr,
-            replierWallet: publicKey?.toBase58(),
-            note: 'Settlement transaction will transfer funds FROM escrow account TO replier wallet',
-          });
-        }
+          console.log('[SETTLEMENT] No escrow account found for this thread - proceeding with email send');
+        } 
 
         // If wallet is connected and there's an escrow, try to claim it
         // CRITICAL: This must complete BEFORE sending the email to ensure settlement happens
@@ -825,36 +693,19 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         if (hasEscrowToClaim && wallet && publicKey && connection && wallet.adapter) {
           // Safety check: Only proceed if email scoring passed (decision is RELEASE)
           if (escrowDecision !== 'RELEASE') {
-            console.error('[ESCROW LOG] ❌ Escrow release blocked - email scoring decision is not RELEASE:', {
+            console.log('[ESCROW LOG] ❌ Escrow release blocked - email scoring decision is not RELEASE:', {
               decision: escrowDecision,
               score: emailScore,
             });
             toast.error(
-              `Escrow release blocked: Email quality score (${emailScore || 'N/A'}/100) does not meet threshold.`,
+              `Email quality score (${emailScore || 'N/A'}/100) does not meet threshold.`,
               {
-                id: 'escrow-blocked',
                 duration: 10000,
               }
             );
+            //TODO: should this be throwing here?
             throw new Error('Escrow release blocked: Email scoring decision is not RELEASE');
           }
-          console.log('🚀🚀🚀 [SETTLEMENT] STARTING SETTLEMENT PROCESS:', {
-            timestamp: new Date().toISOString(),
-            subject: replyToMessage.subject,
-            messageId: replyToMessage.id,
-            threadIdHex,
-            senderPubkeyStr,
-            replierWallet: publicKey.toBase58(),
-            escrowFound: hasEscrowToClaim,
-            connectionEndpoint: connection.rpcEndpoint,
-            walletAdapter: wallet.adapter.name,
-          });
-
-          // Show a clear message that escrow claim is happening
-          toast.info('💰 Escrow reward detected! Settlement transaction will transfer funds from escrow to your wallet.', {
-            id: 'claim-info',
-            duration: 5000,
-          });
 
           let claimSuccessful = false;
 
@@ -868,8 +719,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           }
           try {
             // We already have threadIdHex and senderPubkeyStr from the check above
-            const encoder = new TextEncoder();
-
             if (!threadIdHex) {
               console.warn('⚠️ No thread_id found, cannot claim escrow');
               // Don't block email sending, just skip claim
@@ -880,53 +729,18 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                 hashArray[i] = parseInt(threadIdHex.substring(i * 2, i * 2 + 2), 16);
               }
 
-              console.log('[ESCROW LOG] Claim attempt:', {
-                timestamp: new Date().toISOString(),
-                subject: replyToMessage.subject,
-                messageId: replyToMessage.id,
-                threadIdHex,
-                senderPubkeyStr,
-                receiverPubkey: publicKey.toBase58(),
-              });
-
+              //TODO: is this not a repeat of escrow account finding above?
               if (senderPubkeyStr && escrowAccountAddress) {
                 // Use the escrow account address directly from the transaction (no PDA derivation needed)
                 const escrowPda = new PublicKey(escrowAccountAddress);
                 const senderPubkey = new PublicKey(senderPubkeyStr);
 
-                console.log('[ESCROW LOG] Using escrow account address from transaction:', {
-                  timestamp: new Date().toISOString(),
-                  escrowAccountAddress,
-                  senderPubkey: senderPubkey.toBase58(),
-                  threadIdHex,
-                  note: 'Using account address directly from transaction, no PDA derivation',
-                });
-
                 // Check if escrow account exists and has funds
                 const escrowAccount = await connection.getAccountInfo(escrowPda);
-                console.log('[ESCROW LOG] Escrow account check:', {
-                  timestamp: new Date().toISOString(),
-                  escrowPda: escrowPda.toBase58(),
-                  exists: !!escrowAccount,
-                  owner: escrowAccount?.owner.toBase58(),
-                  lamports: escrowAccount?.lamports,
-                  balance: escrowAccount ? `${escrowAccount.lamports / 1_000_000_000} SOL` : '0 SOL',
-                  expectedOwner: SOLMAIL_ESCROW_PROGRAM_ID.toBase58(),
-                  isCorrectOwner: escrowAccount?.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID),
-                  willTransferTo: publicKey.toBase58(),
-                });
 
                 if (escrowAccount && escrowAccount.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                   const escrowBalanceBefore = escrowAccount.lamports;
                   const receiverBalanceBefore = await connection.getBalance(publicKey);
-
-                  console.log('[ESCROW LOG] Escrow found, proceeding with claim:', {
-                    timestamp: new Date().toISOString(),
-                    escrowPda: escrowPda.toBase58(),
-                    amount: `${escrowBalanceBefore / 1_000_000_000} SOL`,
-                    receiverBalanceBefore: `${receiverBalanceBefore / 1_000_000_000} SOL`,
-                  });
-                  toast.loading('Claiming escrow reward...', { id: 'claim' });
 
                   // Build register_and_claim instruction
                   // Data: [8-byte discriminator][32-byte sender_pubkey][32-byte thread_id]
@@ -951,6 +765,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   transaction.feePayer = publicKey;
 
                   // CRITICAL: Verify transaction structure before sending
+                  /*
                   console.log('🔍 [SETTLEMENT] Transaction structure verification:', {
                     instructionCount: transaction.instructions.length,
                     feePayer: transaction.feePayer?.toBase58(),
@@ -966,8 +781,10 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                     dataLength: ix.data.length,
                     discriminator: Array.from(ix.data.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(''),
                   });
+                  */
 
                   // CRITICAL: Log all transaction details before sending
+                  /*
                   console.log('🚀 [SETTLEMENT] SENDING TRANSACTION - FROM ESCROW TO REPLIER:', {
                     timestamp: new Date().toISOString(),
                     escrowAccountAddress: escrowPda.toBase58(),
@@ -979,58 +796,101 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                     instruction: 'register_and_claim',
                     note: 'This transaction will transfer funds FROM the escrow account TO the replier wallet',
                   });
-
-                  console.log('💰 SETTLEMENT TRANSFER DETAILS:', {
-                    FROM_ACCOUNT: escrowPda.toBase58(),
-                    TO_WALLET: publicKey.toBase58(),
-                    AMOUNT: `${escrowBalanceBefore / 1_000_000_000} SOL`,
-                    CONDITIONS: 'Reply sent - conditions met',
-                    TRANSACTION_TYPE: 'register_and_claim',
-                    INITIATED_BY: publicKey.toBase58() + ' (REPLIER)',
-                    note: 'Funds will be transferred from the escrow account to your wallet when you sign this transaction',
-                  });
+                  */
 
                   // Show clear toast with addresses
                   toast.loading(
-                    `Settlement: Transferring ${escrowBalanceBefore / 1_000_000_000} SOL from escrow to your wallet. Please sign...`,
+                    `Settlement: Transferring funds to your wallet. Please sign...`,
                     { id: 'claim' }
                   );
 
+                  // Verify wallet is connected and ready
+                  if (!wallet?.adapter?.connected) {
+                    throw new Error('Wallet is not connected');
+                  }
+
+                  // Check wallet has balance for fees
+                  const balance = await connection.getBalance(publicKey);
+                  const minBalanceForFees = 5000; // ~0.000005 SOL for fees
+                  if (balance < minBalanceForFees) {
+                    throw new Error(`Insufficient balance for transaction fees. Need at least ${minBalanceForFees / 1_000_000_000} SOL`);
+                  }
+
+                  // Validate transaction before sending
+                  try {
+                    // Try to serialize the transaction to catch any structural issues
+                    const serialized = transaction.serialize({ requireAllSignatures: false });
+
+                    if (serialized.length > 1232) {
+                      throw new Error(`Transaction too large: ${serialized.length} bytes (max 1232)`);
+                    }
+                  } catch (validationError: any) {
+                    console.error('❌ [SETTLEMENT] Transaction validation failed:', validationError);
+                    throw new Error(`Transaction validation failed: ${validationError.message}`);
+                  }
+
+                  // Connection endpoint check
+                  /*
+                  console.log('🌐 [SETTLEMENT] Connection check:', {
+                    endpoint: connection.rpcEndpoint,
+                    commitment: 'confirmed',
+                    walletAdapter: wallet.adapter.name,
+                    walletConnected: wallet.adapter.connected,
+                  });
+                  */
+
+                  // Simulate before sending to improve UX
+                  console.log('🔍 [SETTLEMENT] Simulating transaction...');
+                  const sim = await connection.simulateTransaction(transaction);
+
+                  if (sim.value.err) {
+                    console.error('❌ [SETTLEMENT] Transaction simulation FAILED - Phantom would have failed too:', {
+                      error: sim.value.err,
+                      logs: sim.value.logs,
+                    });
+                    const errorMessage = typeof sim.value.err === 'object'
+                      ? JSON.stringify(sim.value.err, null, 2)
+                      : String(sim.value.err);
+                    throw new Error(
+                      `Transaction simulation failed: ${errorMessage}. ` +
+                      `Check logs: ${sim.value.logs?.join('\n') || 'No logs'}`
+                    );
+                  }
+
+                  console.log('✅ [SETTLEMENT] Simulation passed - safe to send');
+
+                  // Split signing and sending (avoid sendTransaction black box)
                   let signature: string;
                   try {
-                    console.log('[SETTLEMENT] Calling wallet.adapter.sendTransaction...', {
-                      replierWallet: publicKey.toBase58(),
-                      escrowAccount: escrowPda.toBase58(),
-                    });
+                    // Sign the transaction
+                    const signed = await wallet.adapter.signTransaction(transaction);
 
-                    signature = await wallet.adapter.sendTransaction(transaction, connection, {
+                    // Send the raw transaction
+                    signature = await connection.sendRawTransaction(signed.serialize(), {
                       skipPreflight: false,
                       maxRetries: 3,
                     });
 
-                    console.log('✅ [SETTLEMENT] Transaction sent successfully!', {
-                      signature,
-                      from: escrowPda.toBase58(),
-                      to: publicKey.toBase58(),
-                    });
                   } catch (sendError: any) {
                     console.error('❌ [SETTLEMENT] Transaction send failed:', {
                       error: sendError,
-                      message: sendError.message,
-                      stack: sendError.stack,
+                      name: sendError?.name,
+                      message: sendError?.message,
+                      code: sendError?.code,
+                      logs: sendError?.logs,
+                      cause: sendError?.cause,
+                      stringified: JSON.stringify(sendError, Object.getOwnPropertyNames(sendError)),
+                      walletConnected: wallet?.adapter?.connected,
+                      walletName: wallet?.adapter?.name,
+                      publicKey: publicKey?.toBase58(),
+                      transactionSize: transaction.serialize({ requireAllSignatures: false }).length,
                       escrowAccount: escrowPda.toBase58(),
-                      replierWallet: publicKey.toBase58(),
+                      replierWallet: publicKey?.toBase58(),
                     });
                     throw new Error(`Failed to send settlement transaction: ${sendError.message || 'Unknown error'}`);
                   }
 
-                  console.log('✅ [SETTLEMENT] Transaction sent - waiting for confirmation:', {
-                    timestamp: new Date().toISOString(),
-                    signature,
-                    escrowAccount: escrowPda.toBase58(),
-                    replierWallet: publicKey.toBase58(),
-                    amount: `${escrowBalanceBefore / 1_000_000_000} SOL`,
-                  });
+                  console.log('✅ [SETTLEMENT] Transaction sent - waiting for confirmation:');
 
                   // Detect network from connection endpoint
                   const isDevnet = connection.rpcEndpoint.includes('devnet') || connection.rpcEndpoint.includes('localhost');
@@ -1041,39 +901,13 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                   const solanaExplorerUrl = `https://explorer.solana.com/tx/${signature}?cluster=${cluster}`;
                   const escrowAccountUrl = `https://solscan.io/account/${escrowPda.toBase58()}${isDevnet ? '?cluster=devnet' : ''}`;
 
-                  console.log('💰 [SETTLEMENT] TRANSACTION DETAILS:', {
-                    signature,
-                    FROM_ESCROW_ACCOUNT: escrowPda.toBase58(),
-                    TO_REPLIER_WALLET: publicKey.toBase58(),
-                    AMOUNT: `${escrowBalanceBefore / 1_000_000_000} SOL`,
-                    INITIATED_BY: publicKey.toBase58() + ' (REPLIER)',
-                    explorer: explorerUrl,
-                    solanaExplorer: solanaExplorerUrl,
-                    escrowAccountExplorer: escrowAccountUrl,
-                  });
-
-                  console.log(`🔗 [SETTLEMENT] View transaction on Solscan: ${explorerUrl}`);
-                  console.log(`🔗 [SETTLEMENT] View escrow account: ${escrowAccountUrl}`);
-                  console.log(`🔗 [SETTLEMENT] View on Solana Explorer: ${solanaExplorerUrl}`);
-
-                  // Show toast with explorer link
-                  toast.info(
-                    `Settlement transaction sent! View: ${explorerUrl.slice(0, 50)}...`,
-                    { id: 'settlement-tx', duration: 10000 }
-                  );
-
                   // Wait for confirmation - CRITICAL: Don't proceed until confirmed
                   // Use multiple confirmation methods for reliability
                   let confirmed = false;
                   let attempts = 0;
                   const maxAttempts = 90; // Increased timeout for mainnet (90 seconds)
 
-                  console.log('[ESCROW LOG] Waiting for transaction confirmation...', {
-                    signature,
-                    maxAttempts,
-                    escrowPda: escrowPda.toBase58(),
-                  });
-
+                  //TODO: whats the point of this
                   while (!confirmed && attempts < maxAttempts) {
                     try {
                       // Method 1: Check signature status
@@ -1083,10 +917,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
                       if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
                         confirmed = true;
-                        console.log('[ESCROW LOG] Transaction confirmed via signature status:', {
-                          confirmationStatus: status.value.confirmationStatus,
-                          attempts,
-                        });
                         break;
                       }
 
@@ -1102,10 +932,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                           if (!escrowCheck || escrowCheck.owner.equals(SystemProgram.programId)) {
                             // Escrow account closed = transaction succeeded
                             confirmed = true;
-                            console.log('[ESCROW LOG] Transaction confirmed via escrow account closure:', {
-                              attempts,
-                              escrowClosed: true,
-                            });
                             break;
                           }
                         } catch (checkError) {
@@ -1139,11 +965,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                         commitment: 'confirmed',
                         maxSupportedTransactionVersion: 0,
                       });
-                      console.log('[ESCROW LOG] Transaction details retrieved:', {
-                        meta: transactionDetails?.meta,
-                        err: transactionDetails?.meta?.err,
-                        logMessages: transactionDetails?.meta?.logMessages,
-                      });
                     } catch (txError) {
                       console.warn('[ESCROW LOG] Could not fetch transaction details:', txError);
                     }
@@ -1161,27 +982,13 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                     const rentExemptMinimum = await connection.getMinimumBalanceForRentExemption(8 + 130); // 8 (discriminator) + Escrow::LEN
                     const expectedTransfer = escrowBalanceBefore - rentExemptMinimum;
 
-                    console.log('[ESCROW LOG] Escrow claim successful - verifying transfer:', {
-                      timestamp: new Date().toISOString(),
-                      signature,
-                      escrowPda: escrowPda.toBase58(),
-                      receiver: publicKey.toBase58(),
-                      escrowAccountClosed: !escrowAccountAfter || escrowAccountAfter.owner.equals(SystemProgram.programId),
-                      receiverBalanceBefore: `${receiverBalanceBefore / 1_000_000_000} SOL`,
-                      receiverBalanceAfter: `${receiverBalanceAfter / 1_000_000_000} SOL`,
-                      balanceIncrease: `${balanceIncrease / 1_000_000_000} SOL`,
-                      originalEscrowAmount: `${escrowBalanceBefore / 1_000_000_000} SOL`,
-                      expectedTransfer: `${expectedTransfer / 1_000_000_000} SOL`,
-                      transactionError: transactionDetails?.meta?.err,
-                    });
-
                     if (!escrowAccountAfter || escrowAccountAfter.owner.equals(SystemProgram.programId)) {
                       // Escrow account is closed, funds have been transferred to receiver
                       const transferAmount = escrowBalanceBefore;
                       claimSuccessful = true;
                       toast.success(
-                        `✅ Settlement complete! ${transferAmount / 1_000_000_000} SOL transferred FROM escrow ${escrowPda.toBase58().slice(0, 8)}... TO your wallet ${publicKey.toBase58().slice(0, 8)}...`,
-                        { id: 'claim', duration: 10000 }
+                        `Settlement complete! ${transferAmount / 1_000_000_000} SOL transferred to your wallet.`,
+                        { id: 'claim', duration: 5000 }
                       );
                       console.log('✅✅✅ [SETTLEMENT COMPLETE] Funds successfully transferred:', {
                         FROM_ESCROW_ACCOUNT: escrowPda.toBase58(),
@@ -1195,6 +1002,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
                       });
                     } else if (balanceIncrease > 0) {
                       // Balance increased but escrow account still exists (might be closing)
+                      //TODO: ??
                       claimSuccessful = true;
                       toast.success(
                         `✅ Settlement complete! ${balanceIncrease / 1_000_000_000} SOL received FROM escrow ${escrowPda.toBase58().slice(0, 8)}... TO your wallet.`,
@@ -1345,12 +1153,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             throw new Error('Settlement incomplete. Please retry sending the reply to complete the escrow claim.');
           }
 
-          if (claimSuccessful) {
-            console.log('[ESCROW LOG] ✅ Settlement successful - proceeding with email send', {
-              threadIdHex,
-              senderPubkeyStr,
-            });
-          }
         } else if (hasEscrowToClaim) {
           // Escrow found but wallet not connected - already blocked above, but log it
           console.warn('[SETTLEMENT] Escrow found but wallet not connected - email send blocked');
@@ -1388,7 +1190,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       if (isReplyMode && hasEscrowToClaim && threadIdHex && senderPubkeyStr && wallet && publicKey) {
         // Give it a moment for the email to be sent, then try automatic claim
         setTimeout(async () => {
-          console.log('[ESCROW LOG] Attempting automatic escrow claim after email send');
+          //console.log('[ESCROW LOG] Attempting automatic escrow claim after email send');
           const claimed = await checkAndClaimEscrow(senderPubkeyStr, threadIdHex);
           if (claimed) {
             console.log('[ESCROW LOG] ✅ Automatic escrow claim successful after email send');

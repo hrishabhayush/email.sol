@@ -33,38 +33,9 @@ export function useEscrowMonitor(messages?: ParsedMessage[]) {
     });
 
     if (messagesWithEscrow.length > 0) {
-      console.log('[ESCROW MONITOR] Found emails with escrow headers:', {
-        timestamp: new Date().toISOString(),
-        totalMessages: messages.length,
-        messagesWithEscrow: messagesWithEscrow.length,
-        details: messagesWithEscrow.map((msg) => ({
-          id: msg.id,
-          subject: msg.subject,
-          sender: msg.sender.email,
-          hasThreadId: !!(
-            msg.headers?.['X-Solmail-Thread-Id'] ||
-            msg.headers?.['x-solmail-thread-id']
-          ),
-          hasSenderPubkey: !!(
-            msg.headers?.['X-Solmail-Sender-Pubkey'] ||
-            msg.headers?.['x-solmail-sender-pubkey']
-          ),
-          threadId: msg.headers?.['X-Solmail-Thread-Id'] || msg.headers?.['x-solmail-thread-id'] || 'NOT FOUND',
-          senderPubkey: msg.headers?.['X-Solmail-Sender-Pubkey'] || msg.headers?.['x-solmail-sender-pubkey'] || 'NOT FOUND',
-          allHeaderKeys: Object.keys(msg.headers || {}),
-        })),
-      });
+      console.log('[ESCROW MONITOR] Found emails with escrow headers:');
     } else {
-      console.log('[ESCROW MONITOR] No emails with escrow headers found:', {
-        timestamp: new Date().toISOString(),
-        totalMessages: messages.length,
-        sampleMessage: messages[0] ? {
-          id: messages[0].id,
-          subject: messages[0].subject,
-          hasHeaders: !!messages[0].headers,
-          headerKeys: messages[0].headers ? Object.keys(messages[0].headers) : [],
-        } : null,
-      });
+      console.log('[ESCROW MONITOR] No emails with escrow headers found:');
     }
   }, [messages]);
 }

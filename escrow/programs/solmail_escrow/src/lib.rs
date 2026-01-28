@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 
-declare_id!("Cx6XKyjVT5oipy3gdko2A7R4oJYc5ENUqgMapBF7zxkb");
+/// Declare the program ID
+declare_id!("DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd");
 
 /// 15 days in seconds.
 const FIFTEEN_DAYS: i64 = 15 * 24 * 60 * 60;
@@ -15,7 +16,7 @@ pub mod solmail_escrow {
     ///
     /// - `thread_id` is a 32-byte identifier derived from the email thread (e.g. a hash).
     /// - `amount` is the number of lamports the sender wants to escrow.
-    pub fn initialize_escrow(
+    pub fn initialize_escrow( //instruction
         ctx: Context<InitializeEscrow>,
         thread_id: [u8; 32],
         amount: u64,
@@ -35,8 +36,8 @@ pub mod solmail_escrow {
 
         // Transfer lamports from the sender to the escrow PDA.
         let ix = system_instruction::transfer(&ctx.accounts.sender.key(), &escrow.key(), amount);
-        anchor_lang::solana_program::program::invoke(
-            &ix,
+        anchor_lang::solana_program::program::invoke( //execute the instruction
+            &ix, //instruction to execute
             &[
                 ctx.accounts.sender.to_account_info(),
                 ctx.accounts.escrow.to_account_info(),
@@ -57,6 +58,9 @@ pub mod solmail_escrow {
         sender_pubkey: Pubkey,
         thread_id: [u8; 32],
     ) -> Result<()> {
+        //get immutable fields before mutable borrow
+        let escrow_lamports = ctx.accounts.escrow.to_account_info().lamports();
+
         let escrow = &mut ctx.accounts.escrow;
 
         // Verify the escrow is in Pending status.
@@ -83,20 +87,10 @@ pub mod solmail_escrow {
         // Mark as completed.
         escrow.status = EscrowStatus::Completed;
 
-        // Transfer all lamports from escrow PDA to receiver.
-        let escrow_lamports = ctx.accounts.escrow.to_account_info().lamports();
-        let rent_exempt_minimum = Rent::get()?.minimum_balance(8 + Escrow::LEN);
-        let transfer_amount = escrow_lamports
-            .checked_sub(rent_exempt_minimum)
-            .ok_or(EscrowError::InsufficientFunds)?;
-
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
-        **ctx.accounts.receiver.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
-
-        // Close the escrow account (return rent to receiver).
-        **ctx.accounts.escrow.to_account_info().try_borrow_mut_lamports()? = 0;
-        ctx.accounts.escrow.to_account_info().assign(&system_program::ID);
-        ctx.accounts.escrow.to_account_info().resize(0)?;
+        // Anchor's close constraint will:
+        // 1. Transfer all lamports (including rent) to receiver
+        // 2. Close the account
+        // No manual transfer needed!
 
         Ok(())
     }
@@ -204,14 +198,16 @@ pub enum EscrowStatus {
 /// Accounts required to initialize an escrow.
 #[derive(Accounts)]
 #[instruction(thread_id: [u8; 32])]
-pub struct InitializeEscrow<'info> {
-    /// The sender funding the escrow.
+pub struct InitializeEscrow<'info> { //struct is like an interface for the accounts required to initialize an escrow
+    //#[...]: Anchor attribute macro that validates and configures account constraints
+
+    /// The sender funding the escrow. -- account associated with sender's public wallet
     #[account(mut)]
     pub sender: Signer<'info>,
 
     /// PDA that will hold the escrowed lamports and state.
     #[account(
-        init,
+        init, //implied mutability
         payer = sender,
         space = 8 + Escrow::LEN,
         seeds = [b"escrow", sender.key().as_ref(), &thread_id],
@@ -236,6 +232,7 @@ pub struct RegisterAndClaim<'info> {
         mut,
         seeds = [b"escrow", sender_pubkey.as_ref(), &thread_id],
         bump = escrow.bump,
+        close = receiver,
     )]
     pub escrow: Account<'info, Escrow>,
 

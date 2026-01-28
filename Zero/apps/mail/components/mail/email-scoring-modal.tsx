@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2 } from 'lucide-react';
@@ -69,6 +69,13 @@ export function EmailScoringModal({
                     <DialogTitle className="text-center">
                         {isSuccess ? 'Email Verified' : showRecommendations ? 'Improvement Suggestions' : 'Evaluating Email'}
                     </DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {isSuccess 
+                            ? 'Your email response has been verified and funds have been released' 
+                            : showRecommendations 
+                                ? 'Email quality score and improvement suggestions' 
+                                : 'Email is being evaluated for quality'}
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-6">
