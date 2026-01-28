@@ -34,15 +34,15 @@ export function EmailScoringModal({
     const isSuccess = isCompleted && score !== undefined && score >= 70;
     const showRecommendations = isCompleted && score !== undefined && score < 70;
 
-    // Auto-dismiss success message after 2 seconds
+    // IMPORTANT: Only auto-dismiss for success, NEVER for recommendations
     useEffect(() => {
-        if (isSuccess && open) {
+        if (isSuccess && open && !showRecommendations) {
             const timer = setTimeout(() => {
                 onOpenChange(false);
             }, 2000);
             return () => clearTimeout(timer);
         }
-    }, [isSuccess, open, onOpenChange]);
+    }, [isSuccess, open, onOpenChange, showRecommendations]);
 
     const steps: ProgressStep[] = ['reading_input', 'calculating_score', 'creating_recommendations'];
     const currentStepIndex = steps.indexOf(progressStep);
@@ -53,14 +53,14 @@ export function EmailScoringModal({
                 showOverlay
                 className="w-full max-w-[500px] bg-panelLight dark:bg-panelDark"
                 onPointerDownOutside={(e) => {
-                    // Prevent closing during loading
-                    if (!isCompleted) {
+                    // Prevent closing during loading or when showing recommendations
+                    if (!isCompleted || showRecommendations) {
                         e.preventDefault();
                     }
                 }}
                 onEscapeKeyDown={(e) => {
-                    // Prevent closing during loading
-                    if (!isCompleted) {
+                    // Prevent closing during loading or when showing recommendations
+                    if (!isCompleted || showRecommendations) {
                         e.preventDefault();
                     }
                 }}

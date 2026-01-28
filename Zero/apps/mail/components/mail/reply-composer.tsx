@@ -29,9 +29,7 @@ import {
   extractEscrowHeadersFromMessages,
   discoverEscrowAccount,
   ensureWalletConnectedForEscrow,
-  checkScoringRelease,
-  verifyEscrowData,
-  executeEscrowSettlement,
+  claimEscrowAccount,
   prepareSendEmailParams,
   type WalletLike,
 } from './reply-composer-helper';
@@ -127,6 +125,190 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
     }
   }, [mode, replyToMessage, activeConnection?.email]);
 
+  // NOTE: any early return will skip the escrow logic and proceed to send email
+  const handleFindAndSettleEscrow = async (opts: {
+    replyContent: string;
+    isReplyMode: boolean;
+  }): Promise<{
+    hasEscrowToClaim: boolean;
+    threadIdHex: string | undefined;
+    senderPubkeyStr: string | undefined;
+  }> => {
+    const { replyContent, isReplyMode } = opts;
+
+    // Early return if not in reply mode or no threadId
+    if (!isReplyMode || !threadId) {
+      return {
+        hasEscrowToClaim: false,
+        threadIdHex: undefined,
+        senderPubkeyStr: undefined,
+      };
+    }
+
+    if (!replyToMessage) {
+      return {
+        hasEscrowToClaim: false,
+        threadIdHex: undefined,
+        senderPubkeyStr: undefined,
+      };
+    }
+
+    /* REPLY-ESCROW LOGIC: 1) Fetch Fresh Thread Data */
+    let hasEscrowToClaim = false;
+    let threadIdHex: string | undefined;
+    let senderPubkeyStr: string | undefined;
+    let escrowAccountAddress: string | undefined;
+
+    const freshEmailData = (await fetchFreshThreadData({
+      threadId: threadId,
+      queryClient,
+      trpc,
+      fallbackEmailData: emailData,
+    })) as typeof emailData;
+
+    //TOOD: should prob switch scoring & finding escrow order around -- we don't wanna waste API credits if there's no escrow attached
+    /* REPLY-ESCROW LOGIC: 2) Score the email reply */
+    let emailScore: number | undefined;
+    let escrowDecision: 'RELEASE' | 'WITHHOLD' | undefined;
+
+    try {
+      const messagesToScore = freshEmailData?.messages || emailData?.messages || [];
+      const threadEmails = messagesToScore.map((msg: { decodedBody?: string; subject?: string }) => ({
+        decodedBody: msg.decodedBody || '',
+        subject: msg.subject || '',
+      }));
+
+      const result = await scoreEmailReply({
+        queryClient,
+        trpc,
+        scoreEmail,
+        replyContent,
+        threadEmails,
+        progressPollIntervalRef,
+        setScoringRequestId,
+        setScoringProgress,
+        setScoringResult,
+        setScoringModalOpen,
+      });
+
+      emailScore = result.emailScore;
+      escrowDecision = result.escrowDecision;
+
+      if ('withhold' in result && result.withhold) {
+        // withhold escrow payment, but allow email to send
+        // Keep modal open to show recommendations - user must click "Ok" to close
+        // Don't close modal here - let user see recommendations
+        return {
+          hasEscrowToClaim: false, //default assumption, since hasn't been checked yet
+          threadIdHex: undefined,
+          senderPubkeyStr: undefined,
+        };
+      }
+    } catch (error) {
+      if (progressPollIntervalRef.current) {
+        clearInterval(progressPollIntervalRef.current);
+        progressPollIntervalRef.current = null;
+      }
+      console.error('[EMAIL SCORING] Error scoring email:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (errorMessage.includes('below the threshold') || errorMessage.includes('Email score below threshold')) {
+        throw error; // Re-throw to block email send
+      }
+      setScoringModalOpen(false);
+      toast.error(
+        `Failed to score email: ${errorMessage}. Escrow release blocked for safety.`,
+        { id: 'email-scoring-error', duration: 10000 }
+      );
+      throw new Error(`Email scoring failed: ${errorMessage}. Escrow release blocked.`);
+    }
+
+    /* REPLY-ESCROW LOGIC: 3) Escrow account discovery */
+    const messagesToSearch = freshEmailData?.messages || emailData?.messages || [];
+    const { threadIdFromHeaders, senderPubkeyFromHeaders } =
+      extractEscrowHeadersFromMessages(messagesToSearch as { headers?: Record<string, string> }[]);
+
+    if (!threadIdFromHeaders || !senderPubkeyFromHeaders) {
+      console.log('[SETTLEMENT] No escrow headers found in messages');
+      // Early return - no escrow
+      return {
+        hasEscrowToClaim: false,
+        threadIdHex: undefined,
+        senderPubkeyStr: undefined,
+      };
+    }
+
+    const discovery = await discoverEscrowAccount({
+      connection,
+      senderPubkey: new PublicKey(senderPubkeyFromHeaders),
+      threadIdFromHeaders,
+      programId: SOLMAIL_ESCROW_PROGRAM_ID,
+    });
+    hasEscrowToClaim = discovery.hasEscrowToClaim;
+    threadIdHex = discovery.threadIdHex;
+    senderPubkeyStr = discovery.senderPubkeyStr;
+    escrowAccountAddress = discovery.escrowAccountAddress;
+
+    // Return immediately if no escrow, no thread/pubkey/account address
+    if (!hasEscrowToClaim || !threadIdHex || !senderPubkeyStr || !escrowAccountAddress) {
+      console.warn('[ESCROW LOG] No escrow account found, skipping claim.');
+      return {
+        hasEscrowToClaim: hasEscrowToClaim,
+        threadIdHex: threadIdHex,
+        senderPubkeyStr: senderPubkeyStr,
+      };
+    }
+
+    if (!ensureWalletConnectedForEscrow({
+      wallet: wallet as WalletLike | null,
+      publicKey,
+      connection,
+    })) {
+      throw new Error('Wallet not connected but escrow account found - email send blocked');
+    }
+
+    /* REPLY-ESCROW LOGIC 4: Escrow settlement/claiming */
+    let claimSuccessful = false;
+    try {
+      claimSuccessful = await claimEscrowAccount({
+        connection,
+        wallet: wallet! as WalletLike,
+        publicKey: publicKey!,
+        threadIdHex,
+        senderPubkeyStr,
+        escrowAccountAddress,
+        programId: SOLMAIL_ESCROW_PROGRAM_ID,
+        discriminator: REGISTER_AND_CLAIM_DISCRIMINATOR,
+      });
+    } catch (error) {
+      console.error('[ESCROW LOG] Error claiming escrow:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Settlement failed: ${errorMessage}`, { id: 'claim', duration: 10000 });
+      claimSuccessful = false;
+    }
+
+    if (!claimSuccessful && hasEscrowToClaim) {
+      console.error('[ESCROW LOG] ❌ SETTLEMENT INCOMPLETE - Escrow exists but claim was not successful', {
+        threadIdHex,
+        senderPubkeyStr,
+      });
+      toast.error('Settlement incomplete. Please retry sending the reply.', {
+        id: 'settlement-incomplete',
+        duration: 10000,
+      });
+      //block send if escrow claim failed
+      throw new Error('Settlement incomplete. Please retry sending the reply to complete the escrow claim.');
+    }
+
+    return {
+      hasEscrowToClaim,
+      threadIdHex,
+      senderPubkeyStr,
+    };
+  };
+
   const handleSendEmail = async (data: {
     to: string[];
     cc?: string[];
@@ -208,174 +390,12 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
             //   replyToMessage.decodedBody,
           );
 
-      /* REPLY-ESCROW LOGIC 1: Fetch Fresh Thread Data */
+      /* REPLY-ESCROW LOGIC: Find and settle escrow (steps 1-4) */
       const isReplyMode = mode === 'reply' || mode === 'replyAll';
-      let hasEscrowToClaim = false;
-      let threadIdHex: string | undefined;
-      let senderPubkeyStr: string | undefined;
-      let escrowAccountAddress: string | undefined;
-
-      const freshEmailData = (await fetchFreshThreadData({
-        threadId: isReplyMode && threadId ? threadId : null,
-        queryClient,
-        trpc,
-        fallbackEmailData: emailData,
-      })) as typeof emailData;
-
-      /* REPLY-ESCROW LOGIC 2: Score the email reply */
-      let emailScore: number | undefined;
-      let escrowDecision: 'RELEASE' | 'WITHHOLD' | undefined;
-
-      if (isReplyMode) {
-        try {
-          const messagesToScore = freshEmailData?.messages || emailData?.messages || [];
-          const threadEmails = messagesToScore.map((msg: { decodedBody?: string; subject?: string }) => ({
-            decodedBody: msg.decodedBody || '',
-            subject: msg.subject || '',
-          }));
-
-          const result = await scoreEmailReply({
-            queryClient,
-            trpc,
-            scoreEmail,
-            replyContent: data.message,
-            threadEmails,
-            progressPollIntervalRef,
-            setScoringRequestId,
-            setScoringProgress,
-            setScoringResult,
-            setScoringModalOpen,
-          });
-
-          emailScore = result.emailScore;
-          escrowDecision = result.escrowDecision;
-
-          if ('withhold' in result && result.withhold) {
-            return;
-          }
-        } catch (error) {
-          if (progressPollIntervalRef.current) {
-            clearInterval(progressPollIntervalRef.current);
-            progressPollIntervalRef.current = null;
-          }
-          console.error('[EMAIL SCORING] Error scoring email:', error);
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          if (errorMessage.includes('below the threshold')) {
-            return;
-          }
-          setScoringModalOpen(false);
-          toast.error(
-            `Failed to score email: ${errorMessage}. Escrow release blocked for safety.`,
-            { id: 'email-scoring-error', duration: 10000 }
-          );
-          throw new Error(`Email scoring failed: ${errorMessage}. Escrow release blocked.`);
-        }
-      }
-
-      /* REPLY-ESCROW LOGIC 3: Escrow account discovery (a–e) */
-      if (isReplyMode && replyToMessage) {
-        const messagesToSearch = freshEmailData?.messages || emailData?.messages || [];
-        const { threadIdFromHeaders, senderPubkeyFromHeaders } =
-          extractEscrowHeadersFromMessages(messagesToSearch as { headers?: Record<string, string> }[]);
-
-        if (!threadIdFromHeaders || !senderPubkeyFromHeaders) {
-          console.log('[SETTLEMENT] No escrow headers found in messages');
-        } else {
-          const discovery = await discoverEscrowAccount({
-            connection,
-            senderPubkey: new PublicKey(senderPubkeyFromHeaders),
-            threadIdFromHeaders,
-            programId: SOLMAIL_ESCROW_PROGRAM_ID,
-          });
-          hasEscrowToClaim = discovery.hasEscrowToClaim;
-          threadIdHex = discovery.threadIdHex;
-          senderPubkeyStr = discovery.senderPubkeyStr;
-          escrowAccountAddress = discovery.escrowAccountAddress;
-        }
-
-        if (!ensureWalletConnectedForEscrow({
-          hasEscrowToClaim,
-          wallet: wallet as WalletLike | null,
-          publicKey,
-          connection,
-        })) {
-          return; // block email send if wallet not connected
-        }
-
-        /* REPLY-ESCROW LOGIC 4: Escrow settlement/claiming (a–g) */
-        if (!checkScoringRelease({ escrowDecision, emailScore })) {
-          /* still allow email to send */
-        } else {
-          let claimSuccessful = false;
-          try {
-            if (!threadIdHex || !senderPubkeyStr) {
-              console.warn('⚠️ No thread_id or sender pubkey, cannot claim escrow');
-            } else if (!escrowAccountAddress) {
-              console.warn('[ESCROW LOG] Escrow account not found, skipping claim:', {
-                timestamp: new Date().toISOString(),
-                subject: replyToMessage.subject,
-                messageId: replyToMessage.id,
-              });
-              toast.info('Escrow claim skipped: escrow account not found', { id: 'claim' });
-            } else {
-              verifyEscrowData(threadIdHex, senderPubkeyStr);
-              claimSuccessful = await executeEscrowSettlement({
-                connection,
-                wallet: wallet! as WalletLike,
-                publicKey: publicKey!,
-                threadIdHex,
-                senderPubkeyStr,
-                escrowAccountAddress,
-                programId: SOLMAIL_ESCROW_PROGRAM_ID,
-                discriminator: REGISTER_AND_CLAIM_DISCRIMINATOR,
-              });
-            }
-          } catch (error) {
-            console.error('[ESCROW LOG] Error claiming escrow:', {
-              timestamp: new Date().toISOString(),
-              error: error instanceof Error ? error.message : String(error),
-              stack: error instanceof Error ? error.stack : undefined,
-              subject: replyToMessage.subject,
-              messageId: replyToMessage.id,
-              threadIdHex,
-              senderPubkeyStr,
-            });
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            toast.error(`❌ Settlement failed: ${errorMessage}`, { id: 'claim', duration: 10000 });
-
-            if (hasEscrowToClaim) {
-              console.error('[ESCROW LOG] ❌ SETTLEMENT FAILED - Blocking email send until settlement succeeds', {
-                error: errorMessage,
-                threadIdHex,
-                senderPubkeyStr,
-              });
-              toast.error(`Settlement failed. Please retry. Error: ${errorMessage}`, {
-                id: 'settlement-failed',
-                duration: 15000,
-                action: { label: 'Retry', onClick: () => console.log('[ESCROW LOG] User requested retry') },
-              });
-              throw new Error(
-                `Settlement failed: ${errorMessage}. Please ensure your wallet is connected and has sufficient balance for transaction fees.`
-              );
-            }
-            console.warn('[ESCROW LOG] No escrow to claim, proceeding with email send');
-          }
-
-          if (!claimSuccessful && hasEscrowToClaim) {
-            console.error('[ESCROW LOG] ❌ SETTLEMENT INCOMPLETE - Escrow exists but claim was not successful', {
-              threadIdHex,
-              senderPubkeyStr,
-            });
-            toast.error('Settlement incomplete. Please retry sending the reply.', {
-              id: 'settlement-incomplete',
-              duration: 10000,
-            });
-            throw new Error('Settlement incomplete. Please retry sending the reply to complete the escrow claim.');
-          }
-        }
-
-      }
-
+      const escrowResult = await handleFindAndSettleEscrow({
+        replyContent: data.message,
+        isReplyMode,
+      });
 
       /* REPLY-ESCROW LOGIC 5: Send email */
       const sendParams = prepareSendEmailParams({
@@ -392,26 +412,16 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       });
       await sendEmail(sendParams);
 
-      // After email is sent, if escrow headers were found but claim wasn't successful, try auto-claim
-      if (isReplyMode && hasEscrowToClaim && threadIdHex && senderPubkeyStr && wallet && publicKey) {
-        // Give it a moment for the email to be sent, then try automatic claim
-        setTimeout(async () => {
-          //console.log('[ESCROW LOG] Attempting automatic escrow claim after email send');
-          const claimed = await checkAndClaimEscrow(senderPubkeyStr, threadIdHex);
-          if (claimed) {
-            console.log('[ESCROW LOG] ✅ Automatic escrow claim successful after email send');
-          } else {
-            console.warn('[ESCROW LOG] ⚠️ Automatic escrow claim failed, user may need to claim manually');
-          }
-        }, 2000);
-      }
-
       posthog.capture('Reply Email Sent');
 
       // Reset states
-      setMode(null);
+      // Only reset mode if no recommendations are shown (to keep modal visible)
+      if (!scoringResult || scoringResult.score >= 70) {
+        setMode(null);
+      }
       await refetch();
       toast.success(m['pages.createEmail.emailSent']());
+
     } catch (error) {
       console.error('Error sending email:', error);
       toast.error(m['pages.createEmail.failedToSendEmail']());
@@ -447,8 +457,10 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   // Handle modal close - if score was below threshold, we've already blocked email send
   const handleModalClose = (open: boolean) => {
     setScoringModalOpen(open);
-    // If closing and we have a result with score < 70, the email send was already blocked
-    // No need to do anything else here
+    // When modal closes and recommendations were shown, now reset mode
+    if (!open && scoringResult && scoringResult.score < 70) {
+      setMode(null);
+    }
   };
 
   // Cleanup polling on unmount
@@ -460,7 +472,25 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
     };
   }, []);
 
-  if (!mode || !emailData) return null;
+  // Keep modal rendered even if mode is null (for recommendations display)
+  const shouldShowModal = scoringModalOpen && scoringResult && scoringResult.score < 70;
+
+  if (!mode || !emailData) {
+    // Still render modal if recommendations are shown
+    if (shouldShowModal) {
+      return (
+        <EmailScoringModal
+          open={scoringModalOpen}
+          onOpenChange={handleModalClose}
+          progressStep={scoringProgress}
+          score={scoringResult?.score}
+          recommendations={scoringResult?.recommendations}
+          onOk={() => handleModalClose(false)}
+        />
+      );
+    }
+    return null;
+  }
 
   return (
     <>

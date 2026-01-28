@@ -1,6 +1,6 @@
 /**
  * REPLY ESCROW LOGIC helpers
- * Steps 1–5 with sub-points (a–f or a–g). Extracted from reply-composer.tsx.
+ * Steps 1–5 with sub-points (a–f or a–g). 
  */
 
 import {
@@ -45,7 +45,6 @@ type Trpc = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ScoreEmailFn = (opts: any) => Promise<any>;
 
-/** Minimal wallet adapter shape used by escrow helpers */
 /** Minimal wallet adapter shape used by escrow helpers. Real adapters may have broader types. */
 export interface WalletAdapterLike {
   signTransaction(tx: Transaction): Promise<Transaction>;
@@ -179,11 +178,12 @@ export async function scoreEmailReply(opts: {
 
   const emailScore = scoringResult.score;
   const escrowDecision = scoringResult.decision as 'RELEASE' | 'WITHHOLD';
+  const recommendations = scoringResult.recommendations || [];
 
   setScoringProgress('completed');
   setScoringResult({
     score: scoringResult.score,
-    recommendations: scoringResult.recommendations || [],
+    recommendations: recommendations,
   });
 
   if (escrowDecision === 'WITHHOLD') {
@@ -191,6 +191,13 @@ export async function scoreEmailReply(opts: {
       score: emailScore,
       threshold: 70,
       decision: escrowDecision,
+      recommendationsCount: recommendations.length,
+      recommendations: recommendations,
+    });
+    // Ensure modal stays open to show recommendations
+    setScoringModalOpen(true);
+    toast.error(`Email quality score (${emailScore ?? 'N/A'}/100) does not meet threshold. Proceeding with email send.`, {
+      duration: 10000,
     });
     return { emailScore, escrowDecision, withhold: true };
   }
@@ -209,7 +216,6 @@ export async function scoreEmailReply(opts: {
 // c) Account key extraction
 // d) Escrow account discovery (from account key)
 // e) Wallet connection check
-// (f) Send email → Step 5
 // -----------------------------------------------------------------------------
 
 /** 3a) Escrow header extraction – search all messages for X-Solmail-* headers */
@@ -247,6 +253,7 @@ export async function fetchLatestSenderSignature(
   connection: Connection,
   senderPubkey: PublicKey
 ): Promise<{ signature: string } | null> {
+  // TODO: logic may fail when multiple transactions sent by same sender
   const signatures = await connection.getSignaturesForAddress(senderPubkey, {
     limit: 1,
   });
@@ -257,7 +264,12 @@ export async function fetchLatestSenderSignature(
   return { signature: signatures[0].signature };
 }
 
-/** 3c) Account key extraction from transaction */
+/** 3c) Account key extraction from transaction 
+ * Possible accounts keys:
+ * - sender's public key
+ * - escrow program id
+ * - system program id
+*/
 export function extractAccountKeysFromTransaction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tx: { transaction: { message: any }; meta?: unknown }
@@ -287,6 +299,7 @@ export async function discoverEscrowAccount(opts: {
     if (!sigResult) return { hasEscrowToClaim: false };
 
     try {
+      //get full transaction from signature
       const tx = await connection.getTransaction(sigResult.signature, {
         commitment: 'confirmed',
         maxSupportedTransactionVersion: 0,
@@ -349,11 +362,11 @@ export async function discoverEscrowAccountFromTx(opts: {
     programId,
   } = opts;
 
-  const result: EscrowDiscoveryResult = { hasEscrowToClaim: false };
+  const noEscrowResult: EscrowDiscoveryResult = { hasEscrowToClaim: false };
 
   if (!accountKeys?.length) {
     console.log('[SETTLEMENT] No account keys extracted from transaction');
-    return result;
+    return noEscrowResult;
   }
 
   const hasEscrowProgram = accountKeys.some((key: unknown) => {
@@ -365,8 +378,9 @@ export async function discoverEscrowAccountFromTx(opts: {
   });
 
   if (!hasEscrowProgram) {
+    //no account key == escrow program id ==> no escrow
     console.log("[SETTLEMENT] Latest transaction does not involve SolMail's escrow program");
-    return result;
+    return noEscrowResult;
   }
 
   const meta = tx.meta;
@@ -375,9 +389,16 @@ export async function discoverEscrowAccountFromTx(opts: {
     !meta?.postBalances ||
     accountKeys.length !== meta.preBalances.length
   ) {
-    return result;
+    return noEscrowResult;
   }
 
+  // Criteria for finding escrow account:
+  // - account key is not sender's public key or escrow program id
+  // - positive balance change
+  // - account info exists and owner is escrow program id
+  // - data length is greater than 128
+  // - status byte is 0
+  // - sender pubkey matches and thread id hex matches
   for (let i = 0; i < accountKeys.length; i++) {
     const accountKey = accountKeys[i];
     if (!accountKey) continue;
@@ -387,6 +408,7 @@ export async function discoverEscrowAccountFromTx(opts: {
         ? new PublicKey(accountKey)
         : new PublicKey((accountKey as { pubkey?: PublicKey }).pubkey ?? (accountKey as string));
 
+    //skip if account key is sender's public key or escrow program id
     if (accountPubkey.equals(senderPubkey) || accountPubkey.equals(programId)) continue;
 
     const preBalance = meta.preBalances[i];
@@ -415,27 +437,26 @@ export async function discoverEscrowAccountFromTx(opts: {
       escrowSenderPubkey.equals(senderPubkey) &&
       threadIdHexFromEscrow === threadIdFromHeaders
     ) {
-      result.escrowAccountAddress = accountPubkey.toBase58();
-      result.threadIdHex = threadIdHexFromEscrow;
-      result.senderPubkeyStr = senderPubkey.toBase58();
-      result.hasEscrowToClaim = true;
       console.log('✅✅✅ [SETTLEMENT] Found escrow account from LATEST transaction!');
-      break;
+      return {
+        hasEscrowToClaim: true,
+        escrowAccountAddress: accountPubkey.toBase58(),
+        threadIdHex: threadIdHexFromEscrow,
+        senderPubkeyStr: senderPubkey.toBase58(),
+      }
     }
   }
 
-  return result;
+  return noEscrowResult;
 }
 
 /** 3e) Wallet connection check – block send if escrow found but wallet disconnected */
 export function ensureWalletConnectedForEscrow(opts: {
-  hasEscrowToClaim: boolean;
   wallet: WalletLike | null;
   publicKey: PublicKey | null;
   connection: Connection | null;
 }): boolean {
-  const { hasEscrowToClaim, wallet, publicKey, connection } = opts;
-  if (!hasEscrowToClaim) return true;
+  const { wallet, publicKey, connection } = opts;
 
   if (!wallet || !publicKey || !connection || !wallet.adapter) {
     console.error(
@@ -452,47 +473,15 @@ export function ensureWalletConnectedForEscrow(opts: {
 
 // -----------------------------------------------------------------------------
 // REPLY ESCROW LOGIC 4: Escrow settlement/claiming
-// a) Scoring check (decision is RELEASE)
-// b) Verify we have all required data (threadIdHex, senderPubkeyStr)
-// c) Claim escrow account
-// d) Send transaction
-// e) Wait for confirmation
-// f) Verify transaction executed
-// g) Verify escrow account closed and funds transferred
+// a) Claim escrow account (reverifies + simulates)
+// b) Send transaction
+// c) Wait for confirmation
+// d) Verify transaction executed
+// e) Verify escrow account closed and funds transferred
 // -----------------------------------------------------------------------------
 
-/** 4a) Scoring check – ensure decision is RELEASE before claiming */
-export function checkScoringRelease(opts: {
-  escrowDecision: 'RELEASE' | 'WITHHOLD' | undefined;
-  emailScore: number | undefined;
-}): boolean {
-  const { escrowDecision, emailScore } = opts;
-  if (escrowDecision === 'RELEASE') return true;
-  console.log('[ESCROW LOG] ❌ Escrow release blocked - email scoring decision is not RELEASE:', {
-    decision: escrowDecision,
-    score: emailScore,
-  });
-  toast.error(`Email quality score (${emailScore ?? 'N/A'}/100) does not meet threshold.`, {
-    duration: 10000,
-  });
-  return false;
-}
-
-/** 4b) Verify we have threadIdHex and senderPubkeyStr */
-export function verifyEscrowData(
-  threadIdHex: string | undefined,
-  senderPubkeyStr: string | undefined
-): void {
-  if (threadIdHex && senderPubkeyStr) return;
-  console.error('❌ [SETTLEMENT] Missing required data:', {
-    hasThreadId: !!threadIdHex,
-    hasSenderPubkey: !!senderPubkeyStr,
-  });
-  throw new Error('Missing escrow data: threadId or senderPubkey not found');
-}
-
-/** 4c–4g) Claim escrow, send tx, wait for confirmation, verify */
-export async function executeEscrowSettlement(opts: {
+/** 4a) Claim escrow account */
+export async function claimEscrowAccount(opts: {
   connection: Connection;
   wallet: WalletLike;
   publicKey: PublicKey;
@@ -516,15 +505,10 @@ export async function executeEscrowSettlement(opts: {
   const escrowPda = new PublicKey(escrowAccountAddress);
   const senderPubkey = new PublicKey(senderPubkeyStr);
 
+  // re-verifies, in case between discovery & claim, escrow account was claimed
   const escrowAccount = await connection.getAccountInfo(escrowPda);
   if (!escrowAccount || !escrowAccount.owner.equals(programId)) {
-    console.warn('[ESCROW LOG] Escrow account not found or already claimed:', {
-      timestamp: new Date().toISOString(),
-      escrowPda: escrowPda.toBase58(),
-      exists: !!escrowAccount,
-      owner: escrowAccount?.owner.toBase58(),
-      expectedOwner: programId.toBase58(),
-    });
+    console.warn('[ESCROW LOG] Escrow account not found or already claimed:');
     toast.warning('Escrow account not found or already claimed', { id: 'claim' });
     return false;
   }
@@ -560,6 +544,7 @@ export async function executeEscrowSettlement(opts: {
   toast.loading(`Settlement: Transferring funds to your wallet. Please sign...`, { id: 'claim' });
 
   if (!wallet?.adapter?.connected) {
+    //block send if wallet is not connected
     throw new Error('Wallet is not connected');
   }
 
@@ -582,6 +567,7 @@ export async function executeEscrowSettlement(opts: {
     throw new Error(`Transaction validation failed: ${err.message}`);
   }
 
+  //simulate before sending to avoid failed escrow settlement transactions
   console.log('🔍 [SETTLEMENT] Simulating transaction...');
   const sim = await connection.simulateTransaction(transaction);
   if (sim.value.err) {
@@ -591,11 +577,12 @@ export async function executeEscrowSettlement(opts: {
         : String(sim.value.err);
     throw new Error(
       `Transaction simulation failed: ${errorMessage}. ` +
-        `Check logs: ${(sim.value.logs as string[])?.join('\n') || 'No logs'}`
+      `Check logs: ${(sim.value.logs as string[])?.join('\n') || 'No logs'}`
     );
   }
   console.log('✅ [SETTLEMENT] Simulation passed - safe to send');
 
+  // 4b) Send transaction
   let signature: string;
   try {
     const signed = await wallet.adapter!.signTransaction(transaction);
@@ -616,13 +603,8 @@ export async function executeEscrowSettlement(opts: {
 
   console.log('✅ [SETTLEMENT] Transaction sent - waiting for confirmation:');
 
-  const isDevnet =
-    connection.rpcEndpoint.includes('devnet') ||
-    connection.rpcEndpoint.includes('localhost');
-  const explorerUrl = `https://solscan.io/tx/${signature}${isDevnet ? '?cluster=devnet' : ''}`;
-  const escrowAccountUrl = `https://solscan.io/account/${escrowPda.toBase58()}${isDevnet ? '?cluster=devnet' : ''}`;
-
-  const maxAttempts = 90;
+  // 4c) Wait for confirmation
+  const maxAttempts = 30;
   let confirmed = false;
   let attempts = 0;
 
@@ -645,6 +627,7 @@ export async function executeEscrowSettlement(opts: {
 
       if (attempts > 5) {
         try {
+          // prevents race conditions
           const escrowCheck = await connection.getAccountInfo(escrowPda);
           if (!escrowCheck || escrowCheck.owner.equals(SystemProgram.programId)) {
             confirmed = true;
@@ -671,88 +654,65 @@ export async function executeEscrowSettlement(opts: {
     }
   }
 
-  let transactionDetails: { meta?: { err?: unknown } } | null | undefined;
-  if (confirmed) {
-    try {
-      const tx = await connection.getTransaction(signature, {
-        commitment: 'confirmed',
-        maxSupportedTransactionVersion: 0,
-      });
-      transactionDetails = tx as { meta?: { err?: unknown } } | null;
-    } catch {
-      /* ignore */
-    }
+  // 4d) Verify transaction executed
+  if (!confirmed) {
+    throw new Error(`Transaction failed.`);
   }
-
-  await new Promise((r) => setTimeout(r, 3000));
-
-  const escrowAccountAfter = await connection.getAccountInfo(escrowPda);
-  const receiverBalanceAfter = await connection.getBalance(publicKey);
-  const balanceIncrease = receiverBalanceAfter - receiverBalanceBefore;
-
-  if (confirmed) {
-    if (!escrowAccountAfter || escrowAccountAfter.owner.equals(SystemProgram.programId)) {
-      const transferAmount = escrowBalanceBefore;
-      toast.success(
-        `Settlement complete! ${transferAmount / 1_000_000_000} SOL transferred to your wallet.`,
-        { id: 'claim', duration: 5000 }
-      );
-      console.log('✅✅✅ [SETTLEMENT COMPLETE] Funds successfully transferred:', {
-        FROM_ESCROW_ACCOUNT: escrowPda.toBase58(),
-        TO_REPLIER_WALLET: publicKey.toBase58(),
-        AMOUNT: `${transferAmount / 1_000_000_000} SOL`,
-        SIGNATURE: signature,
-        TRANSACTION_URL: explorerUrl,
-        ESCROW_ACCOUNT_URL: escrowAccountUrl,
-      });
-      return true;
-    }
-    if (balanceIncrease > 0) {
-      toast.success(
-        `✅ Settlement complete! ${balanceIncrease / 1_000_000_000} SOL received FROM escrow ${escrowPda.toBase58().slice(0, 8)}... TO your wallet.`,
-        { id: 'claim', duration: 10000 }
-      );
-      console.log('✅✅✅ [SETTLEMENT COMPLETE] Balance increased:', {
-        FROM_ESCROW_ACCOUNT: escrowPda.toBase58(),
-        TO_REPLIER_WALLET: publicKey.toBase58(),
-        AMOUNT: `${balanceIncrease / 1_000_000_000} SOL`,
-        SIGNATURE: signature,
-      });
-      return true;
-    }
-    if (transactionDetails?.meta?.err) {
-      throw new Error(`Transaction failed: ${JSON.stringify(transactionDetails.meta.err)}`);
-    }
+  let transactionDetails: { meta?: { err?: unknown } } | null | undefined;
+  try {
+    const tx = await connection.getTransaction(signature, {
+      commitment: 'confirmed',
+      maxSupportedTransactionVersion: 0,
+    });
+    transactionDetails = tx as { meta?: { err?: unknown } } | null;
+  } catch (error) {
+    // Log but don't fail - transaction is confirmed, details might not be indexed yet
+    console.warn('[ESCROW LOG] Could not fetch transaction details (may not be indexed yet):', error);
     toast.warning(
       'Transaction confirmed but settlement pending. Please check transaction explorer.',
       { id: 'claim' }
     );
-    return false;
+    transactionDetails = null;
   }
 
-  try {
-    const finalEscrowCheck = await connection.getAccountInfo(escrowPda);
-    const finalReceiverBalance = await connection.getBalance(publicKey);
-    const finalBalanceIncrease = finalReceiverBalance - receiverBalanceBefore;
+  //Gives the blockchain time to finalize state changes (account closure, balance updates)
+  await new Promise((r) => setTimeout(r, 3000));
 
-    if (!finalEscrowCheck || finalEscrowCheck.owner.equals(SystemProgram.programId)) {
-      toast.success(`✅ Settlement complete! ${finalBalanceIncrease / 1_000_000_000} SOL transferred.`, {
-        id: 'claim',
-      });
-      return true;
-    }
-    if (finalBalanceIncrease > 0) {
-      toast.success(`✅ Settlement complete! ${finalBalanceIncrease / 1_000_000_000} SOL received.`, {
-        id: 'claim',
-      });
-      return true;
-    }
-  } catch {
-    /* fall through to throw */
+  // 4e) Verify escrow account closed and funds transferred
+  const escrowAccountAfter = await connection.getAccountInfo(escrowPda);
+  const receiverBalanceAfter = await connection.getBalance(publicKey);
+  const balanceIncrease = receiverBalanceAfter - receiverBalanceBefore;
+
+  // Check if settlement succeeded 
+  const accountClosed = !escrowAccountAfter || escrowAccountAfter.owner.equals(SystemProgram.programId);
+
+  if (accountClosed && balanceIncrease > 0) {
+    const transferAmount = accountClosed ? escrowBalanceBefore : balanceIncrease;
+    toast.success(
+      `Settlement complete! ${transferAmount / 1_000_000_000} SOL transferred to your wallet.`,
+      { id: 'claim', duration: 5000 }
+    );
+    console.log('✅✅✅ [SETTLEMENT COMPLETE] Funds successfully transferred');
+    return true;
   }
-  throw new Error(
-    `Transaction confirmation timeout after ${maxAttempts} seconds. Please check transaction: ${explorerUrl}`
+
+  // If we get here, settlement didn't succeed - check for actual errors first
+  if (transactionDetails?.meta?.err) {
+    throw new Error(`Transaction failed: ${JSON.stringify(transactionDetails.meta.err)}`);
+  }
+
+  // If transaction succeeded but settlement verification failed, it might be a timing issue
+  // Return false instead of throwing - let caller decide how to handle
+  console.warn('[ESCROW LOG] Transaction confirmed but settlement verification failed:', {
+    accountClosed,
+    balanceIncrease,
+    signature
+  });
+  toast.warning(
+    'Transaction confirmed but settlement pending. Please check transaction explorer.',
+    { id: 'claim' }
   );
+  return false;
 }
 
 // -----------------------------------------------------------------------------
