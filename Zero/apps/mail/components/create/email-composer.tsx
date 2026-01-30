@@ -475,8 +475,10 @@ export function EmailComposer({
   }, [editor, draftId]);
 
   const proceedWithSend = async () => {
+    setIsLoading(true);
+    setAiGeneratedMessage(null);
     try {
-      if (isLoading || isSavingDraft) return;
+      if (isLoading || isSavingDraft) return; //prevent race condition (double send)
 
       const values = getValues();
 
@@ -594,7 +596,7 @@ export function EmailComposer({
             let signature: string;
             try {
               signature = await wallet.adapter.sendTransaction(transaction, connection, {
-                skipPreflight: false,
+                skipPreflight: false, //simulate transaction before sending
                 maxRetries: 3,
               });
             } catch (sendError: any) {
@@ -748,8 +750,6 @@ export function EmailComposer({
         }
       } // Close if (!isReply) block
 
-      setIsLoading(true);
-      setAiGeneratedMessage(null);
       // Save draft before sending, we want to send drafts instead of sending new emails
       if (hasUnsavedChanges) await saveDraft();
 
