@@ -196,8 +196,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
       if ('withhold' in result && result.withhold) {
         // withhold escrow payment, but allow email to send
-        // Keep modal open to show recommendations - user must click "Ok" to close
-        // Don't close modal here - let user see recommendations
         return {
           hasEscrowToClaim: false, //default assumption, since hasn't been checked yet
           threadIdHex: undefined,
@@ -414,11 +412,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
 
       posthog.capture('Reply Email Sent');
 
-      // Reset states
-      // Only reset mode if no recommendations are shown (to keep modal visible)
-      if (!scoringResult || scoringResult.score >= 70) {
-        setMode(null);
-      }
       await refetch();
       toast.success(m['pages.createEmail.emailSent']());
 

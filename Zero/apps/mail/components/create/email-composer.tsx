@@ -595,10 +595,16 @@ export function EmailComposer({
 
             let signature: string;
             try {
-              signature = await wallet.adapter.sendTransaction(transaction, connection, {
-                skipPreflight: false, //simulate transaction before sending
+              console.log('🔍 Signing transaction...');
+              // Split sign + send to isolate where errors occur
+              const adapter = wallet.adapter as { signTransaction: (tx: Transaction) => Promise<Transaction> };
+              const signed = await adapter.signTransaction(transaction); //TODO: failing here
+              console.log('✅ Wallet signed successfully');
+              signature = await connection.sendRawTransaction(signed.serialize(), {
+                skipPreflight: false,
                 maxRetries: 3,
               });
+              console.log('✅ Transaction sent:', signature);
             } catch (sendError: any) {
               console.error('❌ Transaction send error:', {
                 error: sendError,
@@ -607,6 +613,8 @@ export function EmailComposer({
                 code: sendError?.code,
                 logs: sendError?.logs,
                 cause: sendError?.cause,
+                causeMessage: sendError?.cause?.message,
+                causeCode: sendError?.cause?.code,
                 stringified: JSON.stringify(sendError, Object.getOwnPropertyNames(sendError)),
               });
               throw sendError;
@@ -701,7 +709,10 @@ export function EmailComposer({
           let shouldBlockSend = false;
 
           if (error instanceof Error) {
-            errorMessage = error.message;
+            const err = error as any;
+            errorMessage = (err.message === 'Unexpected error' && err.cause?.message)
+              ? err.cause.message
+              : err.message;
 
             // Check if it's a wallet error with more details
             if ((error as any).logs) {
@@ -717,6 +728,7 @@ export function EmailComposer({
             // If wallet is not connected or user rejected, block send
             if (errorMessage.includes('User rejected') ||
               errorMessage.includes('not connected') ||
+              errorMessage.includes('Unexpected error') ||
               errorMessage.includes('Wallet not connected') ||
               errorMessage.includes('Transaction confirmation timeout') ||
               errorMessage.includes('Escrow account not found')) {
@@ -739,12 +751,12 @@ export function EmailComposer({
           } else {
             // For other errors (network issues, etc.), allow email to send but warn user
             console.warn('⚠️ Escrow creation failed but allowing email to send:', errorMessage);
-            
-            toast.warning(`Escrow creation failed: ${errorMessage}. Email will still be sent without escrow.`, { 
+
+            toast.warning(`Escrow creation failed: ${errorMessage}. Email will still be sent without escrow.`, {
               id: 'payment',
               duration: 8000,
             });
-            
+
             // Continue with email sending (don't return)
           }
         }
@@ -762,7 +774,7 @@ export function EmailComposer({
         headers['X-Solmail-Thread-Id'] = threadIdHex;
 
         //console.log('[ESCROW LOG] Adding escrow headers to email:');
-      } 
+      }
 
       await onSendEmail({
         to: values.to,
