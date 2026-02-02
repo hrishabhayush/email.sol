@@ -49,6 +49,7 @@ import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
 import { MailContent } from './mail-content';
 import { BadgeIcon } from './badge-icon';
+import { StatusTag } from './status-tag';
 import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
 import { FileText } from 'lucide-react';
@@ -1247,6 +1248,12 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                 </span>
 
                 <div className="mt-2 flex items-center gap-2">
+                  {emailStatus && (
+                    <StatusTag status={emailStatus} folder={folder || 'inbox'} />
+                  )}
+                  {emailStatus ? (
+                    <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
+                  ) : null}
                   {emailData?.tags?.length ? (
                     <MailDisplayLabels labels={emailData?.tags.map((t) => t.name) || []} />
                   ) : null}
@@ -1461,9 +1468,9 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                         </div>
 
                         <div className="flex items-center justify-center gap-2">
-                          {/* {emailStatus && (
+                          {emailStatus && (
                             <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
-                          )} */}
+                          )}
                           <div className="text-muted-foreground mr-2 flex flex-col flex-nowrap! items-end text-sm font-medium dark:text-[#8C8C8C]">
                             <time className="whitespace-nowrap">
                               {emailData?.receivedOn ? formatDate(emailData.receivedOn) : ''}

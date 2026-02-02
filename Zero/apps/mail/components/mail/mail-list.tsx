@@ -454,11 +454,11 @@ const Thread = memo(
                             ) : null}
                           </div>
                         )}{' '}
-                        {/* {!isFolderSent ? (
+                        {!isFolderSent ? (
                           <span className="hidden items-center space-x-2 md:flex">
                             <RenderLabels labels={threadLabels} />
                           </span>
-                        ) : null} */}
+                        ) : null}
                       </span>
                       {getThreadData.totalReplies > 1 ? (
                         <Tooltip>
@@ -494,9 +494,9 @@ const Thread = memo(
                     </div>
                     {latestMessage.receivedOn ? (
                       <div className="flex items-center gap-2">
-                        {/* {emailStatus && (
+                        {emailStatus && (
                           <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
-                        )} */}
+                        )}
                         <p
                           className={cn(
                             'text-muted-foreground text-nowrap text-xs font-normal opacity-70 transition-opacity group-hover:opacity-100 dark:text-[#8C8C8C]',
