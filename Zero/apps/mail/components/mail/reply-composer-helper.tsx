@@ -99,8 +99,8 @@ export async function scoreEmailReply(opts: {
   replyContent: string;
   threadEmails: { decodedBody: string; subject: string }[];
 }): Promise<
-  | { emailScore: number; escrowDecision: 'RELEASE' }
-  | { emailScore: number; escrowDecision: 'WITHHOLD'; withhold: true }
+  | { emailScore: number; escrowDecision: 'RELEASE'; recommendations: undefined }
+  | { emailScore: number; escrowDecision: 'WITHHOLD'; withhold: true; recommendations: string[] }
 > {
   const { scoreEmail: scoreEmailMutate, replyContent, threadEmails } = opts;
 
@@ -129,14 +129,14 @@ export async function scoreEmailReply(opts: {
     toast.error(`Email quality score (${emailScore ?? 'N/A'}/100) does not meet threshold.`, {
       duration: 10000,
     });
-    return { emailScore, escrowDecision, withhold: true };
+    return { emailScore, escrowDecision, withhold: true, recommendations: recommendations };
   }
 
   console.log('[EMAIL SCORING] ✅ Email score meets threshold - proceeding with escrow release:', {
     score: emailScore,
     decision: escrowDecision,
   });
-  return { emailScore, escrowDecision };
+  return { emailScore, escrowDecision, recommendations: undefined };
 }
 
 // -----------------------------------------------------------------------------

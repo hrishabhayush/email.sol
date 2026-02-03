@@ -21,16 +21,16 @@ Return JSON only: {"score": 0-100, "recommendations": ["suggestion1", "suggestio
 
 Score ranges:
 - 90-100: Excellent - highly relevant, valuable, and well-written
-- 70-89: Good - relevant and helpful with minor issues
-- 50-69: Adequate - somewhat relevant but needs improvement
-- 30-49: Poor - limited relevance or significant issues
-- 0-29: Very poor - irrelevant, unhelpful, or poorly written
+- 60-89: Good - relevant and helpful with minor issues
+- 40-59: Adequate - somewhat relevant but needs improvement
+- 20-39: Poor - limited relevance or significant issues
+- 0-19: Very poor - irrelevant, unhelpful, or poorly written
 
 IMPORTANT - Recommendations rules:
-- If score < 70: You MUST provide 3-5 specific, actionable improvement suggestions in the recommendations array
-- If score >= 70: Use empty array: []
+- If score < 60: You MUST provide 3-5 specific, actionable improvement suggestions in the recommendations array
+- If score >= 60: Use empty array: []
 - Each recommendation should be a clear, actionable string (e.g., "Improve clarity by restructuring sentences" or "Add more specific details about the project timeline")
-- Never return an empty recommendations array when score < 70
+- Never return an empty recommendations array when score < 60
 
 Original Email: {originalEmailSection}
 Reply Email: {emailContent}
@@ -180,9 +180,9 @@ export class EmailScoringTool {
         });
       }
 
-      // If score is low (< 70) but recommendations are empty, generate fallback recommendations
-      if (parsed.score < 70 && (!parsed.recommendations || parsed.recommendations.length === 0)) {
-        console.warn('[EmailScoringTool] Score is below 70 but no recommendations provided. Generating fallback recommendations.');
+      // If score is low (< 60) but recommendations are empty, generate fallback recommendations
+      if (parsed.score < 60 && (!parsed.recommendations || parsed.recommendations.length === 0)) {
+        console.warn('[EmailScoringTool] Score is below 60 but no recommendations provided. Generating fallback recommendations.');
         parsed.recommendations = [
           'Review the clarity and structure of your message',
           'Ensure all questions from the original email are addressed',

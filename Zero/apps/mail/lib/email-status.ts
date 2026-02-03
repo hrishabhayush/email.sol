@@ -248,14 +248,14 @@ function calculateAttemptsRemaining(
     return isMessageFromUser(msg, userEmail);
   });
 
-  // Count bad responses (score < 70)
+  // Count bad responses (score < 60)
   for (const response of userResponses) {
     if (aiEvaluationResults) {
       const result = aiEvaluationResults.get(response.id);
       if (result !== undefined) {
-        // If we have a numeric score, check if it's < 70
+        // If we have a numeric score, check if it's < 60
         if (typeof result === 'number') {
-          if (result < 70) {
+          if (result < 60) {
             attemptsRemaining = Math.max(0, attemptsRemaining - 1);
           } else {
             // Good response - return early, will show "Approved" instead
