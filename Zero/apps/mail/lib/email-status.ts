@@ -80,7 +80,7 @@ export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, Status
     bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     icon: '⏳',
     badgeIcon: '🕒',
-    description: 'Response sent, being evaluated by AI',
+    description: 'Response sent, being evaluated by AI.',
   },
   approved: {
     id: 'approved',
@@ -89,7 +89,7 @@ export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, Status
     bgColor: 'bg-green-100 dark:bg-green-900/30',
     icon: '✓',
     badgeIcon: '✅',
-    description: 'Response approved, payment received',
+    description: 'Response approved, payment received.',
   },
   attempts_remaining_2: {
     id: 'attempts_remaining_2',
@@ -99,7 +99,7 @@ export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, Status
     icon: '❌',
     badgeIcon: '❌',
     attemptsCount: 2,
-    description: '2 attempts remaining',
+    description: 'No reply attempts yet, 2 attempts remaining.',
   },
   attempts_remaining_1: {
     id: 'attempts_remaining_1',
@@ -109,7 +109,7 @@ export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, Status
     icon: '❌',
     badgeIcon: '❌',
     attemptsCount: 1,
-    description: '1 attempt remaining',
+    description: '1 attempt remaining. Please click to see recommendations.',
   },
   attempts_remaining_0: {
     id: 'attempts_remaining_0',
@@ -119,7 +119,7 @@ export const INBOX_STATUS_CONFIGS: Record<NonNullable<InboxFolderStatus>, Status
     icon: '❌',
     badgeIcon: '❌',
     attemptsCount: 0,
-    description: 'No attempts remaining',
+    description: 'No attempts remaining.',
   },
 };
 

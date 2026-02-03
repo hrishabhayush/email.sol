@@ -91,79 +91,22 @@ export async function fetchFreshThreadData(opts: {
 
 // -----------------------------------------------------------------------------
 // REPLY ESCROW LOGIC 2: Score the email reply
-// Purpose: Runs SendAI agent in the backend, with progress polling in the frontend.
+// Purpose: Runs SendAI agent in the backend.
 // -----------------------------------------------------------------------------
 
 export async function scoreEmailReply(opts: {
-  queryClient: QueryClient;
-  trpc: Trpc;
   scoreEmail: ScoreEmailFn;
   replyContent: string;
   threadEmails: { decodedBody: string; subject: string }[];
-  progressPollIntervalRef: { current: NodeJS.Timeout | null };
-  setScoringRequestId: (id: string | null) => void;
-  setScoringProgress: (step: ScoringProgressStep) => void;
-  setScoringResult: (r: { score: number; recommendations: string[] } | null) => void;
-  setScoringModalOpen: (open: boolean) => void;
 }): Promise<
   | { emailScore: number; escrowDecision: 'RELEASE' }
   | { emailScore: number; escrowDecision: 'WITHHOLD'; withhold: true }
 > {
-  const {
-    queryClient,
-    trpc,
-    scoreEmail: scoreEmailMutate,
-    replyContent,
-    threadEmails,
-    progressPollIntervalRef,
-    setScoringRequestId,
-    setScoringProgress,
-    setScoringResult,
-    setScoringModalOpen,
-  } = opts;
+  const { scoreEmail: scoreEmailMutate, replyContent, threadEmails } = opts;
 
   console.log('[EMAIL SCORING] Starting email scoring before escrow release:');
 
   const requestId = `score-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-  setScoringRequestId(requestId);
-  setScoringProgress('reading_input');
-  setScoringResult(null);
-  setScoringModalOpen(true);
-
-  const pollProgress = async () => {
-    if (!requestId) return;
-    try {
-      const progress = await queryClient.fetchQuery(
-        trpc.mail.scoreEmailProgress.queryOptions({ requestId })
-      );
-      if (progress.step && progress.step !== 'completed') {
-        setScoringProgress(progress.step as ScoringProgressStep);
-      }
-      if (progress.completed && progress.result) {
-        setScoringProgress('completed');
-        setScoringResult({
-          score: progress.result.score,
-          recommendations: progress.result.recommendations || [],
-        });
-        if (progressPollIntervalRef.current) {
-          clearInterval(progressPollIntervalRef.current);
-          progressPollIntervalRef.current = null;
-        }
-      } else if (progress.completed && progress.error) {
-        setScoringModalOpen(false);
-        toast.error(`Failed to score email: ${progress.error}`, {
-          id: 'email-scoring-error',
-          duration: 10000,
-        });
-        throw new Error(`Email scoring failed: ${progress.error}`);
-      }
-    } catch (error) {
-      console.error('[EMAIL SCORING] Error polling progress:', error);
-    }
-  };
-
-  progressPollIntervalRef.current = setInterval(pollProgress, 300);
-  pollProgress();
 
   const scoringResult = await scoreEmailMutate({
     replyContent,
@@ -171,20 +114,9 @@ export async function scoreEmailReply(opts: {
     requestId,
   });
 
-  if (progressPollIntervalRef.current) {
-    clearInterval(progressPollIntervalRef.current);
-    progressPollIntervalRef.current = null;
-  }
-
   const emailScore = scoringResult.score;
   const escrowDecision = scoringResult.decision as 'RELEASE' | 'WITHHOLD';
   const recommendations = scoringResult.recommendations || [];
-
-  setScoringProgress('completed');
-  setScoringResult({
-    score: scoringResult.score,
-    recommendations: recommendations,
-  });
 
   if (escrowDecision === 'WITHHOLD') {
     console.log('[EMAIL SCORING] ❌ Email score too low - blocking escrow release:', {
@@ -194,9 +126,7 @@ export async function scoreEmailReply(opts: {
       recommendationsCount: recommendations.length,
       recommendations: recommendations,
     });
-    // Ensure modal stays open to show recommendations
-    setScoringModalOpen(true);
-    toast.error(`Email quality score (${emailScore ?? 'N/A'}/100) does not meet threshold. Proceeding with email send.`, {
+    toast.error(`Email quality score (${emailScore ?? 'N/A'}/100) does not meet threshold.`, {
       duration: 10000,
     });
     return { emailScore, escrowDecision, withhold: true };
@@ -451,6 +381,7 @@ export async function discoverEscrowAccountFromTx(opts: {
 }
 
 /** 3e) Wallet connection check – block send if escrow found but wallet disconnected */
+//TODO:  move wallet connection check ahead -- cuz should block immediately if wallet disconnected
 export function ensureWalletConnectedForEscrow(opts: {
   wallet: WalletLike | null;
   publicKey: PublicKey | null;
