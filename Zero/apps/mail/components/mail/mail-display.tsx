@@ -59,6 +59,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getEmailStatus } from '@/lib/email-status';
 import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
+import { useThreadEvaluations } from '@/components/context/thread-evaluation-context';
 
 // HTML escaping function to prevent XSS attacks
 function escapeHtml(text: string): string {
@@ -167,6 +168,8 @@ type Props = {
   onReplyAll?: () => void;
   onForward?: () => void;
   threadAttachments?: Attachment[];
+  /** Bumped when evaluations change; pass from context so memo re-renders and tag updates. */
+  evaluationVersion?: number;
 };
 
 const MailDisplayLabels = ({ labels }: { labels: string[] }) => {
@@ -653,7 +656,14 @@ const MoreAboutQuery = ({
   );
 };
 
-const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }: Props) => {
+const MailDisplay = ({
+  emailData,
+  index,
+  totalEmails,
+  demo,
+  threadAttachments,
+  evaluationVersion: _evaluationVersion,
+}: Props) => {
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
   const { data: threadData } = useThread(emailData.threadId ?? null);
   const { data: messageAttachments } = useAttachments(emailData.id);
@@ -685,7 +695,9 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
     [emailData.id, threadData?.latest?.id],
   );
 
-  // Calculate email status for badge display
+  const aiEvaluationResults = useThreadEvaluations(emailData.threadId ?? null);
+
+  // Calculate email status for badge display (uses thread evaluation context for Approved / Attempts remaining)
   const emailStatus = useMemo(() => {
     if (!threadData?.messages || !activeConnection?.email) return null;
 
@@ -693,14 +705,13 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
       threadData.messages,
       folder || 'inbox',
       activeConnection.email,
-      undefined, // escrowStatus - would come from blockchain/evaluation service
-      undefined, // aiEvaluationResult - would come from evaluation service
+      undefined,
+      undefined,
+      aiEvaluationResults,
     );
 
-    //no status means no escrow attached
-
     return status;
-  }, [threadData?.messages, folder, activeConnection?.email, emailData?.subject, emailData?.receivedOn, emailData?.id, threadData?.latest]);
+  }, [threadData?.messages, folder, activeConnection?.email, aiEvaluationResults, emailData?.subject, emailData?.receivedOn, emailData?.id, threadData?.latest]);
 
   const [, setMode] = useQueryState('mode');
 

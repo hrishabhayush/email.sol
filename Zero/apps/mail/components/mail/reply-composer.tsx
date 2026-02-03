@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { useEscrowTracker } from '@/hooks/use-escrow-tracker';
+import { useSetThreadEvaluation } from '@/components/context/thread-evaluation-context';
 import {
   SOLMAIL_ESCROW_PROGRAM_ID,
   REGISTER_AND_CLAIM_DISCRIMINATOR,
@@ -61,7 +62,8 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
   //for polling progress of scoring
   const [stillScoring, setStillScoring] = useState(true);
   const [scoringResult, setScoringResult] = useState<{ escrowDecision: 'RELEASE' | 'WITHHOLD'; score: number; recommendations: string[] } | null>(null);
-  
+  const setThreadEvaluation = useSetThreadEvaluation();
+
   // Find the specific message to reply to
   const replyToMessage =
     (messageId && emailData?.messages.find((msg) => msg.id === messageId)) || emailData?.latest;
@@ -381,25 +383,41 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
         isReplyMode,
       });
 
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error(m['pages.createEmail.failedToSendEmail']());
-    } finally {
+      // Refetch again after scoring so thread includes our new reply; then get its message id
+      // (refetch right after send can return stale data before the new message is in the thread)
+      const refetchedAfterScoring = await refetch();
+      const messages = refetchedAfterScoring.data?.messages ?? [];
+      const nonDraft = messages.filter((m: { isDraft?: boolean }) => !m.isDraft);
+      const scoredMessageId =
+        nonDraft[nonDraft.length - 1]?.id ?? refetchedAfterScoring.data?.latest?.id;
+
       setStillScoring(false);
       if (
+        threadId &&
+        scoredMessageId &&
         escrowResult?.escrowDecision != null &&
         escrowResult?.emailScore != null
       ) {
+        setThreadEvaluation(
+          threadId,
+          scoredMessageId,
+          escrowResult.escrowDecision === 'RELEASE'
+            ? 'good'
+            : escrowResult.emailScore,
+        );
         setScoringResult({
           escrowDecision: escrowResult.escrowDecision,
           score: escrowResult.emailScore,
           recommendations: escrowResult.recommendations ?? [],
         });
-        console.log('escrowResult', escrowResult);
       } else {
         setScoringResult(null);
-        console.log('scoringResult', null);
       }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error(m['pages.createEmail.failedToSendEmail']());
+      setStillScoring(false);
+      setScoringResult(null);
     }
       
   };

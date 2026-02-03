@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, RefreshCcw } from 'lucide-react';
 
 import { ThreadDisplay } from '@/components/mail/thread-display';
+import { ThreadEvaluationProvider } from '@/components/context/thread-evaluation-context';
 import { useActiveConnection } from '@/hooks/use-connections';
 // import { useMutation, useQuery } from '@tanstack/react-query';
 // import { useTRPC } from '@/providers/query-provider';
@@ -466,8 +467,9 @@ export function MailLayout() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="rounded-inherit relative z-5 flex p-0 md:mr-0.5 md:mt-1">
-        <ResizablePanelGroup
+      <ThreadEvaluationProvider>
+        <div className="rounded-inherit relative z-5 flex p-0 md:mr-0.5 md:mt-1">
+          <ResizablePanelGroup
           direction="horizontal"
           autoSaveId="mail-panel-layout"
           className="rounded-inherit overflow-hidden"
@@ -619,7 +621,8 @@ export function MailLayout() {
           {activeConnection?.id ? <AISidebar /> : null}
           {activeConnection?.id ? <AIToggleButton /> : null}
         </ResizablePanelGroup>
-      </div>
+        </div>
+      </ThreadEvaluationProvider>
     </TooltipProvider>
   );
 }

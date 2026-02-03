@@ -51,6 +51,10 @@ import { useActiveConnection } from '@/hooks/use-connections';
 import { getEmailStatus } from '@/lib/email-status';
 import type { EmailStatus } from '@/lib/email-status';
 import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
+import {
+  useThreadEvaluations,
+  useThreadEvaluationContext,
+} from '@/components/context/thread-evaluation-context';
 
 const Thread = memo(
   function Thread({
@@ -58,7 +62,8 @@ const Thread = memo(
     onClick,
     isKeyboardFocused,
     index,
-  }: ThreadProps & { index?: number }) {
+    evaluationVersion,
+  }: ThreadProps & { index?: number; evaluationVersion?: number }) {
     const [searchValue] = useSearchValue();
     const { folder } = useParams<{ folder: string }>();
     const [, threads] = useThreads();
@@ -69,6 +74,7 @@ const Thread = memo(
 
     const { data: activeConnection } = useActiveConnection();
     const userEmail = activeConnection?.email || '';
+    const aiEvaluationResults = useThreadEvaluations(message.id ?? null);
 
     const { latestMessage, idToUse, cleanName, emailStatus } = useMemo(() => {
       const latestMessage = getThreadData?.latest;
@@ -77,28 +83,25 @@ const Thread = memo(
         ? latestMessage.sender.name.trim().replace(/^['"]|['"]$/g, '')
         : '';
 
-      // Calculate email status
+      // Calculate email status (uses thread evaluation context for Approved / Attempts remaining)
       let emailStatus: EmailStatus = null;
       if (getThreadData?.messages && userEmail) {
         try {
-
           emailStatus = getEmailStatus(
             getThreadData.messages,
             folder || '',
             userEmail,
-            undefined, // escrowStatus - would come from blockchain/evaluation service
-            undefined, // aiEvaluationResult - would come from evaluation service
+            undefined,
+            undefined,
+            aiEvaluationResults,
           );
-
-          //no status means no escrow attached
-
         } catch (error) {
           console.error('Error calculating email status:', error);
         }
       }
 
       return { latestMessage, idToUse, cleanName, emailStatus };
-    }, [getThreadData?.latest, getThreadData?.messages, folder, userEmail]);
+    }, [getThreadData?.latest, getThreadData?.messages, folder, userEmail, aiEvaluationResults]);
 
     const optimisticState = useOptimisticThreadState(idToUse ?? '');
 
@@ -601,7 +604,7 @@ const Thread = memo(
   },
 );
 
-const Draft = memo(({ message }: { message: { id: string } }) => {
+const Draft = memo(({ message }: { message: { id: string }; evaluationVersion?: number }) => {
   const draftQuery = useDraft(message.id) as UseQueryResult<ParsedDraft>;
   const draft = draftQuery.data;
   const [, setComposeOpen] = useQueryState('isComposeOpen');
@@ -704,6 +707,7 @@ const Draft = memo(({ message }: { message: { id: string } }) => {
 export const MailList = memo(
   function MailList() {
     const { folder } = useParams<{ folder: string }>();
+    const { evaluationVersion } = useThreadEvaluationContext();
     const { data: settingsData } = useSettings();
     const [, setThreadId] = useQueryState('threadId');
     const [, setDraftId] = useQueryState('draftId');
@@ -920,6 +924,7 @@ export const MailList = memo(
               isKeyboardFocused={focusedIndex === index && keyboardActive}
               index={index}
               onClick={handleMailClick}
+              evaluationVersion={evaluationVersion}
             />
             {index === filteredItems.length - 1 && (isFetchingNextPage || isFetchingMail) ? (
               <div className="flex w-full justify-center py-4">
@@ -942,6 +947,7 @@ export const MailList = memo(
         isLoading,
         isFetching,
         hasNextPage,
+        evaluationVersion,
       ],
     );
 

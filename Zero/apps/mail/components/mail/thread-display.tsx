@@ -45,6 +45,7 @@ import { NotesPanel } from './note-panel';
 import { cn, FOLDERS } from '@/lib/utils';
 import { m } from '@/paraglide/messages';
 import MailDisplay from './mail-display';
+import { useThreadEvaluationContext } from '@/components/context/thread-evaluation-context';
 
 import { Inbox } from 'lucide-react';
 import { useQueryState } from 'nuqs';
@@ -164,6 +165,7 @@ const isFullscreen = false;
 export function ThreadDisplay() {
   const isMobile = useIsMobile();
   const params = useParams<{ folder: string }>();
+  const { evaluationVersion } = useThreadEvaluationContext();
 
   const folder = params?.folder ?? 'inbox';
   const [id, setThreadId] = useQueryState('threadId');
@@ -1078,6 +1080,7 @@ export function ThreadDisplay() {
                   mode={mode || undefined}
                   activeReplyId={activeReplyId || undefined}
                   isMobile={isMobile}
+                  evaluationVersion={evaluationVersion}
                 />
               )}
 
@@ -1107,16 +1110,18 @@ interface MessageListProps {
   mode?: string;
   activeReplyId?: string;
   isMobile: boolean;
+  evaluationVersion?: number;
 }
 
-const MessageList = ({ 
-  messages, 
-  isFullscreen, 
-  totalReplies, 
-  allThreadAttachments, 
-  mode, 
+const MessageList = ({
+  messages,
+  isFullscreen,
+  totalReplies,
+  allThreadAttachments,
+  mode,
   activeReplyId,
-  isMobile 
+  isMobile,
+  evaluationVersion,
 }: MessageListProps) => (
   <ScrollArea
     className={cn('flex-1', isMobile ? 'h-[calc(100%-1px)]' : 'h-full')}
@@ -1143,6 +1148,7 @@ const MessageList = ({
               index={index}
               totalEmails={totalReplies}
               threadAttachments={index === 0 ? allThreadAttachments : undefined}
+              evaluationVersion={evaluationVersion}
             />
             {isReplyingToThisMessage && !isLastMessage && (
               <div className="px-4 py-2" id={`reply-composer-${message.id}`}>
