@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -10,6 +11,49 @@ import {
 export type EvaluationValue = number | 'good' | 'bad';
 
 type EvaluationsByThread = Record<string, Record<string, EvaluationValue>>;
+
+const STORAGE_KEY = 'solmail-thread-evaluations';
+
+//enables storage of evaluations and recommendations -- persistent across states (e.g. will not lose scoring information between refreshes)
+function loadFromStorage(): {
+  byThread: EvaluationsByThread;
+  recommendationsByThread: Record<string, string[]>;
+} {
+  if (typeof window === 'undefined') {
+    return { byThread: {}, recommendationsByThread: {} };
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as {
+        byThread?: EvaluationsByThread;
+        recommendationsByThread?: Record<string, string[]>;
+      };
+      return {
+        byThread: parsed.byThread ?? {},
+        recommendationsByThread: parsed.recommendationsByThread ?? {},
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return { byThread: {}, recommendationsByThread: {} };
+}
+
+function saveToStorage(
+  byThread: EvaluationsByThread,
+  recommendationsByThread: Record<string, string[]>,
+) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ byThread, recommendationsByThread }),
+    );
+  } catch {
+    // ignore (e.g. quota, private mode)
+  }
+}
 
 type ThreadEvaluationContextValue = {
   /** Bumped when any evaluation is set; pass to memoized list/display so they re-render and show updated tag. */
@@ -31,11 +75,17 @@ const ThreadEvaluationContext = createContext<ThreadEvaluationContextValue | nul
 );
 
 export function ThreadEvaluationProvider({ children }: { children: ReactNode }) {
-  const [byThread, setByThread] = useState<EvaluationsByThread>({});
+  const [byThread, setByThread] = useState<EvaluationsByThread>(() =>
+    loadFromStorage().byThread,
+  );
   const [recommendationsByThread, setRecommendationsByThread] = useState<
     Record<string, string[]>
-  >({});
+  >(() => loadFromStorage().recommendationsByThread);
   const [evaluationVersion, setEvaluationVersion] = useState(0);
+
+  useEffect(() => {
+    saveToStorage(byThread, recommendationsByThread);
+  }, [byThread, recommendationsByThread]);
 
   const setThreadEvaluation = useCallback(
     (
