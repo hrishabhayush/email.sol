@@ -55,6 +55,7 @@ function saveToStorage(
   }
 }
 
+//A single object that holds everything the rest of the app needs for thread evaluations (version, getters, and setter)
 type ThreadEvaluationContextValue = {
   /** Bumped when any evaluation is set; pass to memoized list/display so they re-render and show updated tag. */
   evaluationVersion: number;
@@ -74,6 +75,8 @@ const ThreadEvaluationContext = createContext<ThreadEvaluationContextValue | nul
   null,
 );
 
+//component that owns the state (byThread, recommendationsByThread, evaluationVersion) and puts that value into the context so all descendants can use it
+//wraps the mail UI (e.g. in mail.tsx), so the whole mail app is “inside” this context
 export function ThreadEvaluationProvider({ children }: { children: ReactNode }) {
   const [byThread, setByThread] = useState<EvaluationsByThread>(() =>
     loadFromStorage().byThread,
