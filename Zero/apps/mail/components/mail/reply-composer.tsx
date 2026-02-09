@@ -404,6 +404,7 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
           escrowResult.escrowDecision === 'RELEASE'
             ? 'good'
             : escrowResult.emailScore,
+          escrowResult.recommendations ?? [],
         );
         setScoringResult({
           escrowDecision: escrowResult.escrowDecision,

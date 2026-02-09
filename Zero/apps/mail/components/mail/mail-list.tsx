@@ -54,6 +54,7 @@ import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 import {
   useThreadEvaluations,
   useThreadEvaluationContext,
+  useThreadRecommendations,
 } from '@/components/context/thread-evaluation-context';
 
 const Thread = memo(
@@ -75,6 +76,7 @@ const Thread = memo(
     const { data: activeConnection } = useActiveConnection();
     const userEmail = activeConnection?.email || '';
     const aiEvaluationResults = useThreadEvaluations(message.id ?? null);
+    const recommendations = useThreadRecommendations(message.id ?? null);
 
     const { latestMessage, idToUse, cleanName, emailStatus } = useMemo(() => {
       const latestMessage = getThreadData?.latest;
@@ -492,7 +494,7 @@ const Thread = memo(
                       ) : null} */}
                       <MailLabels labels={optimisticLabels} />
                       {/* {emailStatus && (
-                        <StatusTag status={emailStatus} folder={folder || 'inbox'} />
+                        <StatusTag status={emailStatus} folder={folder || 'inbox'} recommendations={recommendations} />
                       )} */}
                     </div>
                     {latestMessage.receivedOn ? (

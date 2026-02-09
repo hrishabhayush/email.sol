@@ -16,10 +16,13 @@ type ThreadEvaluationContextValue = {
   evaluationVersion: number;
   /** Map of messageId -> score | 'good' | 'bad' for use with getEmailStatus(..., aiEvaluationResults). */
   getEvaluationsForThread: (threadId: string | null) => Map<string, EvaluationValue>;
+  /** Recommendations for the latest scored message in the thread (for StatusTag popover). */
+  getRecommendationsForThread: (threadId: string | null) => string[];
   setThreadEvaluation: (
     threadId: string,
     messageId: string,
     value: EvaluationValue,
+    recommendations?: string[],
   ) => void;
 };
 
@@ -29,10 +32,18 @@ const ThreadEvaluationContext = createContext<ThreadEvaluationContextValue | nul
 
 export function ThreadEvaluationProvider({ children }: { children: ReactNode }) {
   const [byThread, setByThread] = useState<EvaluationsByThread>({});
+  const [recommendationsByThread, setRecommendationsByThread] = useState<
+    Record<string, string[]>
+  >({});
   const [evaluationVersion, setEvaluationVersion] = useState(0);
 
   const setThreadEvaluation = useCallback(
-    (threadId: string, messageId: string, value: EvaluationValue) => {
+    (
+      threadId: string,
+      messageId: string,
+      value: EvaluationValue,
+      recommendations?: string[],
+    ) => {
       setByThread((prev) => {
         const thread = prev[threadId] ?? {};
         return {
@@ -40,9 +51,23 @@ export function ThreadEvaluationProvider({ children }: { children: ReactNode }) 
           [threadId]: { ...thread, [messageId]: value },
         };
       });
+      if (recommendations != null) {
+        setRecommendationsByThread((prev) => ({
+          ...prev,
+          [threadId]: recommendations,
+        }));
+      }
       setEvaluationVersion((v) => v + 1);
     },
     [],
+  );
+
+  const getRecommendationsForThread = useCallback(
+    (threadId: string | null): string[] => {
+      if (!threadId) return [];
+      return recommendationsByThread[threadId] ?? [];
+    },
+    [recommendationsByThread],
   );
 
   const getEvaluationsForThread = useCallback(
@@ -59,9 +84,15 @@ export function ThreadEvaluationProvider({ children }: { children: ReactNode }) 
     () => ({
       evaluationVersion,
       getEvaluationsForThread,
+      getRecommendationsForThread,
       setThreadEvaluation,
     }),
-    [evaluationVersion, getEvaluationsForThread, setThreadEvaluation],
+    [
+      evaluationVersion,
+      getEvaluationsForThread,
+      getRecommendationsForThread,
+      setThreadEvaluation,
+    ],
   );
 
   return (
@@ -95,4 +126,13 @@ export function useThreadEvaluations(
 export function useSetThreadEvaluation() {
   const { setThreadEvaluation } = useThreadEvaluationContext();
   return setThreadEvaluation;
+}
+
+/** Returns recommendations for the thread's latest scored message (for StatusTag popover). */
+export function useThreadRecommendations(threadId: string | null): string[] {
+  const { getRecommendationsForThread } = useThreadEvaluationContext();
+  return useMemo(
+    () => getRecommendationsForThread(threadId),
+    [getRecommendationsForThread, threadId],
+  );
 }

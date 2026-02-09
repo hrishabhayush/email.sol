@@ -59,7 +59,10 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getEmailStatus } from '@/lib/email-status';
 import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
-import { useThreadEvaluations } from '@/components/context/thread-evaluation-context';
+import {
+  useThreadEvaluations,
+  useThreadRecommendations,
+} from '@/components/context/thread-evaluation-context';
 
 // HTML escaping function to prevent XSS attacks
 function escapeHtml(text: string): string {
@@ -696,6 +699,7 @@ const MailDisplay = ({
   );
 
   const aiEvaluationResults = useThreadEvaluations(emailData.threadId ?? null);
+  const recommendations = useThreadRecommendations(emailData.threadId ?? null);
 
   // Calculate email status for badge display (uses thread evaluation context for Approved / Attempts remaining)
   const emailStatus = useMemo(() => {
@@ -1260,7 +1264,11 @@ const MailDisplay = ({
 
                 <div className="mt-2 flex items-center gap-2">
                   {emailStatus && (
-                    <StatusTag status={emailStatus} folder={folder || 'inbox'} />
+                    <StatusTag
+                      status={emailStatus}
+                      folder={folder || 'inbox'}
+                      recommendations={recommendations}
+                    />
                   )}
                   {emailStatus ? (
                     <div className="bg-iconLight dark:bg-iconDark/20 relative h-3 w-0.5 rounded-full" />
