@@ -376,6 +376,13 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       await refetch();
       toast.success(m['pages.createEmail.emailSent']());
 
+      // Close compose UI immediately so user sees the thread (no draft left open)
+      await Promise.all([
+        setMode(null),
+        setDraftId(null),
+        setActiveReplyId(null),
+      ]);
+
       /* REPLY-ESCROW LOGIC: Find and settle escrow (steps 1-4) */
       const isReplyMode = mode === 'reply' || mode === 'replyAll';
       escrowResult = await handleFindAndSettleEscrow({
@@ -420,7 +427,6 @@ export default function ReplyCompose({ messageId }: ReplyComposeProps) {
       setStillScoring(false);
       setScoringResult(null);
     }
-      
   };
 
   useEffect(() => {
