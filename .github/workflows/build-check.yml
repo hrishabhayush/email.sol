@@ -1,0 +1,40 @@
+name: Build Check
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: build-check-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Zero/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: cd Zero && pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: Zero
+        run: pnpm lint
+
+      - name: Build frontend
+        working-directory: Zero
+        run: pnpm build:frontend
+        env:
+          VITE_PUBLIC_BACKEND_URL: https://api.solmail.xyz
+          VITE_PUBLIC_APP_URL: https://solmail.xyz
