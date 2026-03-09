@@ -32,15 +32,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Format check (changed files only)
+        working-directory: Zero
         run: |
           # Only check formatting on files changed in this PR
-          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'Zero/*.ts' 'Zero/*.tsx' 'Zero/*.js' 'Zero/*.jsx' 'Zero/*.json' 'Zero/*.css' || true)
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.css' | grep '^Zero/' | sed 's|^Zero/||' || true)
           if [ -z "$CHANGED" ]; then
             echo "No formattable files changed"
             exit 0
           fi
-          echo "$CHANGED" | xargs npx prettier --check
-        working-directory: .
+          echo "$CHANGED" | xargs pnpm prettier --check
 
       - name: Lint (OxLint)
         working-directory: Zero
