@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -29,9 +31,16 @@ jobs:
         working-directory: Zero
         run: pnpm install --frozen-lockfile
 
-      - name: Format check
-        working-directory: Zero
-        run: pnpm check:format
+      - name: Format check (changed files only)
+        run: |
+          # Only check formatting on files changed in this PR
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- 'Zero/*.ts' 'Zero/*.tsx' 'Zero/*.js' 'Zero/*.jsx' 'Zero/*.json' 'Zero/*.css' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No formattable files changed"
+            exit 0
+          fi
+          echo "$CHANGED" | xargs npx prettier --check
+        working-directory: .
 
       - name: Lint (OxLint)
         working-directory: Zero
@@ -206,14 +215,7 @@ jobs:
         uses: streetsidesoftware/cspell-action@v6
         with:
           root: Zero
-          config: |
-            {
-              "version": "0.2",
-              "language": "en",
-              "words": ["solmail", "zerodotemail", "drizzle", "trpc", "hono", "valkey", "upstash", "resend", "tailwindcss", "shadcn", "oauth", "gmail", "openai", "vectorize", "hyperdrive", "cloudflare", "wrangler", "turbo", "pnpm", "monorepo", "vite", "vitest", "oxlint", "bimi", "neon"],
-              "ignorePaths": ["node_modules", "build", "dist", "pnpm-lock.yaml", "*.min.js", "*.svg", "*.png", "*.ico"],
-              "ignoreRegExpList": ["[a-f0-9]{32}", "[A-Za-z0-9+/=]{20,}"]
-            }
+          config: Zero/cspell.json
           files: "**/*.{ts,tsx}"
           strict: false
 

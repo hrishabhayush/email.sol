@@ -1,0 +1,45 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "solmail",
+    "zerodotemail",
+    "drizzle",
+    "trpc",
+    "hono",
+    "valkey",
+    "upstash",
+    "resend",
+    "tailwindcss",
+    "shadcn",
+    "oauth",
+    "gmail",
+    "openai",
+    "vectorize",
+    "hyperdrive",
+    "cloudflare",
+    "wrangler",
+    "turbo",
+    "pnpm",
+    "monorepo",
+    "vite",
+    "vitest",
+    "oxlint",
+    "bimi",
+    "neon"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "build",
+    "dist",
+    "pnpm-lock.yaml",
+    "*.min.js",
+    "*.svg",
+    "*.png",
+    "*.ico"
+  ],
+  "ignoreRegExpList": [
+    "[a-f0-9]{32}",
+    "[A-Za-z0-9+/=]{20,}"
+  ]
+}
