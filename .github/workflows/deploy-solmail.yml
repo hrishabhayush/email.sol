@@ -21,12 +21,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: Zero/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: cd Zero && pnpm install --frozen-lockfile
 
       - name: Patch wrangler config for solmail.xyz
         run: |
-          cd apps/server
+          cd Zero/apps/server
 
           # Replace production vars with solmail.xyz values
           node -e "
@@ -77,7 +78,7 @@ jobs:
 
       - name: Patch trusted origins
         run: |
-          cd apps/server
+          cd Zero/apps/server
           sed -i "s|'https://app.0.email',|'https://app.0.email',\n      'https://solmail.xyz',\n      'https://api.solmail.xyz',|" src/lib/auth.ts
 
       - name: Deploy backend
@@ -85,7 +86,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/server
+          workingDirectory: Zero/apps/server
           command: deploy --env production
 
   deploy-frontend:
@@ -100,12 +101,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          cache-dependency-path: Zero/pnpm-lock.yaml
 
-      - run: pnpm install --frozen-lockfile
+      - run: cd Zero && pnpm install --frozen-lockfile
 
       - name: Patch wrangler config for solmail.xyz
         run: |
-          cd apps/mail
+          cd Zero/apps/mail
           node -e "
             const fs = require('fs');
             let config = fs.readFileSync('wrangler.jsonc', 'utf8');
@@ -115,6 +117,7 @@ jobs:
           "
 
       - name: Build frontend
+        working-directory: Zero
         run: pnpm build:frontend
         env:
           VITE_PUBLIC_BACKEND_URL: https://api.solmail.xyz
@@ -125,5 +128,5 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/mail
+          workingDirectory: Zero/apps/mail
           command: deploy --env production
