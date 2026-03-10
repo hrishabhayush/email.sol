@@ -10,10 +10,10 @@ import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 import { Plus, Trash2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Footer from '@/components/home/footer';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import Footer from '@/components/home/footer';
 
 interface Employee {
   id: string;

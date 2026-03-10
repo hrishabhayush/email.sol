@@ -1,8 +1,8 @@
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction, TransactionInstruction, SystemProgram } from '@solana/web3.js';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 // SolMail Escrow program configuration
 const SOLMAIL_ESCROW_PROGRAM_ID = new PublicKey('DQgzwnMGkmgB5kC92ES28Kgw9gqfcpSnXgy8ogjjLuvd');
@@ -23,7 +23,12 @@ interface RefundEscrowButtonProps {
  * Button component to refund escrowed funds after 15 days.
  * Only the sender can refund their own escrow.
  */
-export function RefundEscrowButton({ subject, senderEmail, emailMessage, className }: RefundEscrowButtonProps) {
+export function RefundEscrowButton({
+  subject,
+  senderEmail,
+  emailMessage,
+  className,
+}: RefundEscrowButtonProps) {
   const { wallet, publicKey } = useWallet();
   const { connection } = useConnection();
   const [isRefunding, setIsRefunding] = useState(false);
@@ -55,11 +60,13 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       });
 
       // Try multiple header name variations (case-insensitive)
-      const threadIdHex = headers['X-Solmail-Thread-Id'] ||
+      const threadIdHex =
+        headers['X-Solmail-Thread-Id'] ||
         headers['x-solmail-thread-id'] ||
         headers['X-SOLMAIL-THREAD-ID'] ||
         headers['X-Solmail-Thread-ID'];
-      const senderPubkeyStr = headers['X-Solmail-Sender-Pubkey'] ||
+      const senderPubkeyStr =
+        headers['X-Solmail-Sender-Pubkey'] ||
         headers['x-solmail-sender-pubkey'] ||
         headers['X-SOLMAIL-SENDER-PUBKEY'] ||
         headers['X-Solmail-Sender-PUBKEY'];
@@ -72,7 +79,10 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
           headerKeys: Object.keys(headers),
           allHeaders: headers,
         });
-        toast.error('Cannot refund: escrow headers not found in email. This email may not have an escrow.', { id: 'refund' });
+        toast.error(
+          'Cannot refund: escrow headers not found in email. This email may not have an escrow.',
+          { id: 'refund' },
+        );
         setIsRefunding(false);
         return;
       }
@@ -102,11 +112,10 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       });
 
       // Derive escrow PDA using sender's pubkey (same as when escrow was created)
-      const [escrowPda] = PublicKey.findProgramAddressSync([
-        encoder.encode('escrow'),
-        senderPubkey.toBuffer(),
-        hashArray,
-      ], SOLMAIL_ESCROW_PROGRAM_ID);
+      const [escrowPda] = PublicKey.findProgramAddressSync(
+        [encoder.encode('escrow'), senderPubkey.toBuffer(), hashArray],
+        SOLMAIL_ESCROW_PROGRAM_ID,
+      );
 
       console.log('[ESCROW LOG] Checking escrow account:', {
         timestamp: new Date().toISOString(),
@@ -125,7 +134,9 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
           derivationSeeds: {
             seed1: 'escrow',
             seed2: senderPubkey.toBase58(),
-            seed3: Array.from(hashArray).map(b => b.toString(16).padStart(2, '0')).join(''),
+            seed3: Array.from(hashArray)
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join(''),
           },
         });
         toast.error('No escrow found for this thread', { id: 'refund' });
@@ -149,7 +160,11 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         const statusOffset = expiresAtOffset + 8;
 
         // Use DataView for reading binary data
-        const dataView = new DataView(accountData.buffer, accountData.byteOffset, accountData.byteLength);
+        const dataView = new DataView(
+          accountData.buffer,
+          accountData.byteOffset,
+          accountData.byteLength,
+        );
 
         // Read amount (u64, little-endian)
         escrowAmount = Number(dataView.getBigUint64(amountOffset, true));
@@ -162,7 +177,14 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
 
         // Read status (u8)
         const statusByte = accountData[statusOffset];
-        escrowStatus = statusByte === 0 ? 'Pending' : statusByte === 1 ? 'Completed' : statusByte === 2 ? 'Refunded' : 'Unknown';
+        escrowStatus =
+          statusByte === 0
+            ? 'Pending'
+            : statusByte === 1
+              ? 'Completed'
+              : statusByte === 2
+                ? 'Refunded'
+                : 'Unknown';
       }
 
       const now = Math.floor(Date.now() / 1000);
@@ -197,7 +219,10 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       }
 
       if (!canRefund) {
-        toast.error(`Escrow cannot be refunded yet. ${daysUntilExpiry.toFixed(1)} days remaining.`, { id: 'refund' });
+        toast.error(
+          `Escrow cannot be refunded yet. ${daysUntilExpiry.toFixed(1)} days remaining.`,
+          { id: 'refund' },
+        );
         setIsRefunding(false);
         return;
       }
@@ -229,7 +254,9 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
         sender: publicKey.toBase58(),
         threadIdHex,
         dataLength: data.length,
-        dataHex: Array.from(data).map(b => b.toString(16).padStart(2, '0')).join(''),
+        dataHex: Array.from(data)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join(''),
       });
 
       toast.loading('Please sign the refund transaction in your wallet...', { id: 'refund' });
@@ -252,7 +279,10 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       while (!confirmed && attempts < maxAttempts) {
         try {
           const status = await connection.getSignatureStatus(signature);
-          if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+          if (
+            status?.value?.confirmationStatus === 'confirmed' ||
+            status?.value?.confirmationStatus === 'finalized'
+          ) {
             confirmed = true;
             break;
           }
@@ -303,10 +333,13 @@ export function RefundEscrowButton({ subject, senderEmail, emailMessage, classNa
       variant="outline"
       size="sm"
       className={className}
-      title={!wallet || !publicKey ? 'Connect your wallet to refund escrow' : 'Refund escrow after 15 days'}
+      title={
+        !wallet || !publicKey
+          ? 'Connect your wallet to refund escrow'
+          : 'Refund escrow after 15 days'
+      }
     >
       {isRefunding ? 'Refunding...' : 'Refund Escrow'}
     </Button>
   );
 }
-

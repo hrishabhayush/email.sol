@@ -8,17 +8,17 @@ import {
   navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { GitHub, Star } from './icons/icons';
+import { useState, useEffect, useRef, startTransition } from 'react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-import { useSession } from '@/lib/auth-client';
+import { SignInDialog } from './connection/sign-in-dialog';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
-import { Button } from '@/components/ui/button';
-import { useState, useEffect, useRef, startTransition } from 'react';
 import { Menu, ChevronDown } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useSession } from '@/lib/auth-client';
+import { GitHub, Star } from './icons/icons';
 import { cn } from '@/lib/utils';
-import { SignInDialog } from './connection/sign-in-dialog';
 
 const aboutLinks = [
   {
@@ -79,7 +79,10 @@ export function Navigation() {
           setContactUsClicked(false);
         }
       }
-      if (mobileContactUsRef.current && !mobileContactUsRef.current.contains(event.target as Node)) {
+      if (
+        mobileContactUsRef.current &&
+        !mobileContactUsRef.current.contains(event.target as Node)
+      ) {
         if (mobileContactUsClicked) {
           setMobileContactUsOpen(false);
           setMobileContactUsClicked(false);
@@ -102,8 +105,20 @@ export function Navigation() {
         <nav className="border-input/50 flex w-full max-w-4xl items-center justify-between gap-2 rounded-xl border-t bg-[#1E1E1E] p-3 px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="relative bottom-1 cursor-pointer">
-              <img src="/solmail-logo-dark.png" alt="Solmail" width={22} height={22} className="dark:hidden" />
-              <img src="/solmail-logo.png" alt="Solmail" width={22} height={22} className="hidden dark:block" />
+              <img
+                src="/solmail-logo-dark.png"
+                alt="Solmail"
+                width={22}
+                height={22}
+                className="dark:hidden"
+              />
+              <img
+                src="/solmail-logo.png"
+                alt="Solmail"
+                width={22}
+                height={22}
+                className="hidden dark:block"
+              />
             </Link>
             <NavigationMenu>
               <NavigationMenuList className="gap-1">
@@ -154,24 +169,28 @@ export function Navigation() {
                     </button>
                     {(contactUsOpen || contactUsClicked) && (
                       <div className="absolute left-0 top-full z-50 flex justify-center">
-                        <div className="origin-top-center bg-popover text-popover-foreground relative mt-1.5 w-[250px] overflow-hidden rounded-md border shadow animate-in zoom-in-90">
+                        <div className="origin-top-center bg-popover text-popover-foreground animate-in zoom-in-90 relative mt-1.5 w-[250px] overflow-hidden rounded-md border shadow">
                           <ul className="grid gap-2 p-4">
                             <li>
                               <a
                                 href="https://x.com/solmail_xyz"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block cursor-pointer select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors"
                               >
-                                <div className="text-sm font-medium leading-none">X: @solmail_xyz</div>
+                                <div className="text-sm font-medium leading-none">
+                                  X: @solmail_xyz
+                                </div>
                               </a>
                             </li>
                             <li>
                               <a
                                 href="mailto:solmailxyz@gmail.com"
-                                className="cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                                className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block cursor-pointer select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors"
                               >
-                                <div className="text-sm font-medium leading-none">Email: solmailxyz@gmail.com</div>
+                                <div className="text-sm font-medium leading-none">
+                                  Email: solmailxyz@gmail.com
+                                </div>
                               </a>
                             </li>
                           </ul>
@@ -211,7 +230,7 @@ export function Navigation() {
               </Link>
             ) : (
               <SignInDialog>
-                <button className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline">
+                <button className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black no-underline transition-colors hover:bg-white/90">
                   Get Started
                 </button>
               </SignInDialog>
@@ -231,11 +250,7 @@ export function Navigation() {
           <SheetContent side="left" className="w-[300px] sm:w-[400px] dark:bg-[#111111]">
             <SheetHeader className="flex flex-row items-center justify-between">
               <SheetTitle>
-                <Link 
-                  to="/"
-                  className="cursor-pointer"
-                  onClick={() => setOpen(false)}
-                >
+                <Link to="/" className="cursor-pointer" onClick={() => setOpen(false)}>
                   <img
                     src="/solmail-logo.png"
                     alt="Solmail"
@@ -285,7 +300,7 @@ export function Navigation() {
                     setMobileContactUsClicked(!mobileContactUsClicked);
                     setMobileContactUsOpen(!mobileContactUsOpen);
                   }}
-                  className="flex items-center gap-2 font-medium text-left"
+                  className="flex items-center gap-2 text-left font-medium"
                 >
                   <span>Contact Us</span>
                   <ChevronDown

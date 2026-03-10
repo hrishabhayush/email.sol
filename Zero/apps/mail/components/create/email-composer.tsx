@@ -14,10 +14,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  SystemProgram,
+  LAMPORTS_PER_SOL,
+} from '@solana/web3.js';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import { Check, Command, Loader, Paperclip, Plus, Type, X as XIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { TextEffect } from '@/components/motion-primitives/text-effect';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { ImageCompressionSettings } from './image-compression-settings';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -33,15 +42,6 @@ import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useTRPC } from '@/providers/query-provider';
 import { useMutation } from '@tanstack/react-query';
 import { useSettings } from '@/hooks/use-settings';
-import { useWallet, useConnection } from '@solana/wallet-adapter-react';
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-} from '@solana/web3.js';
 
 import { cn, formatFileSize } from '@/lib/utils';
 import { useThread } from '@/hooks/use-threads';
@@ -533,17 +533,15 @@ export function EmailComposer({
         hashArray = new Uint8Array(hashBuffer).slice(0, 32);
 
         try {
-
           // For now we use a tiny fixed amount; you can wire this to UI later.
           const amountInSol = 0.0000001;
           const lamports = BigInt(Math.floor(amountInSol * LAMPORTS_PER_SOL));
 
           // Derive escrow PDA (must match on-chain seeds)
-          const [escrowPda] = PublicKey.findProgramAddressSync([
-            encoder.encode('escrow'),
-            publicKey.toBuffer(),
-            hashArray,
-          ], SOLMAIL_ESCROW_PROGRAM_ID);
+          const [escrowPda] = PublicKey.findProgramAddressSync(
+            [encoder.encode('escrow'), publicKey.toBuffer(), hashArray],
+            SOLMAIL_ESCROW_PROGRAM_ID,
+          );
 
           // Always create a new escrow for each email (thread_id includes unique timestamp/ID)
           // Check if escrow exists (shouldn't happen with unique IDs, but safety check)
@@ -572,19 +570,24 @@ export function EmailComposer({
             const transaction = new Transaction().add(ix);
 
             // Get recent blockhash
-            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+            const { blockhash, lastValidBlockHeight } =
+              await connection.getLatestBlockhash('confirmed');
             transaction.recentBlockhash = blockhash;
             transaction.feePayer = publicKey;
 
             // Send and sign transaction using wallet adapter (handles both signing and sending)
-            toast.loading('Please sign the escrow transaction in your wallet...', { id: 'payment' });
+            toast.loading('Please sign the escrow transaction in your wallet...', {
+              id: 'payment',
+            });
 
             // Check balance before sending
             try {
               const balance = await connection.getBalance(publicKey);
 
               if (balance < lamports) {
-                throw new Error(`Insufficient balance. Need ${amountInSol} SOL but have ${balance / LAMPORTS_PER_SOL} SOL`);
+                throw new Error(
+                  `Insufficient balance. Need ${amountInSol} SOL but have ${balance / LAMPORTS_PER_SOL} SOL`,
+                );
               }
             } catch (balanceError) {
               console.error('Balance check error:', balanceError);
@@ -624,7 +627,10 @@ export function EmailComposer({
               try {
                 // Method 1: Check signature status
                 const status = await connection.getSignatureStatus(signature);
-                if (status?.value?.confirmationStatus === 'confirmed' || status?.value?.confirmationStatus === 'finalized') {
+                if (
+                  status?.value?.confirmationStatus === 'confirmed' ||
+                  status?.value?.confirmationStatus === 'finalized'
+                ) {
                   console.log('✅ Transaction confirmed via signature status');
                   confirmed = true;
                   break;
@@ -637,7 +643,8 @@ export function EmailComposer({
 
                 // Method 2: Check if escrow account exists (more reliable for localnet)
                 // This catches cases where transaction succeeds but signature status is slow
-                if (attempts >= 3) { // Start checking after 3 seconds
+                if (attempts >= 3) {
+                  // Start checking after 3 seconds
                   const escrowCheck = await connection.getAccountInfo(escrowPda);
                   if (escrowCheck && escrowCheck.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
                     console.log('✅ Escrow account exists - transaction succeeded!');
@@ -663,7 +670,9 @@ export function EmailComposer({
 
             // Final verification: check escrow account exists
             if (!confirmed) {
-              console.warn('⚠️ Signature confirmation timeout, doing final escrow account check...');
+              console.warn(
+                '⚠️ Signature confirmation timeout, doing final escrow account check...',
+              );
               try {
                 const escrowCheck = await connection.getAccountInfo(escrowPda);
                 if (escrowCheck && escrowCheck.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
@@ -673,23 +682,34 @@ export function EmailComposer({
                 } else {
                   // One last signature status check
                   const finalStatus = await connection.getSignatureStatus(signature);
-                  if (finalStatus?.value?.confirmationStatus === 'confirmed' || finalStatus?.value?.confirmationStatus === 'finalized') {
+                  if (
+                    finalStatus?.value?.confirmationStatus === 'confirmed' ||
+                    finalStatus?.value?.confirmationStatus === 'finalized'
+                  ) {
                     confirmed = true;
                     toast.success('Escrow confirmed! Sending email...', { id: 'payment' });
                   } else {
-                    throw new Error('Transaction confirmation timeout. Check transaction explorer or try again.');
+                    throw new Error(
+                      'Transaction confirmation timeout. Check transaction explorer or try again.',
+                    );
                   }
                 }
               } catch (checkError) {
                 console.error('Error in final verification:', checkError);
-                throw new Error('Transaction confirmation timeout. Check transaction explorer or try again.');
+                throw new Error(
+                  'Transaction confirmation timeout. Check transaction explorer or try again.',
+                );
               }
             } else {
               // Double-check escrow was created (safety check)
               const escrowCheck = await connection.getAccountInfo(escrowPda);
               if (!escrowCheck || !escrowCheck.owner.equals(SOLMAIL_ESCROW_PROGRAM_ID)) {
-                console.warn('⚠️ Transaction confirmed but escrow account not found - may need to retry');
-                throw new Error('Escrow account not found after confirmation. Transaction may have failed.');
+                console.warn(
+                  '⚠️ Transaction confirmed but escrow account not found - may need to retry',
+                );
+                throw new Error(
+                  'Escrow account not found after confirmation. Transaction may have failed.',
+                );
               }
               console.log('✅ Escrow verified on-chain, proceeding with email send');
               toast.success('Escrow confirmed! Sending email...', { id: 'payment' });
@@ -717,9 +737,11 @@ export function EmailComposer({
 
             // Check for specific error types that should block sending
             // If wallet is not connected or user rejected, block send
-            if (errorMessage.includes('User rejected') ||
+            if (
+              errorMessage.includes('User rejected') ||
               errorMessage.includes('not connected') ||
-              errorMessage.includes('Wallet not connected')) {
+              errorMessage.includes('Wallet not connected')
+            ) {
               shouldBlockSend = true;
             }
 
@@ -759,12 +781,14 @@ export function EmailComposer({
       // Only for new emails (replies don't need this - they claim existing escrow)
       const headers: Record<string, string> = {};
       if (!isReply && publicKey && hashArray) {
-        const threadIdHex = Array.from(hashArray).map(b => b.toString(16).padStart(2, '0')).join('');
+        const threadIdHex = Array.from(hashArray)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
         headers['X-Solmail-Sender-Pubkey'] = publicKey.toBase58();
         headers['X-Solmail-Thread-Id'] = threadIdHex;
 
         //console.log('[ESCROW LOG] Adding escrow headers to email:');
-      } 
+      }
 
       await onSendEmail({
         to: values.to,
@@ -1681,10 +1705,10 @@ export function EmailComposer({
                                     {file.type.includes('pdf')
                                       ? '📄'
                                       : file.type.includes('excel') ||
-                                        file.type.includes('spreadsheetml')
+                                          file.type.includes('spreadsheetml')
                                         ? '📊'
                                         : file.type.includes('word') ||
-                                          file.type.includes('wordprocessingml')
+                                            file.type.includes('wordprocessingml')
                                           ? '📝'
                                           : '📎'}
                                   </span>

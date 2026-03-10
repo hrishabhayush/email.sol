@@ -36,11 +36,13 @@ import { memo, useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import type { Sender, ParsedMessage, Attachment } from '@/types';
+import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { useAttachments } from '@/hooks/use-attachments';
 import { useTRPC } from '@/providers/query-provider';
 import { useThreadLabels } from '@/hooks/use-labels';
 import { useMutation } from '@tanstack/react-query';
+import { getEmailStatus } from '@/lib/email-status';
 import { Markdown } from '@react-email/components';
 import { useSummary } from '@/hooks/use-summary';
 import { TextShimmer } from '../ui/text-shimmer';
@@ -48,16 +50,14 @@ import { useThread } from '@/hooks/use-threads';
 import { BimiAvatar } from '../ui/bimi-avatar';
 import { RenderLabels } from './render-labels';
 import { MailContent } from './mail-content';
-import { BadgeIcon } from './badge-icon';
 import { m } from '@/paraglide/messages';
 import { useParams } from 'react-router';
+import { BadgeIcon } from './badge-icon';
 import { FileText } from 'lucide-react';
 import { useQueryState } from 'nuqs';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { getEmailStatus } from '@/lib/email-status';
-import { hasEscrowHeaders } from '@/hooks/use-escrow-monitor';
 
 // HTML escaping function to prevent XSS attacks
 function escapeHtml(text: string): string {
@@ -136,7 +136,7 @@ const StreamingText = ({ text }: { text: string }) => {
     <div className="flex items-center gap-2">
       <div
         className={cn(
-          'bg-linear-to-r from-neutral-500 via-neutral-300 to-neutral-500 bg-size-[200%_100%] bg-clip-text text-sm leading-relaxed text-transparent',
+          'bg-linear-to-r bg-size-[200%_100%] from-neutral-500 via-neutral-300 to-neutral-500 bg-clip-text text-sm leading-relaxed text-transparent',
           isComplete ? 'animate-shine-slow' : '',
         )}
       >
@@ -408,57 +408,57 @@ const downloadAttachment = async (attachment: {
 
 const handleDownloadAllAttachments =
   (subject: string, attachments: { body: string; mimeType: string; filename: string }[]) =>
-    async () => {
-      if (!attachments.length) return;
+  async () => {
+    if (!attachments.length) return;
 
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
+    const JSZip = (await import('jszip')).default;
+    const zip = new JSZip();
 
-      console.log('attachments', attachments);
-      attachments.forEach((attachment) => {
-        try {
-          const byteCharacters = atob(attachment.body);
-          const byteNumbers: number[] = Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-
-          zip.file(attachment.filename, byteArray, {
-            binary: true,
-            date: new Date(),
-            unixPermissions: 0o644,
-          });
-        } catch (error) {
-          console.error(`Error adding ${attachment.filename} to zip:`, error);
+    console.log('attachments', attachments);
+    attachments.forEach((attachment) => {
+      try {
+        const byteCharacters = atob(attachment.body);
+        const byteNumbers: number[] = Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
+        const byteArray = new Uint8Array(byteNumbers);
+
+        zip.file(attachment.filename, byteArray, {
+          binary: true,
+          date: new Date(),
+          unixPermissions: 0o644,
+        });
+      } catch (error) {
+        console.error(`Error adding ${attachment.filename} to zip:`, error);
+      }
+    });
+
+    // Generate and download the zip file
+    zip
+      .generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: {
+          level: 9,
+        },
+      })
+      .then((content) => {
+        const url = window.URL.createObjectURL(content);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `attachments-${subject || 'email'}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      })
+      .catch((error) => {
+        console.error('Error generating zip file:', error);
       });
 
-      // Generate and download the zip file
-      zip
-        .generateAsync({
-          type: 'blob',
-          compression: 'DEFLATE',
-          compressionOptions: {
-            level: 9,
-          },
-        })
-        .then((content) => {
-          const url = window.URL.createObjectURL(content);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `attachments-${subject || 'email'}.zip`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(url);
-        })
-        .catch((error) => {
-          console.error('Error generating zip file:', error);
-        });
-
-      console.log('downloaded', subject, attachments);
-    };
+    console.log('downloaded', subject, attachments);
+  };
 
 const openAttachment = async (attachment: {
   body: string;
@@ -699,7 +699,15 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
     //no status means no escrow attached
 
     return status;
-  }, [threadData?.messages, folder, activeConnection?.email, emailData?.subject, emailData?.receivedOn, emailData?.id, threadData?.latest]);
+  }, [
+    threadData?.messages,
+    folder,
+    activeConnection?.email,
+    emailData?.subject,
+    emailData?.receivedOn,
+    emailData?.id,
+    threadData?.latest,
+  ]);
 
   const [, setMode] = useQueryState('mode');
 
@@ -994,16 +1002,17 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             <div class="email-header">
               <h1 class="email-title">${emailData.subject || 'No Subject'}</h1>
 
-              ${emailData?.tags && emailData.tags.length > 0
-          ? `
+              ${
+                emailData?.tags && emailData.tags.length > 0
+                  ? `
                 <div class="labels-section">
                   ${emailData.tags
-            .map((tag) => `<span class="label-badge">${tag.name}</span>`)
-            .join('')}
+                    .map((tag) => `<span class="label-badge">${tag.name}</span>`)
+                    .join('')}
                 </div>
               `
-          : ''
-        }
+                  : ''
+              }
 
               <div class="email-meta">
                 <div class="meta-row">
@@ -1014,56 +1023,59 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                   </span>
                 </div>
 
-                ${emailData.to && emailData.to.length > 0
-          ? `
+                ${
+                  emailData.to && emailData.to.length > 0
+                    ? `
                   <div class="meta-row">
                     <span class="meta-label">To:</span>
                     <span class="meta-value">
                       ${emailData.to
-            .map(
-              (recipient) =>
-                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-            )
-            .join(', ')}
+                        .map(
+                          (recipient) =>
+                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+                        )
+                        .join(', ')}
                     </span>
                   </div>
                 `
-          : ''
-        }
+                    : ''
+                }
 
-                ${emailData.cc && emailData.cc.length > 0
-          ? `
+                ${
+                  emailData.cc && emailData.cc.length > 0
+                    ? `
                   <div class="meta-row">
                     <span class="meta-label">CC:</span>
                     <span class="meta-value">
                       ${emailData.cc
-            .map(
-              (recipient) =>
-                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-            )
-            .join(', ')}
+                        .map(
+                          (recipient) =>
+                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+                        )
+                        .join(', ')}
                     </span>
                   </div>
                 `
-          : ''
-        }
+                    : ''
+                }
 
-                ${emailData.bcc && emailData.bcc.length > 0
-          ? `
+                ${
+                  emailData.bcc && emailData.bcc.length > 0
+                    ? `
                   <div class="meta-row">
                     <span class="meta-label">BCC:</span>
                     <span class="meta-value">
                       ${emailData.bcc
-            .map(
-              (recipient) =>
-                `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
-            )
-            .join(', ')}
+                        .map(
+                          (recipient) =>
+                            `${cleanNameDisplay(recipient.name)} &lt;${recipient.email}&gt;`,
+                        )
+                        .join(', ')}
                     </span>
                   </div>
                 `
-          : ''
-        }
+                    : ''
+                }
 
                 <div class="meta-row">
                   <span class="meta-label">Date:</span>
@@ -1082,24 +1094,25 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
             </div>
 
             <!-- Attachments -->
-            ${messageAttachments && messageAttachments.length > 0
-          ? `
+            ${
+              messageAttachments && messageAttachments.length > 0
+                ? `
               <div class="attachments-section">
                 <h2 class="attachments-title">Attachments (${messageAttachments.length})</h2>
                 ${messageAttachments
-            .map(
-              (attachment) => `
+                  .map(
+                    (attachment) => `
                   <div class="attachment-item">
                     <span class="attachment-name">${attachment.filename}</span>
                     ${formatFileSize(attachment.size) ? ` - <span class="attachment-size">${formatFileSize(attachment.size)}</span>` : ''}
                   </div>
                 `,
-            )
-            .join('')}
+                  )
+                  .join('')}
               </div>
             `
-          : ''
-        }
+                : ''
+            }
           </div>
         </body>
       </html>
@@ -1423,7 +1436,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                                   </span>
                                   <span className="text-muted-foreground ml-3 text-nowrap">
                                     {emailData?.receivedOn &&
-                                      !isNaN(new Date(emailData.receivedOn).getTime())
+                                    !isNaN(new Date(emailData.receivedOn).getTime())
                                       ? format(new Date(emailData.receivedOn), 'PPpp')
                                       : ''}
                                   </span>
@@ -1464,7 +1477,7 @@ const MailDisplay = ({ emailData, index, totalEmails, demo, threadAttachments }:
                           {/* {emailStatus && (
                             <BadgeIcon status={emailStatus} folder={folder || 'inbox'} />
                           )} */}
-                          <div className="text-muted-foreground mr-2 flex flex-col flex-nowrap! items-end text-sm font-medium dark:text-[#8C8C8C]">
+                          <div className="text-muted-foreground flex-nowrap! mr-2 flex flex-col items-end text-sm font-medium dark:text-[#8C8C8C]">
                             <time className="whitespace-nowrap">
                               {emailData?.receivedOn ? formatDate(emailData.receivedOn) : ''}
                             </time>

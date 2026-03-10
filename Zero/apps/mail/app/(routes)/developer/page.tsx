@@ -1,5 +1,5 @@
-import { Github, Book, Users, Terminal, Code2, Webhook, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Github, Book, Users, Terminal, Code2, Webhook, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router';
 

@@ -1,10 +1,21 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { SidebarGroup, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from './sidebar';
 import { Collapsible, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useCommandPalette } from '../context/command-palette-context.jsx';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { LabelDialog } from '@/components/labels/label-dialog';
 import { useActiveConnection } from '@/hooks/use-connections';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useSidebar } from '../context/sidebar-context';
+import { useCallback, useRef, useState } from 'react';
 import { useTRPC } from '@/providers/query-provider';
 import { type NavItem } from '@/config/navigation';
 import type { Label as LabelType } from '@/types';
@@ -15,23 +26,12 @@ import { useLabels } from '@/hooks/use-labels';
 import { Badge } from '@/components/ui/badge';
 import { useStats } from '@/hooks/use-stats';
 import SidebarLabels from './sidebar-labels';
-import { useCallback, useRef, useState } from 'react';
+import { Plus, Wallet } from 'lucide-react';
 import { BASE_URL } from '@/lib/constants';
 import { useQueryState } from 'nuqs';
-import { Plus, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import * as React from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   ref?: React.Ref<SVGSVGElement>;
@@ -103,7 +103,6 @@ export function NavMain({ items }: NavMainProps) {
       // Get the current 'from' parameter
       const currentFrom = searchParams.get('from');
 
-
       // Handle category links
       if (item.id === 'inbox' && category) {
         return `${item.url}?category=${encodeURIComponent(category)}`;
@@ -143,7 +142,9 @@ export function NavMain({ items }: NavMainProps) {
       loading: 'Creating label...',
       success: 'Label created successfully',
       error: 'Failed to create label',
-      finally: () => {refetch()},
+      finally: () => {
+        refetch();
+      },
     });
   };
 
@@ -302,9 +303,10 @@ function ConnectWalletButton() {
     }
   };
 
-  const displayText = wallet && publicKey
-    ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
-    : 'Connect Wallet';
+  const displayText =
+    wallet && publicKey
+      ? `${publicKey.toString().slice(0, 4)}...${publicKey.toString().slice(-4)}`
+      : 'Connect Wallet';
 
   return (
     <>
@@ -313,7 +315,7 @@ function ConnectWalletButton() {
         disabled={connecting}
         tooltip={state === 'collapsed' ? displayText : undefined}
         className={cn(
-          "flex items-center cursor-pointer hover:bg-subtleWhite dark:hover:bg-[#202020]"
+          'hover:bg-subtleWhite flex cursor-pointer items-center dark:hover:bg-[#202020]',
         )}
       >
         <Wallet className="relative mr-2.5 h-3 w-3 fill-[#8F8F8F] text-[#8F8F8F]" />
@@ -327,20 +329,21 @@ function ConnectWalletButton() {
           <DialogHeader className="space-y-3 pb-4">
             <DialogTitle>Disconnect Wallet</DialogTitle>
             <DialogDescription className="text-base">
-              Are you sure you want to disconnect this {wallet?.adapter.name} wallet? You'll need to connect again to send emails.
+              Are you sure you want to disconnect this {wallet?.adapter.name} wallet? You'll need to
+              connect again to send emails.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => setShowDisconnectDialog(false)}
-              className="flex-1 sm:flex-initial min-w-[100px]"
+              className="min-w-[100px] flex-1 sm:flex-initial"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDisconnect}
-              className="bg-red-600 hover:bg-red-700 text-white flex-1 sm:flex-initial min-w-[100px]"
+              className="min-w-[100px] flex-1 bg-red-600 text-white hover:bg-red-700 sm:flex-initial"
             >
               Disconnect
             </Button>

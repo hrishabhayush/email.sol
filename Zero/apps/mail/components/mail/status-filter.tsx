@@ -1,11 +1,21 @@
-import { useMemo } from 'react';
-import { useQueryState } from 'nuqs';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  getStatusFilters,
+  getStatusConfig,
+  type EmailStatus,
+  isAttemptsRemainingStatus,
+} from '@/lib/email-status';
 import { Button } from '@/components/ui/button';
 import { ChevronDown } from 'lucide-react';
-import { getStatusFilters, getStatusConfig, type EmailStatus, isAttemptsRemainingStatus } from '@/lib/email-status';
-import { cn } from '@/lib/utils';
 import { FOLDERS } from '@/lib/utils';
+import { useQueryState } from 'nuqs';
+import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 interface StatusFilterProps {
   folder: string;
@@ -13,15 +23,18 @@ interface StatusFilterProps {
 }
 
 export function StatusFilter({ folder, className }: StatusFilterProps) {
-  const [statusFilter, setStatusFilter] = useQueryState<EmailStatus | 'all' | 'attempts_remaining'>('status', {
-    defaultValue: 'all',
-    parse: (value) => {
-      if (value === 'all' || !value) return 'all';
-      if (value === 'attempts_remaining') return 'attempts_remaining';
-      return value as EmailStatus;
+  const [statusFilter, setStatusFilter] = useQueryState<EmailStatus | 'all' | 'attempts_remaining'>(
+    'status',
+    {
+      defaultValue: 'all',
+      parse: (value) => {
+        if (value === 'all' || !value) return 'all';
+        if (value === 'attempts_remaining') return 'attempts_remaining';
+        return value as EmailStatus;
+      },
+      serialize: (value) => (value === 'all' ? '' : value || ''),
     },
-    serialize: (value) => value === 'all' ? '' : value || '',
-  });
+  );
 
   const statusFilters = useMemo(() => {
     const filters = getStatusFilters(folder || 'inbox');
@@ -30,7 +43,8 @@ export function StatusFilter({ folder, className }: StatusFilterProps) {
 
   // Normalize folder - handle both 'inbox' and undefined as inbox
   const normalizedFolder = folder || 'inbox';
-  const shouldShowFilter = normalizedFolder === FOLDERS.SENT || normalizedFolder === FOLDERS.INBOX || !folder;
+  const shouldShowFilter =
+    normalizedFolder === FOLDERS.SENT || normalizedFolder === FOLDERS.INBOX || !folder;
 
   // Debug logging
   if (process.env.NODE_ENV === 'development') {
@@ -39,7 +53,7 @@ export function StatusFilter({ folder, className }: StatusFilterProps) {
       normalizedFolder,
       shouldShowFilter,
       statusFiltersCount: statusFilters.length,
-      statusFilters: statusFilters.map(s => s.id),
+      statusFilters: statusFilters.map((s) => s.id),
     });
   }
 
@@ -92,17 +106,17 @@ export function StatusFilter({ folder, className }: StatusFilterProps) {
       >
         <DropdownMenuItem
           onClick={() => setStatusFilter('all')}
-          className={cn(
-            'cursor-pointer',
-            statusFilter === 'all' && 'bg-primary/10',
-          )}
+          className={cn('cursor-pointer', statusFilter === 'all' && 'bg-primary/10')}
         >
           All Status
         </DropdownMenuItem>
         {statusFilters.map((status) => {
           // Check if current filter matches this status or if it's an attempts_remaining status
-          const isSelected = statusFilter === status.id ||
-            (status.id === 'attempts_remaining' && statusFilter && isAttemptsRemainingStatus(statusFilter as EmailStatus));
+          const isSelected =
+            statusFilter === status.id ||
+            (status.id === 'attempts_remaining' &&
+              statusFilter &&
+              isAttemptsRemainingStatus(statusFilter as EmailStatus));
 
           return (
             <DropdownMenuItem
@@ -116,13 +130,12 @@ export function StatusFilter({ folder, className }: StatusFilterProps) {
                   setStatusFilter(status.id as EmailStatus);
                 }
               }}
-              className={cn(
-                'cursor-pointer',
-                isSelected && 'bg-primary/10',
-              )}
+              className={cn('cursor-pointer', isSelected && 'bg-primary/10')}
             >
               <div className="flex items-center gap-2">
-                {(status.badgeIcon || status.icon) && <span>{status.badgeIcon || status.icon}</span>}
+                {(status.badgeIcon || status.icon) && (
+                  <span>{status.badgeIcon || status.icon}</span>
+                )}
                 <span>{status.label}</span>
               </div>
             </DropdownMenuItem>
@@ -132,4 +145,3 @@ export function StatusFilter({ folder, className }: StatusFilterProps) {
     </DropdownMenu>
   );
 }
-

@@ -4,12 +4,12 @@ import type { EnvVarInfo } from '@zero/server/auth-providers';
 import { Google, Microsoft } from '@/components/icons/icons';
 import ErrorMessage from '@/app/(auth)/login/error-message';
 import { Button } from '@/components/ui/button';
+import Footer from '@/components/home/footer';
 import { TriangleAlert } from 'lucide-react';
 import { signIn } from '@/lib/auth-client';
 import { useNavigate } from 'react-router';
 import { useQueryState } from 'nuqs';
 import { toast } from 'sonner';
-import Footer from '@/components/home/footer';
 
 interface EnvVarStatus {
   name: string;
@@ -112,7 +112,7 @@ function LoginClientContent({ providers, isProd }: LoginClientProps) {
     if (provider.isCustom && provider.customRedirectPath) {
       navigate(provider.customRedirectPath);
     } else {
-      toast.promise(  
+      toast.promise(
         signIn.social({
           provider: provider.id as any,
           callbackURL: `${window.location.origin}/mail`, //where user is directed to after auth
@@ -204,7 +204,7 @@ function LoginClientContent({ providers, isProd }: LoginClientProps) {
                       <div
                         className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedProviders[provider.id] ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
                       >
-                        <div className="bg-black/3 p-4 font-mono text-sm dark:bg-white/3">
+                        <div className="bg-black/3 dark:bg-white/3 p-4 font-mono text-sm">
                           {provider.envVarStatus.map((envVar) => (
                             <div
                               key={envVar.name}

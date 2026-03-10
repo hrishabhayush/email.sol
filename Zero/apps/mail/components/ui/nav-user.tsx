@@ -5,14 +5,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  HelpCircle,
-  LogOut,
-  Plus,
-  CopyCheckIcon,
-  BadgeCheck,
-  BanknoteIcon,
-} from 'lucide-react';
+import { HelpCircle, LogOut, Plus, CopyCheckIcon, BadgeCheck, BanknoteIcon } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useActiveConnection, useConnections } from '@/hooks/use-connections';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -43,9 +36,7 @@ export function NavUser() {
   const { mutateAsync: setDefaultConnection } = useMutation(
     trpc.connections.setDefault.mutationOptions(),
   );
-  const { mutateAsync: deleteConnection } = useMutation(
-    trpc.connections.delete.mutationOptions(),
-  );
+  const { mutateAsync: deleteConnection } = useMutation(trpc.connections.delete.mutationOptions());
   const { openBillingPortal, customer: billingCustomer, isPro } = useBilling();
   const pathname = useLocation().pathname;
   const queryClient = useQueryClient();
@@ -53,7 +44,6 @@ export function NavUser() {
   const activeAccount = activeConnection; // Alias for consistency with UI code
   const [category] = useQueryState('category', { defaultValue: 'All Mail' });
   const { setLoading } = useLoading();
-
 
   const handleClearCache = useCallback(async () => {
     queryClient.clear();
@@ -134,7 +124,6 @@ export function NavUser() {
     return data.connections.filter((connection) => connection.id !== activeAccount?.id);
   }, [data, activeAccount]);
 
-
   if (!isRendered) return null;
   if (!session) return null;
 
@@ -167,7 +156,7 @@ export function NavUser() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="ml-3 w-(--radix-dropdown-menu-trigger-width) min-w-56 bg-white font-medium dark:bg-[#131313]"
+                className="w-(--radix-dropdown-menu-trigger-width) ml-3 min-w-56 bg-white font-medium dark:bg-[#131313]"
                 align="end"
                 side={'bottom'}
                 sideOffset={8}
