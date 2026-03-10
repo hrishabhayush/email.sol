@@ -36,10 +36,10 @@ jobs:
             const fs = require('fs');
             let config = fs.readFileSync('wrangler.jsonc', 'utf8');
 
-            // Update production vars
-            config = config.replace('\"COOKIE_DOMAIN\": \"0.email\"', '\"COOKIE_DOMAIN\": \"solmail.xyz\"');
-            config = config.replace('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
-            config = config.replace('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
+            // Update all environment vars (replaceAll to hit both staging and production)
+            config = config.replaceAll('\"COOKIE_DOMAIN\": \"0.email\"', '\"COOKIE_DOMAIN\": \"solmail.xyz\"');
+            config = config.replaceAll('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
+            config = config.replaceAll('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
 
             // Update Hyperdrive ID
             config = config.replace('\"id\": \"b1be316b45fb439a9e54b74ecc20aa21\"', '\"id\": \"${{ secrets.CF_HYPERDRIVE_ID }}\"');
@@ -115,8 +115,8 @@ jobs:
           node -e "
             const fs = require('fs');
             let config = fs.readFileSync('wrangler.jsonc', 'utf8');
-            config = config.replace('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
-            config = config.replace('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
+            config = config.replaceAll('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
+            config = config.replaceAll('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
             fs.writeFileSync('wrangler.jsonc', config);
           "
 
