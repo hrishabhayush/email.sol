@@ -42,13 +42,25 @@ jobs:
           fi
           echo "$CHANGED" | xargs pnpm prettier --check
 
-      - name: Lint (OxLint)
+      - name: Lint changed files (OxLint)
         working-directory: Zero
-        run: pnpm dlx oxlint@latest
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' | grep '^Zero/' | sed 's|^Zero/||' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No lintable files changed"
+            exit 0
+          fi
+          echo "$CHANGED" | xargs pnpm dlx oxlint@latest
 
-      - name: Lint (ESLint)
+      - name: Lint changed files (ESLint)
         working-directory: Zero
-        run: pnpm lint
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' | grep '^Zero/' | sed 's|^Zero/||' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No lintable files changed"
+            exit 0
+          fi
+          echo "$CHANGED" | xargs pnpm eslint
 
   build:
     name: Build

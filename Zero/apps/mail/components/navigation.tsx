@@ -10,15 +10,15 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect, useRef, startTransition } from 'react';
 import { AnimatedNumber } from '@/components/ui/animated-number';
-import { SignInDialog } from './connection/sign-in-dialog';
+import { useSession, signIn } from '@/lib/auth-client';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 import { Menu, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSession } from '@/lib/auth-client';
 import { GitHub, Star } from './icons/icons';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const aboutLinks = [
   {
@@ -229,11 +229,20 @@ export function Navigation() {
                 Get Started
               </Link>
             ) : (
-              <SignInDialog>
-                <button className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black no-underline transition-colors hover:bg-white/90">
-                  Get Started
-                </button>
-              </SignInDialog>
+              <button
+                className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-4 text-sm font-medium text-black no-underline transition-colors hover:bg-white/90"
+                onClick={() => {
+                  toast.promise(
+                    signIn.social({
+                      provider: 'google',
+                      callbackURL: `${window.location.origin}/mail`,
+                    }),
+                    { error: 'Login redirect failed' },
+                  );
+                }}
+              >
+                Get Started
+              </button>
             )}
           </div>
         </nav>
