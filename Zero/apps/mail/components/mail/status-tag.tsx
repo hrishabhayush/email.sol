@@ -1,7 +1,7 @@
-import { memo } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStatusConfig, type EmailStatus } from '@/lib/email-status';
 import { cn } from '@/lib/utils';
+import { memo } from 'react';
 
 interface StatusTagProps {
   status: EmailStatus;
@@ -38,4 +38,3 @@ export const StatusTag = memo(function StatusTag({ status, folder, className }: 
     </Tooltip>
   );
 });
-

@@ -7,7 +7,7 @@ const AIToggleButton = () => {
   return (
     !isSidebarOpen && (
       <div className="fixed bottom-4 right-4 z-50">
-        <div className="dark:bg-sidebar border h-12 w-12 rounded-lg flex items-center justify-center pointer-events-none">
+        <div className="dark:bg-sidebar pointer-events-none flex h-12 w-12 items-center justify-center rounded-lg border">
           <img
             src="/solmail-logo-dark.png"
             alt="Solmail"

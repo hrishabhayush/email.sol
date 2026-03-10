@@ -1,8 +1,8 @@
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
-import { Github, Mail } from 'lucide-react';
 import { Navigation } from '@/components/navigation';
-import Footer from '@/components/home/footer';
 import { Twitter } from '@/components/icons/icons';
+import Footer from '@/components/home/footer';
+import { Github, Mail } from 'lucide-react';
 import React from 'react';
 
 export default function AboutPage() {
@@ -10,7 +10,6 @@ export default function AboutPage() {
     <div className="relative flex min-h-screen w-full flex-col overflow-auto bg-white dark:bg-[#111111]">
       <Navigation />
       <div className="relative z-10 flex grow flex-col">
-
         <div className="container mx-auto max-w-4xl px-4 py-16">
           <Card className="overflow-hidden rounded-xl border-none bg-gray-50/80 dark:bg-transparent">
             <CardHeader className="space-y-4 px-8 py-8">
@@ -48,18 +47,18 @@ const sections = [
     content: (
       <div className="space-y-4">
         <p>
-          SolMail is a cold email outreach platform that uses micropayments to incentivize meaningful
-          responses and facilitate better correspondence. It addresses the common problem where
-          unsolicited messages, such as mass job applications or sponsorship outreach, are ignored
-          because responding offers no immediate benefit to the recipient.
+          SolMail is a cold email outreach platform that uses micropayments to incentivize
+          meaningful responses and facilitate better correspondence. It addresses the common problem
+          where unsolicited messages, such as mass job applications or sponsorship outreach, are
+          ignored because responding offers no immediate benefit to the recipient.
         </p>
         <p>
           The platform functions by allowing senders to attach a monetary incentive to their emails,
-          which creates a competitive advantage over other senders. These funds are held in an escrow
-          smart contract rather than being transferred immediately. When a recipient replies, an AI
-          agent utilizes privacy-preserving multi-party computation to evaluate the quality of the
-          response. If the response is deemed meaningful, the funds are released to the recipient as
-          payment; if the response is not meaningful, the sender is refunded.
+          which creates a competitive advantage over other senders. These funds are held in an
+          escrow smart contract rather than being transferred immediately. When a recipient replies,
+          an AI agent utilizes privacy-preserving multi-party computation to evaluate the quality of
+          the response. If the response is deemed meaningful, the funds are released to the
+          recipient as payment; if the response is not meaningful, the sender is refunded.
         </p>
         <p>
           SolMail is built on the principles of transparency and community collaboration, with an

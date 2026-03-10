@@ -23,17 +23,17 @@ import {
   ImageFile,
   Expand,
 } from '../icons/icons';
-import { Type } from 'lucide-react';
 import { PixelatedBackground, PixelatedLeft, PixelatedRight } from '@/components/home/pixelated-bg';
+import { SignInDialog } from '../connection/sign-in-dialog';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { useSession } from '@/lib/auth-client';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Balancer } from 'react-wrap-balancer';
+import { useSession } from '@/lib/auth-client';
 import { Navigation } from '../navigation';
 import { motion } from 'motion/react';
+import { Type } from 'lucide-react';
 import { useEffect } from 'react';
-import { SignInDialog } from '../connection/sign-in-dialog';
 import Footer from './footer';
 import React from 'react';
 
@@ -94,7 +94,8 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          SolMail is an AI-powered email platform that sends micropayments upfront and refunds them if replies aren't meaningful, ensuring you pay solely for successful conversations.
+          SolMail is an AI-powered email platform that sends micropayments upfront and refunds them
+          if replies aren't meaningful, ensuring you pay solely for successful conversations.
         </motion.p>
         {/* Get Started button only visible for mobile screens */}
         <motion.div
@@ -112,7 +113,7 @@ export default function HomeContent() {
             </Link>
           ) : (
             <SignInDialog>
-              <button className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black transition-colors hover:bg-white/90 no-underline">
+              <button className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white px-6 text-sm font-medium text-black no-underline transition-colors hover:bg-white/90">
                 Get Started
               </button>
             </SignInDialog>
@@ -221,19 +222,13 @@ export default function HomeContent() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <div
-                  className="flex h-full items-center gap-2 text-sm font-medium text-[#8C8C8C] cursor-default"
-                >
+                <div className="flex h-full cursor-default items-center gap-2 text-sm font-medium text-[#8C8C8C]">
                   <span>Cc</span>
                 </div>
-                <div
-                  className="flex h-full items-center gap-2 text-sm font-medium text-[#8C8C8C] cursor-default"
-                >
+                <div className="flex h-full cursor-default items-center gap-2 text-sm font-medium text-[#8C8C8C]">
                   <span>Bcc</span>
                 </div>
-                <div
-                  className="flex h-full items-center gap-2 text-sm font-medium text-[#8C8C8C] cursor-default"
-                >
+                <div className="flex h-full cursor-default items-center gap-2 text-sm font-medium text-[#8C8C8C]">
                   <X className="h-3.5 w-3.5 fill-[#9A9A9A]" />
                 </div>
               </div>
@@ -254,10 +249,12 @@ export default function HomeContent() {
                   Good afternoon Mr. Ayush,
                 </div>
                 <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
-                  I'm a student interested in the Goldman Sachs Summer Analyst program and would appreciate a brief coffee chat if you're available.
+                  I'm a student interested in the Goldman Sachs Summer Analyst program and would
+                  appreciate a brief coffee chat if you're available.
                 </div>
                 <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
-                  If you're available, I'd be grateful for any insights you can share about the program or the recruiting process.
+                  If you're available, I'd be grateful for any insights you can share about the
+                  program or the recruiting process.
                 </div>
                 <div className="justify-start self-stretch text-sm font-normal leading-normal text-white">
                   Thank you for your consideration.
@@ -267,15 +264,13 @@ export default function HomeContent() {
                 <div className="flex items-center justify-start gap-3">
                   <div className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-white px-2 text-sm font-medium text-black">
                     <div className="flex items-center justify-center">
-                      <div className="text-center text-sm leading-none text-black">
-                        Send
-                      </div>
+                      <div className="text-center text-sm leading-none text-black">Send</div>
                     </div>
                   </div>
-                  <div className="inline-flex h-8 w-8 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-secondary text-sm font-medium text-secondary-foreground">
+                  <div className="bg-secondary text-secondary-foreground inline-flex h-8 w-8 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium">
                     <Plus className="h-3 w-3 fill-white" />
                   </div>
-                  <div className="flex h-auto w-auto items-center justify-center rounded border border-[#2B2B2B] bg-background p-1.5">
+                  <div className="bg-background flex h-auto w-auto items-center justify-center rounded border border-[#2B2B2B] p-1.5">
                     <Type className="h-4 w-4 text-white" />
                   </div>
                 </div>
@@ -286,7 +281,7 @@ export default function HomeContent() {
       </div>
 
       <div className="relative mt-52 flex items-center justify-center">
-        <div className="mx-auto grid w-full! max-w-[1250px] grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
+        <div className="w-full! mx-auto grid max-w-[1250px] grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -347,7 +342,9 @@ export default function HomeContent() {
               />
             </div>
             <div className="mt-4">
-              <h1 className="mb-2 text-lg font-medium leading-loose text-white">Seamless Smart Wallet</h1>
+              <h1 className="mb-2 text-lg font-medium leading-loose text-white">
+                Seamless Smart Wallet
+              </h1>
               <p className="max-w-sm text-sm font-light text-[#979797]">
                 Experience friction-free outreach. Pre-load your vault to eliminate repetitive
                 wallet confirmations, making secure payments as intuitive as clicking "Send".

@@ -107,8 +107,7 @@ export default function Comparision() {
               </div>
               <div className="flex h-14 flex-col items-start justify-center gap-1 self-stretch px-8">
                 <div className="inline-flex h-6 items-center justify-start self-stretch">
-                  <div className="justify-center text-sm leading-tight text-white/70">
-                  </div>
+                  <div className="justify-center text-sm leading-tight text-white/70"></div>
                 </div>
               </div>
               <div className="flex h-14 flex-col items-start justify-center gap-1 self-stretch px-8">
@@ -163,7 +162,7 @@ export default function Comparision() {
                     );
                   }
                 }}
-                className="inline-flex h-[40px] items-center justify-center gap-2.5 self-stretch overflow-hidden rounded-lg bg-linear-to-l from-white/0 to-white/10 p-[3.5px] outline outline-1 -outline-offset-1 outline-white/10"
+                className="bg-linear-to-l inline-flex h-[40px] items-center justify-center gap-2.5 self-stretch overflow-hidden rounded-lg from-white/0 to-white/10 p-[3.5px] outline outline-1 -outline-offset-1 outline-white/10"
               >
                 <div className="flex items-center justify-center">
                   <div className="justify-start text-center text-base font-semibold leading-none text-white/80">
@@ -275,7 +274,7 @@ export default function Comparision() {
               </div>
               <button
                 onClick={handleUpgrade}
-                className="inline-flex h-[40px] items-center justify-center gap-2.5 self-stretch overflow-hidden rounded-lg bg-linear-to-l from-white/0 to-white/10 p-[3.5px] outline outline-1 -outline-offset-1 outline-white/10"
+                className="bg-linear-to-l inline-flex h-[40px] items-center justify-center gap-2.5 self-stretch overflow-hidden rounded-lg from-white/0 to-white/10 p-[3.5px] outline outline-1 -outline-offset-1 outline-white/10"
               >
                 <div className="flex items-center justify-center">
                   <div className="justify-start text-center text-base font-semibold leading-none text-white/80">

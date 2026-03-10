@@ -16,7 +16,8 @@ const steps = [
   },
   {
     title: 'AI-validated responses',
-    description: 'An AI agent will evaluate the response quality and refund you if the response is not meaningful',
+    description:
+      'An AI agent will evaluate the response quality and refund you if the response is not meaningful',
     video: '/evaluate2.PNG',
   },
   {
@@ -70,9 +71,13 @@ export function OnboardingDialog({
           {steps[currentStep] && steps[currentStep].video && (
             <div className="relative flex items-center justify-center">
               {/* Image Container - Fixed height to prevent resizing */}
-              <div className={`flex h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:h-[400px] ${
-                currentStep === 0 || currentStep === 1 || currentStep === 2 ? 'bg-black' : 'bg-muted'
-              }`}>
+              <div
+                className={`flex h-[300px] w-full items-center justify-center overflow-hidden rounded-lg sm:h-[400px] ${
+                  currentStep === 0 || currentStep === 1 || currentStep === 2
+                    ? 'bg-black'
+                    : 'bg-muted'
+                }`}
+              >
                 {steps.map(
                   (step, index) =>
                     step.video && (
@@ -89,11 +94,11 @@ export function OnboardingDialog({
                           src={step.video}
                           alt={step.title}
                           className={`rounded-lg ${
-                            step.video === '/evaluate2.PNG' 
-                              ? 'w-full h-auto max-h-full object-contain p-0' 
+                            step.video === '/evaluate2.PNG'
+                              ? 'h-auto max-h-full w-full object-contain p-0'
                               : step.video === '/coffeechatemail.png'
-                              ? 'h-full w-full object-cover p-0'
-                              : 'h-full w-full object-contain p-4'
+                                ? 'h-full w-full object-cover p-0'
+                                : 'h-full w-full object-contain p-4'
                           }`}
                         />
                       </div>
@@ -104,7 +109,7 @@ export function OnboardingDialog({
           )}
 
           {/* Text Content - Fixed min-height to prevent popup resizing */}
-          <div className="space-y-3 text-center min-h-[100px]">
+          <div className="min-h-[100px] space-y-3 text-center">
             <h2 className="text-4xl font-semibold">{steps[currentStep]?.title}</h2>
             <div className="text-muted-foreground mx-auto max-w-xl text-sm">
               {steps[currentStep]?.description}
@@ -119,9 +124,7 @@ export function OnboardingDialog({
                 <div
                   key={index}
                   className={`h-2 rounded-full transition-all duration-300 ${
-                    index === currentStep
-                      ? 'w-8 bg-primary'
-                      : 'w-2 bg-muted-foreground/30'
+                    index === currentStep ? 'bg-primary w-8' : 'bg-muted-foreground/30 w-2'
                   }`}
                 />
               ))}
@@ -138,11 +141,7 @@ export function OnboardingDialog({
               >
                 Back
               </Button>
-              <Button
-                size="default"
-                onClick={handleNext}
-                className="w-20 cursor-pointer"
-              >
+              <Button size="default" onClick={handleNext} className="w-20 cursor-pointer">
                 {currentStep === steps.length - 1 ? 'Start' : 'Next'}
               </Button>
             </div>

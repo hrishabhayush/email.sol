@@ -1,11 +1,11 @@
 import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
+import Footer from '@/components/home/footer';
 import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import Footer from '@/components/home/footer';
 
 const formSchema = z.object({
   name: z.string().min(1, { message: 'Name must be at least 1 character' }),

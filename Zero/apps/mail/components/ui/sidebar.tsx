@@ -39,7 +39,7 @@ const Sidebar = React.forwardRef<
       return (
         <div
           className={cn(
-            'text-sidebar-foreground bg-sidebar dark:bg-sidebar flex h-full w-(--sidebar-width) flex-col',
+            'text-sidebar-foreground bg-sidebar dark:bg-sidebar w-(--sidebar-width) flex h-full flex-col',
             className,
           )}
           ref={ref}
@@ -86,7 +86,7 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            'relative h-svh w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-in-out',
+            'w-(--sidebar-width) relative h-svh bg-transparent transition-[width] duration-200 ease-in-out',
             'group-data-[collapsible=offcanvas]:w-0',
             'group-data-[side=right]:rotate-180',
             variant === 'floating' || variant === 'inset'
@@ -96,7 +96,7 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-in-out md:flex',
+            'w-(--sidebar-width) fixed inset-y-0 z-10 hidden h-svh transition-[left,right,width] duration-200 ease-in-out md:flex',
             side === 'left'
               ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
               : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
@@ -110,7 +110,7 @@ const Sidebar = React.forwardRef<
         >
           <div
             data-sidebar="sidebar"
-            className="group-data-[variant=floating]:border-sidebar-border bg-sidebar dark:bg-sidebar flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow transition-all duration-300 ease-in-out overflow-hidden"
+            className="group-data-[variant=floating]:border-sidebar-border bg-sidebar dark:bg-sidebar flex h-full w-full flex-col overflow-hidden transition-all duration-300 ease-in-out group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow"
           >
             {children}
           </div>
@@ -276,7 +276,7 @@ const SidebarGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<'div'
       <div
         ref={ref}
         data-sidebar="group"
-        className={cn('relative flex w-full min-w-0 flex-col pt-0! md:p-2', className)}
+        className={cn('pt-0! relative flex w-full min-w-0 flex-col md:p-2', className)}
         {...props}
       />
     );
@@ -524,7 +524,7 @@ const SidebarMenuSkeleton = React.forwardRef<
     >
       {showIcon && <Skeleton className="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />}
       <Skeleton
-        className="h-4 max-w-(--skeleton-width) flex-1"
+        className="max-w-(--skeleton-width) h-4 flex-1"
         data-sidebar="menu-skeleton-text"
         style={
           {

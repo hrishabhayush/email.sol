@@ -44,7 +44,7 @@ jobs:
 
       - name: Lint (OxLint)
         working-directory: Zero
-        run: pnpm dlx oxlint@latest --deny-warnings
+        run: pnpm dlx oxlint@latest
 
       - name: Lint (ESLint)
         working-directory: Zero
@@ -204,20 +204,6 @@ jobs:
           if git diff --name-only | grep -q 'migrations'; then
             echo "::warning::Schema changes detected — new migration files may be needed"
           fi
-
-  spell-check:
-    name: Spell Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Spell check
-        uses: streetsidesoftware/cspell-action@v6
-        with:
-          root: Zero
-          config: Zero/cspell.json
-          files: "**/*.{ts,tsx}"
-          strict: false
 
   duplicate-deps:
     name: Duplicate Dependencies

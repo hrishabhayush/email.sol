@@ -9,8 +9,8 @@ import {
 } from '../ui/dialog';
 import { emailProviders } from '@/lib/constants';
 import { authClient } from '@/lib/auth-client';
-import { UserPlus, X } from 'lucide-react';
 import { useLocation } from 'react-router';
+import { UserPlus, X } from 'lucide-react';
 import { m } from '@/paraglide/messages';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';
@@ -44,7 +44,7 @@ export const AddConnectionDialog = ({
       <DialogContent showOverlay={true}>
         <DialogClose asChild>
           <button
-            className="absolute right-4 top-4 cursor-pointer border-0 bg-transparent p-0 focus:outline-none z-10"
+            className="absolute right-4 top-4 z-10 cursor-pointer border-0 bg-transparent p-0 focus:outline-none"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -75,7 +75,7 @@ export const AddConnectionDialog = ({
               >
                 <Button
                   variant="outline"
-                  className="h-24 w-full flex-col items-center justify-center gap-2 cursor-pointer"
+                  className="h-24 w-full cursor-pointer flex-col items-center justify-center gap-2"
                   onClick={async () =>
                     await authClient.linkSocial({
                       provider: provider.providerId,

@@ -1,11 +1,4 @@
 import {
-  Star,
-  GitFork,
-  MessageCircle,
-  GitGraph,
-  GitPullRequest,
-} from 'lucide-react';
-import {
   Area,
   AreaChart,
   Bar,
@@ -15,14 +8,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { Star, GitFork, MessageCircle, GitGraph, GitPullRequest } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Twitter, GitHub } from '@/components/icons/icons';
-import Footer from '@/components/home/footer';
 import { Separator } from '@/components/ui/separator';
 import { Navigation } from '@/components/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import Footer from '@/components/home/footer';
 import { Card } from '@/components/ui/card';
 
 interface Contributor {
@@ -60,12 +54,12 @@ const specialRoles: Record<
   string,
   { role: string; position: number; x?: string; website?: string }
 > = {
-  'rachelturneyy': {
+  rachelturneyy: {
     role: 'Contributor',
     position: 2,
     x: 'rachelt313',
   },
-  'hrishabhayush': {
+  hrishabhayush: {
     role: 'Contributor',
     position: 1,
     x: 'hrishabhayush',
@@ -75,7 +69,7 @@ const specialRoles: Record<
     position: 3,
     x: 'caedy_13',
   },
-  'arcanebear812': {
+  arcanebear812: {
     role: 'Contributor',
     position: 4,
     x: 'Dhruvprata4970',
@@ -322,7 +316,7 @@ export default function OpenPage() {
       <Navigation />
       <div className="container mx-auto max-w-6xl px-4 py-8">
         {/* Project Stats */}
-        <div className="mb-8 overflow-hidden rounded-xl border bg-linear-to-b from-white/50 to-white/10 p-6 backdrop-blur-sm dark:border-neutral-700 dark:from-neutral-900/50 dark:to-neutral-900/30">
+        <div className="bg-linear-to-b mb-8 overflow-hidden rounded-xl border from-white/50 to-white/10 p-6 backdrop-blur-sm dark:border-neutral-700 dark:from-neutral-900/50 dark:to-neutral-900/30">
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -686,15 +680,13 @@ export default function OpenPage() {
           </div>
         </div>
 
-
         <div className="mb-8">
-          <div className="relative overflow-hidden rounded-xl border bg-linear-to-br from-neutral-50 to-white shadow-sm dark:border-neutral-800 dark:from-neutral-900/80 dark:to-neutral-900/30">
+          <div className="bg-linear-to-br relative overflow-hidden rounded-xl border from-neutral-50 to-white shadow-sm dark:border-neutral-800 dark:from-neutral-900/80 dark:to-neutral-900/30">
             <div className="absolute inset-0 opacity-20 dark:opacity-20"></div>
 
             <div className="relative p-6">
               <div className="flex flex-col items-center gap-8 md:flex-row">
                 <div className="w-full md:w-2/3">
-
                   <h2 className="mt-3 text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
                     Cold emailing done better
                   </h2>
@@ -781,7 +773,6 @@ export default function OpenPage() {
             </div>
           </div>
         </div>
-
       </div>
       <Footer />
     </div>

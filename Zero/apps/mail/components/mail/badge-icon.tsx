@@ -1,6 +1,6 @@
-import { memo } from 'react';
 import { getBadgeStatus, type EmailStatus } from '@/lib/email-status';
 import { cn } from '@/lib/utils';
+import { memo } from 'react';
 
 interface BadgeIconProps {
   status: EmailStatus;
@@ -20,7 +20,7 @@ export const BadgeIcon = memo(function BadgeIcon({ status, folder, className }: 
     <span
       className={cn(
         'inline-flex items-center gap-1 text-sm',
-        isAttemptsRemaining && 'text-red-600 dark:text-red-400 font-medium',
+        isAttemptsRemaining && 'font-medium text-red-600 dark:text-red-400',
         className,
       )}
       title={badgeStatus.label}

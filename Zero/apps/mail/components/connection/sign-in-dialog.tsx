@@ -9,9 +9,9 @@ import {
 } from '../ui/dialog';
 import { emailProviders } from '@/lib/constants';
 import { signIn } from '@/lib/auth-client';
-import { X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';
+import { X } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const SignInDialog = ({
@@ -25,13 +25,11 @@ export const SignInDialog = ({
 }) => {
   return (
     <Dialog onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent showOverlay={true}>
         <DialogClose asChild>
           <button
-            className="absolute right-4 top-4 cursor-pointer border-0 bg-transparent p-0 focus:outline-none z-10"
+            className="absolute right-4 top-4 z-10 cursor-pointer border-0 bg-transparent p-0 focus:outline-none"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -39,9 +37,7 @@ export const SignInDialog = ({
         </DialogClose>
         <DialogHeader className="text-center sm:!text-center">
           <DialogTitle>Sign in to continue</DialogTitle>
-          <DialogDescription>
-            Select an email provider to sign in
-          </DialogDescription>
+          <DialogDescription>Select an email provider to sign in</DialogDescription>
         </DialogHeader>
         <motion.div
           className="mt-4 grid grid-cols-2 gap-4"
@@ -62,7 +58,7 @@ export const SignInDialog = ({
               >
                 <Button
                   variant="outline"
-                  className="h-24 w-full flex-col items-center justify-center gap-2 cursor-pointer"
+                  className="h-24 w-full cursor-pointer flex-col items-center justify-center gap-2"
                   onClick={async () => {
                     toast.promise(
                       signIn.social({

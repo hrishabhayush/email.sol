@@ -1,15 +1,10 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { PurpleThickCheck } from '@/components/icons/icons';
 import { useBilling } from '@/hooks/use-billing';
 import { PricingSwitch } from './pricing-switch';
 
-import { useState, } from 'react';
 import { useQueryState } from 'nuqs';
+import { useState } from 'react';
 
 import { Badge } from './badge';
 import { toast } from 'sonner';
@@ -167,8 +162,7 @@ export function PricingDialog() {
                 <div className="flex h-5 w-5 items-start justify-start gap-3 rounded-[125px] bg-[#1F1F1F] p-[5px] dark:bg-white/10">
                   <PurpleThickCheck className="relative left-px top-px" />
                 </div>
-                <div className="justify-center text-sm font-normal leading-normal text-white lg:text-base">
-                </div>
+                <div className="justify-center text-sm font-normal leading-normal text-white lg:text-base"></div>
               </div>
             </div>
           </div>
