@@ -60,7 +60,7 @@ jobs:
             echo "No lintable files changed"
             exit 0
           fi
-          echo "$CHANGED" | xargs pnpm eslint
+          echo "$CHANGED" | xargs pnpm exec eslint
 
   build:
     name: Build
