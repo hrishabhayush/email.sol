@@ -28,17 +28,6 @@ const SidebarLabels = ({ data }: Props) => {
         <Tree className="rounded-md bg-transparent">
           {(() => {
             if (!data) return null;
-            const isMicrosoftAccount = activeAccount?.providerId === 'microsoft';
-            if (isMicrosoftAccount) {
-              return data?.map((label) => (
-                <RecursiveFolder
-                  key={label.id}
-                  label={label}
-                  activeAccount={activeAccount}
-                  count={getLabelCount(label.name)}
-                />
-              ));
-            }
 
             const groups = {
               other: [] as typeof data,

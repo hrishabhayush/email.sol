@@ -128,7 +128,7 @@ export const connection = createTable(
     accessToken: text('access_token'),
     refreshToken: text('refresh_token'),
     scope: text('scope').notNull(),
-    providerId: text('provider_id').$type<'google' | 'microsoft'>().notNull(),
+    providerId: text('provider_id').$type<'google'>().notNull(),
     expiresAt: timestamp('expires_at').notNull(),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
