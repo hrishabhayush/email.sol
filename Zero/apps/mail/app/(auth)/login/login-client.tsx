@@ -1,8 +1,8 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Suspense, useEffect, useState, type ReactNode } from 'react';
 import type { EnvVarInfo } from '@zero/server/auth-providers';
-import { Google, Microsoft } from '@/components/icons/icons';
 import ErrorMessage from '@/app/(auth)/login/error-message';
+import { Google } from '@/components/icons/icons';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/home/footer';
 import { TriangleAlert } from 'lucide-react';
@@ -40,9 +40,6 @@ const getProviderIcon = (providerId: string, className?: string): ReactNode => {
   switch (providerId) {
     case 'google':
       return <Google className={defaultClass} />;
-
-    case 'microsoft':
-      return <Microsoft className={defaultClass} />;
 
     case 'zero':
       return (

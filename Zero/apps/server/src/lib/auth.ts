@@ -376,7 +376,7 @@ const createAuthConfig = () => {
       accountLinking: {
         enabled: true,
         allowDifferentEmails: true,
-        trustedProviders: ['google', 'microsoft'],
+        trustedProviders: ['google'],
       },
     },
     onAPIError: {
