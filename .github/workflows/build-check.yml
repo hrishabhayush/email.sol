@@ -53,9 +53,9 @@ jobs:
           echo "$CHANGED" | xargs pnpm dlx oxlint@latest
 
       - name: Lint changed files (ESLint)
-        working-directory: Zero
+        working-directory: Zero/apps/mail
         run: |
-          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' | grep '^Zero/' | sed 's|^Zero/||' || true)
+          CHANGED=$(git diff --name-only --diff-filter=ACMR origin/${{ github.base_ref }}...HEAD -- '*.ts' '*.tsx' | grep '^Zero/apps/mail/' | sed 's|^Zero/apps/mail/||' || true)
           if [ -z "$CHANGED" ]; then
             echo "No lintable files changed"
             exit 0
