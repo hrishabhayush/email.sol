@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import Footer from '@/components/home/footer';
 import { createSectionId } from '@/lib/utils';
 
-import React from 'react';
 
 const LAST_UPDATED = 'March 11, 2026';
 
