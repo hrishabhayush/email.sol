@@ -1562,6 +1562,20 @@ export function EmailComposer({
                 setHasUnsavedChanges(true);
               }}
             />
+            <button
+              onClick={handleGenerateSubject}
+              disabled={isLoading || isGeneratingSubject || messageLength < 1}
+            >
+              <div className="flex items-center justify-center gap-2.5 pl-0.5">
+                <div className="flex h-5 items-center justify-center gap-1 rounded-sm">
+                  {isGeneratingSubject ? (
+                    <Loader className="h-3.5 w-3.5 animate-spin fill-black dark:fill-white" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 fill-black dark:fill-white" />
+                  )}
+                </div>
+              </div>
+            </button>
           </div>
         ) : null}
 
@@ -1799,6 +1813,32 @@ export function EmailComposer({
                 />
               ) : null}
             </AnimatePresence>
+            <Button
+              size={'xs'}
+              variant={'ghost'}
+              className="border border-[#8B5CF6]"
+              onClick={async () => {
+                if (!subjectInput.trim()) {
+                  await handleGenerateSubject();
+                }
+                setAiGeneratedMessage(null);
+                await handleAiGenerate();
+              }}
+              disabled={isLoading || aiIsLoading || messageLength < 1}
+            >
+              <div className="flex items-center justify-center gap-2.5 pl-0.5">
+                <div className="flex h-5 items-center justify-center gap-1 rounded-sm">
+                  {aiIsLoading ? (
+                    <Loader className="h-3.5 w-3.5 animate-spin fill-black dark:fill-white" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5 fill-black dark:fill-white" />
+                  )}
+                </div>
+                <div className="hidden text-center text-sm leading-none text-black md:block dark:text-white">
+                  Generate
+                </div>
+              </div>
+            </Button>
           </div>
           {/* <Tooltip>
               <TooltipTrigger asChild>
