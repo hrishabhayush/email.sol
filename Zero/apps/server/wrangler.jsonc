@@ -444,9 +444,9 @@
       ],
       "vars": {
         "NODE_ENV": "production",
-        "COOKIE_DOMAIN": "0.email",
-        "VITE_PUBLIC_BACKEND_URL": "https://api.0.email",
-        "VITE_PUBLIC_APP_URL": "https://0.email",
+        "COOKIE_DOMAIN": "solmail.xyz",
+        "VITE_PUBLIC_BACKEND_URL": "https://api.solmail.xyz",
+        "VITE_PUBLIC_APP_URL": "https://solmail.xyz",
         "DISABLE_CALLS": "true",
         "DROP_AGENT_TABLES": "false",
         "THREAD_SYNC_MAX_COUNT": "10",

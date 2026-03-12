@@ -356,10 +356,8 @@ const createAuthConfig = () => {
     baseURL: env.VITE_PUBLIC_BACKEND_URL,
     basePath: '/api/auth', //internally, better-auth client does: POST `${baseURL}${basePath}/sign-in/social`
     trustedOrigins: [
-      'https://app.0.email',
-      'https://sapi.0.email',
-      'https://staging.0.email',
-      'https://0.email',
+      'https://solmail.xyz',
+      'https://api.solmail.xyz',
       'http://localhost:3000',
       'http://localhost:8787',
     ],
