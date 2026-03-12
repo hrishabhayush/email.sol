@@ -31,6 +31,16 @@ const aboutLinks = [
     href: '/contributors',
     description: 'See the contributors to SolMail.',
   },
+  {
+    title: 'Privacy Policy',
+    href: '/privacy',
+    description: 'How we handle and protect your data.',
+  },
+  {
+    title: 'Terms of Service',
+    href: '/terms',
+    description: 'Terms and conditions for using SolMail.',
+  },
 ];
 
 interface GitHubApiResponse {

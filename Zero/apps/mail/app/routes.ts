@@ -13,6 +13,7 @@ export default [
     route('/contributors', '(full-width)/contributors.tsx'),
     route('/hr', '(full-width)/hr.tsx'),
     route('/privacy', '(full-width)/privacy.tsx'),
+    route('/terms', '(full-width)/terms.tsx'),
   ]),
 
   route('/login', '(auth)/login/page.tsx'),
