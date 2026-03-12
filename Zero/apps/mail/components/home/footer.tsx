@@ -23,6 +23,12 @@ export default function Footer() {
             >
               Privacy Policy
             </a>
+            <a
+              href="/terms"
+              className="text-xs font-medium leading-tight text-white opacity-60 transition-opacity hover:opacity-80 sm:text-sm"
+            >
+              Terms of Service
+            </a>
           </div>
 
           <div className="inline-flex items-center justify-center gap-4">
