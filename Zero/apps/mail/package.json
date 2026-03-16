@@ -13,6 +13,7 @@
     "machine-translate": "inlang machine translate --project project.inlang"
   },
   "dependencies": {
+    "@privy-io/react-auth": "^1.0.0",
     "@ai-sdk/perplexity": "1.1.9",
     "@ai-sdk/react": "1.2.12",
     "@dnd-kit/core": "6.3.1",

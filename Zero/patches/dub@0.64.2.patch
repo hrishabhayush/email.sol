@@ -1,0 +1,12 @@
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -5,8 +5,5 @@
+   "author": "Dub",
+   "type": "module",
+-  "bin": {
+-    "mcp": "bin/mcp-server.js"
+-  },
+   "tshy": {
+     "sourceDialects": [
+       "dub/source"
