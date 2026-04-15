@@ -25,6 +25,7 @@ import {
 } from '../icons/icons';
 import { PixelatedBackground, PixelatedLeft, PixelatedRight } from '@/components/home/pixelated-bg';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
+import MockInbox from '@/components/home/MockInbox';
 import { useSession, signIn } from '@/lib/auth-client';
 import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
@@ -151,14 +152,7 @@ export default function HomeContent() {
               />
               {tabs.map((tab) => (
                 <TabsContent key={tab.value} value={tab.value}>
-                  <img
-                    src="/homepagess.png"
-                    alt="Solmail Preview"
-                    width={1920}
-                    height={1080}
-                    className="relative hidden md:block"
-                    loading="eager"
-                  />
+                  <MockInbox />
                 </TabsContent>
               ))}
             </div>
@@ -167,14 +161,9 @@ export default function HomeContent() {
       </section>
 
       <div className="flex items-center justify-center px-4 md:hidden">
-        <img
-          src="/homepagess.png"
-          alt="Solmail Preview"
-          width={1920}
-          height={1080}
-          className="mt-10 h-fit w-full rounded-xl border"
-          loading="eager"
-        />
+        <div className="mt-10 w-full overflow-x-auto rounded-xl border">
+          <MockInbox />
+        </div>
       </div>
 
       <div className="relative -top-3.5 hidden h-px w-full bg-[#313135] md:block" />
