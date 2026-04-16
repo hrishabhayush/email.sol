@@ -95,8 +95,7 @@ export default function HomeContent() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mx-auto mb-4 max-w-2xl text-center text-base font-medium text-[#B7B7B7] md:text-lg"
         >
-          SolMail is an AI-powered email platform that sends micropayments upfront and refunds them
-          if replies aren't meaningful, ensuring you pay solely for successful conversations.
+          SolMail is an AI-powered email platform with micropayments on emails which incentivize meaningful responses. Pay only for successful conversations.
         </motion.p>
         {/* Get Started button only visible for mobile screens */}
         <motion.div

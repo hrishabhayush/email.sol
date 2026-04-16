@@ -205,28 +205,25 @@ function StarIcon({ filled }: { filled?: boolean }) {
 
 function ReplyIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 17 4 12 9 7" />
-      <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="#9B9B9B" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" clipRule="evenodd" d="M10.5 7.75C10.5 6.23122 9.26878 5 7.75 5H2.56066L4.78033 7.21967C5.07322 7.51256 5.07322 7.98744 4.78033 8.28033C4.48744 8.57322 4.01256 8.57322 3.71967 8.28033L0.21967 4.78033C-0.0732234 4.48744 -0.0732233 4.01256 0.21967 3.71967L3.71967 0.21967C4.01256 -0.0732233 4.48744 -0.0732233 4.78033 0.21967C5.07322 0.512563 5.07322 0.987437 4.78033 1.28033L2.56066 3.5L7.75 3.5C10.0972 3.5 12 5.40279 12 7.75C12 10.0972 10.0972 12 7.75 12H6.75C6.33579 12 6 11.6642 6 11.25C6 10.8358 6.33579 10.5 6.75 10.5H7.75C9.26878 10.5 10.5 9.26878 10.5 7.75Z" />
     </svg>
   );
 }
 
 function ReplyAllIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="7 17 2 12 7 7" />
-      <polyline points="12 17 7 12 12 7" />
-      <path d="M22 18v-2a4 4 0 0 0-4-4H7" />
+    <svg width="17" height="17" viewBox="0 0 16 16" fill="#9B9B9B" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" clipRule="evenodd" d="M14 9.75C14 8.23122 12.7688 7 11.25 7H7.56066L9.78033 9.21967C10.0732 9.51256 10.0732 9.98744 9.78033 10.2803C9.48744 10.5732 9.01256 10.5732 8.71967 10.2803L5.21967 6.78033C4.92678 6.48744 4.92678 6.01256 5.21967 5.71967L8.71967 2.21967C9.01256 1.92678 9.48744 1.92678 9.78033 2.21967C10.0732 2.51256 10.0732 2.98744 9.78033 3.28033L7.56066 5.5H11.25C13.5972 5.5 15.5 7.40279 15.5 9.75C15.5 12.0972 13.5972 14 11.25 14H10.25C9.83579 14 9.5 13.6642 9.5 13.25C9.5 12.8358 9.83579 12.5 10.25 12.5H11.25C12.7688 12.5 14 11.2688 14 9.75Z" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M1.21967 6.78033C0.926777 6.48744 0.926777 6.01256 1.21967 5.71967L4.71967 2.21967C5.01256 1.92678 5.48744 1.92678 5.78033 2.21967C6.07322 2.51256 6.07322 2.98744 5.78033 3.28033L3.06066 6L5.78033 8.71967C6.07322 9.01256 6.07322 9.48744 5.78033 9.78033C5.48744 10.0732 5.01256 10.0732 4.71967 9.78033L1.21967 6.78033Z" />
     </svg>
   );
 }
 
 function ForwardIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="15 17 20 12 15 7" />
-      <path d="M4 18v-2a4 4 0 0 1 4-4h12" />
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="#9B9B9B" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" clipRule="evenodd" d="M0 6C-1.81059e-08 5.58579 0.335786 5.25 0.75 5.25L9.43934 5.25L6.21967 2.03033C5.92678 1.73744 5.92678 1.26256 6.21967 0.96967C6.51256 0.676777 6.98744 0.676777 7.28033 0.96967L11.7803 5.46967C12.0732 5.76256 12.0732 6.23744 11.7803 6.53033L7.28033 11.0303C6.98744 11.3232 6.51256 11.3232 6.21967 11.0303C5.92678 10.7374 5.92678 10.2626 6.21967 9.96967L9.43934 6.75L0.75 6.75C0.335786 6.75 1.81059e-08 6.41421 0 6Z" />
     </svg>
   );
 }
@@ -243,7 +240,7 @@ function PencilComposeIcon() {
 export default function MockInbox() {
   return (
     <div className="pointer-events-none select-none overflow-hidden rounded-2xl border border-[#2B2B2B] bg-[#141414] font-sans shadow-2xl" style={{ fontFamily: 'var(--font-geist-sans, "Geist Variable", "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif)' }}>
-      <div className="flex h-[620px]">
+      <div className="flex h-[680px]">
         {/* Sidebar */}
         <div className="flex h-full w-[180px] shrink-0 flex-col border-r border-[#2B2B2B] bg-[#1A1A1A]">
           {/* Logo row */}
@@ -337,12 +334,27 @@ export default function MockInbox() {
         <div className="flex w-[300px] shrink-0 flex-col border-r border-[#2B2B2B] bg-[#1A1A1A]">
           {/* Search Bar */}
           <div className="flex items-center gap-2 border-b border-[#2B2B2B] px-3 py-2.5">
+            {/* PanelLeftOpen */}
+            <svg width="14" height="12" viewBox="0 0 14 12" fill="#898989" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" clipRule="evenodd" d="M4.8 12C3.11984 12 2.27976 12 1.63803 11.673C1.07354 11.3854 0.614601 10.9265 0.32698 10.362C0 9.72024 0 8.88016 0 7.2V4.8C0 3.11984 0 2.27976 0.32698 1.63803C0.614601 1.07354 1.07354 0.614601 1.63803 0.32698C2.27976 0 3.11984 0 4.8 0H9.2C10.8802 0 11.7202 0 12.362 0.32698C12.9265 0.614601 13.3854 1.07354 13.673 1.63803C14 2.27976 14 3.11984 14 4.8V7.2C14 8.88016 14 9.72024 13.673 10.362C13.3854 10.9265 12.9265 11.3854 12.362 11.673C11.7202 12 10.8802 12 9.2 12H4.8ZM10.1 1.5C10.9401 1.5 11.3601 1.5 11.681 1.66349C11.9632 1.8073 12.1927 2.03677 12.3365 2.31901C12.5 2.63988 12.5 3.05992 12.5 3.9V8.1C12.5 8.94008 12.5 9.36012 12.3365 9.68099C12.1927 9.96323 11.9632 10.1927 11.681 10.3365C11.3601 10.5 10.9401 10.5 10.1 10.5H9.9C9.05992 10.5 8.63988 10.5 8.31901 10.3365C8.03677 10.1927 7.8073 9.96323 7.66349 9.68099C7.5 9.36012 7.5 8.94008 7.5 8.1V3.9C7.5 3.05992 7.5 2.63988 7.66349 2.31901C7.8073 2.03677 8.03677 1.8073 8.31901 1.66349C8.63988 1.5 9.05992 1.5 9.9 1.5H10.1ZM1.96094 2.82422C1.96094 2.47904 2.24076 2.19922 2.58594 2.19922H4.08594C4.43112 2.19922 4.71094 2.47904 4.71094 2.82422C4.71094 3.1694 4.43112 3.44922 4.08594 3.44922H2.58594C2.24076 3.44922 1.96094 3.1694 1.96094 2.82422ZM2.58594 4.19531C2.24076 4.19531 1.96094 4.47513 1.96094 4.82031C1.96094 5.16549 2.24076 5.44531 2.58594 5.44531H4.08594C4.43112 5.44531 4.71094 5.16549 4.71094 4.82031C4.71094 4.47513 4.43112 4.19531 4.08594 4.19531H2.58594Z" />
+            </svg>
             <SearchIcon />
             <span className="text-xs text-[#71717A]">Search</span>
             <div className="ml-auto flex items-center gap-2">
-              <span className="rounded-md border border-[#2B2B2B] px-2 py-0.5 text-xs text-[#898989]">
-                Categories
-              </span>
+              <div className="flex items-center gap-1 rounded-md border border-[#2B2B2B] px-2 py-1 text-xs text-[#898989]">
+                <span>Categories</span>
+                {/* ChevronDown */}
+                <svg width="8" height="6" viewBox="0 0 8 6" fill="#898989" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M0.21967 0.84467C0.512563 0.551777 0.987437 0.551777 1.28033 0.84467L4 3.56434L6.71967 0.844671C7.01256 0.551778 7.48744 0.551778 7.78033 0.844671C8.07322 1.13756 8.07322 1.61244 7.78033 1.90533L4.53033 5.15533C4.23744 5.44822 3.76256 5.44822 3.46967 5.15533L0.21967 1.90533C-0.0732233 1.61244 -0.0732233 1.13756 0.21967 0.84467Z" />
+                </svg>
+              </div>
+              {/* RefreshCcw */}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#898989" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#898989]">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 16h5v5" />
+              </svg>
             </div>
           </div>
 
@@ -424,6 +436,10 @@ export default function MockInbox() {
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="#9B9B9B"><path fillRule="evenodd" clipRule="evenodd" d="M10.5 7.75C10.5 6.23122 9.26878 5 7.75 5H2.56066L4.78033 7.21967C5.07322 7.51256 5.07322 7.98744 4.78033 8.28033C4.48744 8.57322 4.01256 8.57322 3.71967 8.28033L0.21967 4.78033C-0.0732234 4.48744 -0.0732233 4.01256 0.21967 3.71967L3.71967 0.21967C4.01256 -0.0732233 4.48744 -0.0732233 4.78033 0.21967C5.07322 0.512563 5.07322 0.987437 4.78033 1.28033L2.56066 3.5L7.75 3.5C10.0972 3.5 12 5.40279 12 7.75C12 10.0972 10.0972 12 7.75 12H6.75C6.33579 12 6 11.6642 6 11.25C6 10.8358 6.33579 10.5 6.75 10.5H7.75C9.26878 10.5 10.5 9.26878 10.5 7.75Z" /></svg>
                 <span className="whitespace-nowrap pl-0.5 pr-1 text-sm leading-none text-white">Reply all</span>
               </div>
+              {/* Copy/Notes */}
+              <div className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#313131]">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#898989" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+              </div>
               {/* Star */}
               <div className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#313131]">
                 <svg width="20" height="20" viewBox="0 0 28 28" fill="transparent" stroke="#9D9D9D" strokeWidth="1.5"><path fillRule="evenodd" clipRule="evenodd" d="M10.7881 3.21068C11.2365 2.13274 12.7635 2.13273 13.2119 3.21068L15.2938 8.2164L20.6979 8.64964C21.8617 8.74293 22.3336 10.1952 21.4469 10.9547L17.3296 14.4817L18.5875 19.7551C18.8584 20.8908 17.623 21.7883 16.6267 21.1798L12 18.3538L7.37334 21.1798C6.37703 21.7883 5.14163 20.8908 5.41252 19.7551L6.67043 14.4817L2.55309 10.9547C1.66645 10.1952 2.13832 8.74293 3.30206 8.64964L8.70615 8.2164L10.7881 3.21068Z" /></svg>
@@ -469,7 +485,13 @@ export default function MockInbox() {
                     <span className="text-xs text-[#898989]">To: You</span>
                   </div>
                 </div>
-                <span className="text-xs text-[#8C8C8C]">Apr 15, 2:45 PM</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-[#8C8C8C]">Dec 04</span>
+                  <span className="text-xs text-[#8C8C8C]">11:47 PM</span>
+                  <div className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#313131]">
+                    <svg width="12" height="4" viewBox="0 0 12 4" fill="#898989"><path d="M0 2C0 1.17157 0.671573 0.5 1.5 0.5C2.32843 0.5 3 1.17157 3 2C3 2.82843 2.32843 3.5 1.5 3.5C0.671573 3.5 0 2.82843 0 2Z" /><path d="M4.5 2C4.5 1.17157 5.17157 0.5 6 0.5C6.82843 0.5 7.5 1.17157 7.5 2C7.5 2.82843 6.82843 3.5 6 3.5C5.17157 3.5 4.5 2.82843 4.5 2Z" /><path d="M10.5 0.5C9.67157 0.5 9 1.17157 9 2C9 2.82843 9.67157 3.5 10.5 3.5C11.3284 3.5 12 2.82843 12 2C12 1.17157 11.3284 0.5 10.5 0.5Z" /></svg>
+                  </div>
+                </div>
               </div>
 
               <div className="mt-3 space-y-2 text-sm leading-relaxed text-[#D0D0D0]">
