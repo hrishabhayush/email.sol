@@ -27,62 +27,6 @@ jobs:
 
       - run: cd Zero && pnpm install --frozen-lockfile
 
-      - name: Patch wrangler config for solmail.xyz
-        run: |
-          cd Zero/apps/server
-
-          # Replace production vars with solmail.xyz values
-          node -e "
-            const fs = require('fs');
-            let config = fs.readFileSync('wrangler.jsonc', 'utf8');
-
-            // Update all environment vars (replaceAll to hit both staging and production)
-            config = config.replaceAll('\"COOKIE_DOMAIN\": \"0.email\"', '\"COOKIE_DOMAIN\": \"solmail.xyz\"');
-            config = config.replaceAll('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
-            config = config.replaceAll('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
-
-            // Update Hyperdrive ID
-            config = config.replace('\"id\": \"b1be316b45fb439a9e54b74ecc20aa21\"', '\"id\": \"${{ secrets.CF_HYPERDRIVE_ID }}\"');
-
-            // Update production KV namespace IDs
-            const kvReplacements = {
-              '10005d74e84f4f18a17c9618d9e9cecf': '${{ secrets.CF_KV_GMAIL_HISTORY_ID }}',
-              '3348ff0976284269a8d8a5e6e4c04c56': '${{ secrets.CF_KV_GMAIL_PROCESSING_THREADS }}',
-              '5902b3b948ff4c4ba1aedbbbbe25503d': '${{ secrets.CF_KV_SUBSCRIBED_ACCOUNTS }}',
-              '9a13290a55ad4f62824c67005dd66f6f': '${{ secrets.CF_KV_CONNECTION_LABELS }}',
-              '2a4ebda553f3456085cfcf92cc0f570f': '${{ secrets.CF_KV_PROMPTS_STORAGE }}',
-              '0591e91fffcc4675aaf00f909bee77d2': '${{ secrets.CF_KV_GMAIL_SUB_AGE }}',
-              'f0952e9c3b024cb499c4b9dfe8bb603e': '${{ secrets.CF_KV_SNOOZED_EMAILS }}',
-            };
-            for (const [oldId, newId] of Object.entries(kvReplacements)) {
-              config = config.replace(oldId, newId);
-            }
-
-            // Fix Durable Objects migrations for free plan
-            const prodMigrations = config.indexOf('\"migrations\"', config.indexOf('\"production\"'));
-            const migrationsStart = config.indexOf('[', prodMigrations);
-            const migrationsEnd = findMatchingBracket(config, migrationsStart);
-            config = config.substring(0, migrationsStart) +
-              '[{\"tag\": \"v1\", \"new_sqlite_classes\": [\"ZeroAgent\", \"ZeroMCP\", \"ZeroDB\", \"ZeroDriver\", \"ThinkingMCP\", \"WorkflowRunner\"]}]' +
-              config.substring(migrationsEnd + 1);
-
-            function findMatchingBracket(str, start) {
-              let depth = 0;
-              for (let i = start; i < str.length; i++) {
-                if (str[i] === '[') depth++;
-                if (str[i] === ']') { depth--; if (depth === 0) return i; }
-              }
-              return -1;
-            }
-
-            fs.writeFileSync('wrangler.jsonc', config);
-          "
-
-      - name: Patch trusted origins
-        run: |
-          cd Zero/apps/server
-          sed -i "s|'https://app.0.email',|'https://app.0.email',\n      'https://solmail.xyz',\n      'https://api.solmail.xyz',|" src/lib/auth.ts
-
       - name: Deploy backend
         uses: cloudflare/wrangler-action@v3
         with:
@@ -108,17 +52,6 @@ jobs:
           cache-dependency-path: Zero/pnpm-lock.yaml
 
       - run: cd Zero && pnpm install --frozen-lockfile
-
-      - name: Patch wrangler config for solmail.xyz
-        run: |
-          cd Zero/apps/mail
-          node -e "
-            const fs = require('fs');
-            let config = fs.readFileSync('wrangler.jsonc', 'utf8');
-            config = config.replaceAll('\"VITE_PUBLIC_BACKEND_URL\": \"https://api.0.email\"', '\"VITE_PUBLIC_BACKEND_URL\": \"https://api.solmail.xyz\"');
-            config = config.replaceAll('\"VITE_PUBLIC_APP_URL\": \"https://0.email\"', '\"VITE_PUBLIC_APP_URL\": \"https://solmail.xyz\"');
-            fs.writeFileSync('wrangler.jsonc', config);
-          "
 
       - name: Build frontend
         working-directory: Zero
