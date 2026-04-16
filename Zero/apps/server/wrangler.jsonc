@@ -76,7 +76,7 @@
       "migrations": [
         {
           "tag": "v1",
-          "new_classes": ["DurableMailbox"],
+          "new_sqlite_classes": ["DurableMailbox"],
         },
         {
           "tag": "v2",
@@ -84,7 +84,7 @@
         },
         {
           "tag": "v3",
-          "new_classes": ["ZeroDB"],
+          "new_sqlite_classes": ["ZeroDB"],
         },
         {
           "tag": "v4",
@@ -244,7 +244,7 @@
       "migrations": [
         {
           "tag": "v1",
-          "new_classes": ["DurableMailbox"],
+          "new_sqlite_classes": ["DurableMailbox"],
         },
         {
           "tag": "v2",
@@ -252,7 +252,7 @@
         },
         {
           "tag": "v3",
-          "new_classes": ["ZeroDB"],
+          "new_sqlite_classes": ["ZeroDB"],
         },
         {
           "tag": "v4",
@@ -356,7 +356,7 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "b1be316b45fb439a9e54b74ecc20aa21",
+          "id": "e5447d3fb5d347028ce0b9eda42d8f3a",
           "localConnectionString": "postgresql://postgres:postgres@localhost:5432/zerodotemail",
         },
       ],
@@ -411,7 +411,7 @@
       "migrations": [
         {
           "tag": "v1",
-          "new_classes": ["DurableMailbox"],
+          "new_sqlite_classes": ["DurableMailbox"],
         },
         {
           "tag": "v2",
@@ -419,26 +419,22 @@
         },
         {
           "tag": "v3",
-          "new_classes": ["ZeroDB"],
+          "new_sqlite_classes": ["ZeroDB"],
         },
         {
           "tag": "v4",
-          "new_sqlite_classes": ["ZeroAgent"],
-        },
-        {
-          "tag": "v5",
           "deleted_classes": ["DurableMailbox"],
         },
         {
-          "tag": "v6",
+          "tag": "v5",
           "new_sqlite_classes": ["ZeroDriver"],
         },
         {
-          "tag": "v7",
+          "tag": "v6",
           "new_sqlite_classes": ["ThinkingMCP"],
         },
         {
-          "tag": "v8",
+          "tag": "v7",
           "new_sqlite_classes": ["WorkflowRunner"],
         },
       ],
@@ -456,31 +452,31 @@
       "kv_namespaces": [
         {
           "binding": "gmail_history_id",
-          "id": "10005d74e84f4f18a17c9618d9e9cecf",
+          "id": "a2c3ab55804c4e5a8eaee7a151c3fe90",
         },
         {
           "binding": "gmail_processing_threads",
-          "id": "3348ff0976284269a8d8a5e6e4c04c56",
+          "id": "3824c6026ac64ee78294c83cb18de0dc",
         },
         {
           "binding": "subscribed_accounts",
-          "id": "5902b3b948ff4c4ba1aedbbbbe25503d",
+          "id": "89f04d74448c462faa85c7030c90a575",
         },
         {
           "binding": "connection_labels",
-          "id": "9a13290a55ad4f62824c67005dd66f6f",
+          "id": "ef68d0f236b949a1b6a836ecdc8d84bc",
         },
         {
           "binding": "prompts_storage",
-          "id": "2a4ebda553f3456085cfcf92cc0f570f",
+          "id": "cddc98745f78473891032dd94e66f360",
         },
         {
           "binding": "gmail_sub_age",
-          "id": "0591e91fffcc4675aaf00f909bee77d2",
+          "id": "9f161276c2cf4580ac87623e02719f6a",
         },
         {
           "binding": "snoozed_emails",
-          "id": "f0952e9c3b024cb499c4b9dfe8bb603e",
+          "id": "0f50936b14a04bfda6c268330777b27f",
         },
       ],
     },
